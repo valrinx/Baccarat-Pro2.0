@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Baccarat Pro — Q-Learning AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Sarabun:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <style>
 :root{
   --gold:#c9a84c;--gold-dim:#8a6f2e;--gold-glow:rgba(201,168,76,0.25);
@@ -312,6 +313,44 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   border-top:1px solid var(--border);margin-top:8px}
 .card-toggle-lbl:hover{color:var(--gold)}
 
+/* TRAINING DASHBOARD */
+.train-dash{margin:8px 14px 0;background:var(--surface);border:1px solid rgba(201,168,76,.3);border-radius:8px;padding:10px 12px;display:none}
+.train-dash.show{display:block}
+.train-dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.train-dash-title{font-family:'Cinzel',serif;font-size:8px;letter-spacing:.18em;color:var(--gold-dim)}
+.train-dash-status{font-family:'Cinzel',serif;font-size:8px;letter-spacing:.1em;padding:3px 8px;border-radius:4px;border:1px solid}
+.train-dash-status.running{color:var(--green-pos);border-color:rgba(34,197,94,.35);background:rgba(34,197,94,.1)}
+.train-dash-status.done{color:var(--gold);border-color:rgba(201,168,76,.35);background:rgba(201,168,76,.08)}
+.train-dash-status.idle{color:var(--dim);border-color:rgba(122,109,88,.35)}
+.train-dash-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+.tstat-box{background:var(--surface2);border:1px solid var(--border);border-radius:5px;padding:6px;text-align:center}
+.tstat-box .tv{font-family:'Cinzel',serif;font-size:13px;font-weight:700;color:var(--gold)}
+.tstat-box .tl{font-size:7px;color:var(--dim);letter-spacing:.06em;margin-top:2px}
+.train-dash-mini-chart{height:40px;background:var(--surface2);border:1px solid var(--border);border-radius:5px;overflow:hidden;margin-bottom:8px;position:relative}
+.train-dash-canvas{width:100%;height:100%;display:block}
+.train-dash-baselines{margin-bottom:8px}
+.train-dash-baselines-title{font-family:'Cinzel',serif;font-size:7px;letter-spacing:.1em;color:var(--dim);margin-bottom:4px}
+.train-dash-baselines-row{display:flex;gap:6px}
+.train-dash-baselines-row .bl{font-size:8px;color:var(--dim);flex:1}
+.train-dash-baselines-row .bp{font-family:'Cinzel',serif;font-size:9px;font-weight:700}
+.train-dash-baselines-row .bp.pos{color:var(--green-pos)}
+.train-dash-baselines-row .bp.neg{color:var(--red-neg)}
+.train-dash-vs{margin-bottom:8px;padding:6px 8px;background:rgba(0,0,0,.2);border-radius:5px;border:1px solid var(--border)}
+.train-dash-vs-title{font-family:'Cinzel',serif;font-size:7px;letter-spacing:.1em;color:var(--dim);margin-bottom:4px}
+.train-dash-vs-row{display:flex;justify-content:space-between;align-items:center}
+.train-dash-vs-label{font-size:8px;color:var(--text)}
+.train-dash-vs-value{font-family:'Cinzel',serif;font-size:12px;font-weight:700}
+.train-dash-vs-value.win{color:var(--green-pos)}
+.train-dash-vs-value.lose{color:var(--red-neg)}
+.train-dash-controls{display:flex;gap:6px;flex-wrap:wrap}
+.train-dash-controls input{background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:10px;padding:5px 8px;width:70px;outline:none}
+.train-dash-controls input:focus{border-color:var(--gold)}
+.train-dash-controls label{font-size:8px;color:var(--dim);display:flex;align-items:center;gap:4px}
+.train-dash-progress{margin-bottom:8px;height:4px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.train-dash-progress-bar{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));transition:width .3s;border-radius:2px}
+.train-dash-msg{font-size:8px;color:var(--dim);text-align:center;padding:4px}
+.train-dash-msg .err{color:var(--red-neg)}
+
 /* MODAL */
 .modal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);
   align-items:center;justify-content:center;display:none}
@@ -364,6 +403,47 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 <!-- ====== TAB 0: DEAL ====== -->
 <div class="page active" id="page0">
 
+  <!-- TRAINING DASHBOARD -->
+  <div class="train-dash" id="trainDash">
+    <div class="train-dash-header">
+      <div class="train-dash-title">◆ AI SELF-TRAINING</div>
+      <div class="train-dash-status idle" id="trainStatus">IDLE</div>
+    </div>
+    <div class="train-dash-progress" id="trainProgress"><div class="train-dash-progress-bar" id="trainProgressBar" style="width:0%"></div></div>
+    <div class="train-dash-stats">
+      <div class="tstat-box"><div class="tv" id="trainWinRate">—</div><div class="tl">WIN RATE</div></div>
+      <div class="tstat-box"><div class="tv" id="trainPnl">—</div><div class="tl">P&L</div></div>
+      <div class="tstat-box"><div class="tv" id="trainRounds">0</div><div class="tl">ROUNDS</div></div>
+      <div class="tstat-box"><div class="tv" id="trainEpsilon">—</div><div class="tl">EPSILON</div></div>
+    </div>
+    <div class="train-dash-mini-chart"><canvas class="train-dash-canvas" id="trainChart" width="200" height="40"></canvas></div>
+    <div class="train-dash-baselines" id="trainBaselines" style="display:none">
+      <div class="train-dash-baselines-title">BASELINES</div>
+      <div class="train-dash-baselines-row">
+        <div class="bl">always-bank</div>
+        <div class="bp neg" id="trainBlBank">—</div>
+      </div>
+      <div class="train-dash-baselines-row">
+        <div class="bl">always-play</div>
+        <div class="bp" id="trainBlPlay">—</div>
+      </div>
+    </div>
+    <div class="train-dash-vs" id="trainVsRow" style="display:none">
+      <div class="train-dash-vs-title">VS ALWAYS-PLAY</div>
+      <div class="train-dash-vs-row">
+        <div class="train-dash-vs-label">AI vs Baseline</div>
+        <div class="train-dash-vs-value" id="trainVsValue">—</div>
+      </div>
+    </div>
+    <div class="train-dash-controls">
+      <label>Rounds<input type="number" id="trainRoundsInput" value="2000" min="500" max="50000" step="500"></label>
+      <label>Seed<input type="number" id="trainSeedInput" value="42" min="1" max="99999"></label>
+      <button class="bsbtn" id="trainStartBtn" onclick="startTraining()" style="flex:1;padding:6px 4px;border-color:var(--green-pos);color:var(--green-pos)">START</button>
+      <button class="bsbtn" id="trainStopBtn" onclick="stopTraining()" style="flex:1;padding:6px 4px;border-color:var(--red-neg);color:var(--red-neg)" disabled>STOP</button>
+    </div>
+    <div class="train-dash-msg" id="trainMsg"></div>
+  </div>
+
   <!-- BET PLACEMENT -->
   <div class="bet-place" style="margin:10px 14px 0">
     <div class="bptitle">◆ วางเดิมพัน</div>
@@ -380,6 +460,10 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
         <span class="auto-lbl" id="trainingLbl">TRAINING MODE: OFF</span>
       </div>
       <span style="font-size:8px;color:var(--dim);font-family:'Cinzel',serif" id="trainingHint">learn only · no P&L</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:4px">
+      <button onclick="toggleTrainDash()" id="trainDashToggle" style="background:none;border:none;color:var(--dim);font-size:8px;font-family:'Cinzel',serif;letter-spacing:.1em;cursor:pointer;padding:2px 4px">▼ AI TRAINING PANEL</button>
+      <span style="font-size:8px;color:var(--dim)" id="trainDashToggleHint"></span>
     </div>
     <div class="mm-row" id="betControlsRow">
       <div class="mmbtn on" id="mmFlat" onclick="setMoneyMgmt('flat')">แทงคงที่ (Flat)</div>
@@ -2127,6 +2211,389 @@ function loadCurrent(){
 // Init
 loadQTable();
 buildGrid();renderHands();loadCurrent();
+
+// ======================================================
+// TRAINING DASHBOARD — self-train AI in browser
+// ======================================================
+
+let _td = {
+  running: false,
+  stop: false,
+  interval: null,
+  chartData: [],
+  maxPoints: 50
+};
+
+function toggleTrainDash() {
+  const el = document.getElementById('trainDash');
+  const btn = document.getElementById('trainDashToggle');
+  const vis = el.classList.toggle('show');
+  btn.textContent = vis ? '▲ AI TRAINING PANEL' : '▼ AI TRAINING PANEL';
+}
+
+function _fmtN(n) {
+  return (n >= 0 ? '+' : '') + Math.round(n).toLocaleString();
+}
+
+function _pct(n) {
+  return Math.round(n * 100) + '%';
+}
+
+function _cls(n) { return n > 0 ? 'pos' : n < 0 ? 'neg' : ''; }
+
+function drawTrainChart() {
+  const canvas = document.getElementById('trainChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  const data = _td.chartData;
+  if (data.length < 2) return;
+
+  const max = Math.max(...data.map(d => d.winRate), 0.7);
+  const min = Math.min(...data.map(d => d.winRate), 0.3);
+  const range = max - min || 0.1;
+
+  const getY = (v) => H - ((v - min) / range) * (H - 8) - 4;
+
+  // Draw line
+  ctx.beginPath();
+  ctx.strokeStyle = '#c9a84c';
+  ctx.lineWidth = 1.5;
+  data.forEach((d, i) => {
+    const x = (i / (_td.maxPoints - 1)) * W;
+    const y = getY(d.winRate);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Fill under
+  ctx.fillStyle = 'rgba(201,168,76,0.1)';
+  ctx.beginPath();
+  data.forEach((d, i) => {
+    const x = (i / (_td.maxPoints - 1)) * W;
+    const y = getY(d.winRate);
+    if (i === 0) ctx.moveTo(x, H);
+    else ctx.lineTo(x, y);
+  });
+  ctx.lineTo(W, H);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function updateTrainDashUI(stats) {
+  if (!stats) return;
+  const { winRate, pnl, rounds, epsilon, converged, baselines, testPnl } = stats;
+
+  document.getElementById('trainWinRate').textContent = winRate != null ? _pct(winRate) : '—';
+  document.getElementById('trainPnl').textContent = pnl != null ? _fmtN(pnl) : '—';
+  document.getElementById('trainRounds').textContent = rounds != null ? rounds : '0';
+  document.getElementById('trainEpsilon').textContent = epsilon != null ? epsilon.toFixed(3) : '—';
+
+  // Progress bar (approximate based on rounds)
+  const roundsInput = parseInt(document.getElementById('trainRoundsInput').value) || 2000;
+  const pct = Math.min(100, (rounds / roundsInput) * 100);
+  const bar = document.getElementById('trainProgressBar');
+  if (bar) bar.style.width = pct + '%';
+
+  // Chart
+  _td.chartData.push({ winRate });
+  if (_td.chartData.length > _td.maxPoints) _td.chartData.shift();
+  drawTrainChart();
+
+  // Baselines
+  if (baselines) {
+    const blEl = document.getElementById('trainBaselines');
+    if (blEl) blEl.style.display = 'block';
+    const bankEl = document.getElementById('trainBlBank');
+    if (bankEl) {
+      bankEl.textContent = _fmtN(baselines['always-bank']?.pnl);
+      bankEl.className = 'bp ' + _cls(baselines['always-bank']?.pnl);
+    }
+    const playEl = document.getElementById('trainBlPlay');
+    if (playEl) {
+      playEl.textContent = _fmtN(baselines['always-play']?.pnl);
+      playEl.className = 'bp ' + _cls(baselines['always-play']?.pnl);
+    }
+  }
+
+  // VS row
+  if (testPnl != null && baselines) {
+    const vsEl = document.getElementById('trainVsRow');
+    if (vsEl) vsEl.style.display = 'block';
+    const vsVal = document.getElementById('trainVsValue');
+    if (vsVal) {
+      const diff = testPnl - (baselines['always-play']?.pnl || 0);
+      vsVal.textContent = diff >= 0 ? 'WIN +' + _fmtN(diff) : 'LOSE ' + _fmtN(diff);
+      vsVal.className = 'train-dash-vs-value ' + (diff >= 0 ? 'win' : 'lose');
+    }
+  }
+
+  // Status
+  const statusEl = document.getElementById('trainStatus');
+  if (converged) {
+    statusEl.textContent = 'CONVERGED';
+    statusEl.className = 'train-dash-status done';
+  }
+}
+
+function generateSequence(rounds, seed) {
+  let state = (seed >>> 0);
+  const rng = () => {
+    state = (1664525 * state + 1013904223) >>> 0;
+    return state / 2 ** 32;
+  };
+  const BANKER = 'B', PLAYER = 'P', SKIP = 'T';
+  let last = rng() < 0.5 ? BANKER : PLAYER;
+  let streak = 1;
+  const history = [];
+  for (let i = 0; i < rounds; i++) {
+    const roll = rng();
+    let next;
+    if (streak >= 4 && roll < 0.32) {
+      next = last === BANKER ? PLAYER : BANKER;
+    } else if (roll < 0.56) {
+      next = last;
+    } else if (roll < 0.83) {
+      next = last === BANKER ? PLAYER : BANKER;
+    } else {
+      const r2 = rng();
+      next = r2 < 0.48 ? BANKER : r2 < 0.96 ? PLAYER : SKIP;
+    }
+    if (next === last) streak++;
+    else streak = 1;
+    if (next !== SKIP) last = next;
+    history.push(next);
+  }
+  return history;
+}
+
+function encodeState(history) {
+  const h = history.filter(x => x !== 'T');
+  if (h.length < 2) return Array(10).fill(0);
+  const bc = h.filter(x => x === 'B').length;
+  const pc = h.length - bc;
+  const total = h.length;
+  const last = h[h.length - 1];
+  let sl = 1;
+  for (let i = h.length - 2; i >= 0; i--) {
+    if (h[i] === last) sl++;
+    else break;
+  }
+  const chop = h.slice(-10).reduce((acc, item, idx, arr) => {
+    if (idx === 0) return acc;
+    if (item !== arr[idx - 1] && item !== 'T' && arr[idx - 1] !== 'T') return acc + 1;
+    return acc;
+  }, 0) / Math.max(1, Math.min(10, h.length - 1));
+  const br = bc / total;
+  const mb = Math.abs(br - pc / total);
+  return [
+    h[h.length - 1] === h[h.length - 2] ? 1 : 0,
+    Math.min(1, sl / 10),
+    Math.min(1, br),
+    Math.min(1, chop),
+    Math.min(1, chop * 0.5 + mb * 0.5),
+    Math.min(1, chop * 0.7 + mb * 0.3),
+    Math.min(1, 1 / Math.max(1, sl)),
+    Math.min(1, h.length / 60),
+    Math.min(1, Math.max(br, pc / total) * (1 - chop)),
+    Math.min(1, mb)
+  ];
+}
+
+function payoutFor(bet, actual, stake) {
+  if (bet === 'T' || actual === 'T') return 0;
+  if (bet === actual) return bet === 'B' ? Math.floor(stake * 0.95) : stake;
+  return -stake;
+}
+
+async function startTraining() {
+  if (_td.running) return;
+
+  const rounds = Math.max(500, parseInt(document.getElementById('trainRoundsInput').value) || 2000);
+  const seed = parseInt(document.getElementById('trainSeedInput').value) || 42;
+
+  _td.running = true;
+  _td.stop = false;
+  _td.chartData = [];
+
+  // UI state
+  document.getElementById('trainStartBtn').disabled = true;
+  document.getElementById('trainStopBtn').disabled = false;
+  const statusEl = document.getElementById('trainStatus');
+  statusEl.textContent = 'TRAINING...';
+  statusEl.className = 'train-dash-status running';
+  document.getElementById('trainMsg').textContent = '';
+  document.getElementById('trainBaselines').style.display = 'none';
+  document.getElementById('trainVsRow').style.display = 'none';
+  document.getElementById('trainProgressBar').style.width = '0%';
+
+  // Init TensorFlow
+  let model, targetModel;
+  try {
+    await tf.ready();
+    model = tf.sequential();
+    model.add(tf.layers.dense({ inputShape: [10], units: 64, activation: 'relu' }));
+    model.add(tf.layers.dropout({ rate: 0.1 }));
+    model.add(tf.layers.dense({ units: 64, activation: 'relu' }));
+    model.add(tf.layers.dense({ units: 3, activation: 'linear' }));
+    model.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
+
+    targetModel = tf.sequential();
+    targetModel.add(tf.layers.dense({ inputShape: [10], units: 64, activation: 'relu' }));
+    targetModel.add(tf.layers.dropout({ rate: 0.1 }));
+    targetModel.add(tf.layers.dense({ units: 64, activation: 'relu' }));
+    targetModel.add(tf.layers.dense({ units: 3, activation: 'linear' }));
+    targetModel.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
+  } catch (e) {
+    document.getElementById('trainMsg').innerHTML = '<span class="err">TensorFlow init failed: ' + e.message + '</span>';
+    _td.running = false;
+    document.getElementById('trainStartBtn').disabled = false;
+    document.getElementById('trainStopBtn').disabled = true;
+    statusEl.textContent = 'ERROR';
+    statusEl.className = 'train-dash-status idle';
+    return;
+  }
+
+  // Memory
+  const memory = [];
+  const ACTIONS = ['B', 'P', 'T'];
+  let epsilon = 1.0, epsilonMin = 0.05, epsilonDecay = 0.9995;
+  const gamma = 0.95;
+  const trainStart = Math.min(20, Math.floor(rounds * 0.1));
+  const trainEnd = Math.floor(rounds * 0.8);
+  const batchSize = 32;
+
+  const history = generateSequence(rounds, seed);
+  const rollingWindow = [];
+  let cumulativePnl = 0;
+
+  const msgEl = document.getElementById('trainMsg');
+  msgEl.textContent = 'Generating sequence...';
+
+  try {
+    for (let i = trainStart; i <= trainEnd; i++) {
+      if (_td.stop) break;
+
+      const state = encodeState(history.slice(0, i));
+      const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
+
+      let action;
+      if (Math.random() < epsilon) {
+        action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+      } else {
+        const idx = qVals[0] >= qVals[1] ? (qVals[0] >= qVals[2] ? 0 : 2) : (qVals[1] >= qVals[2] ? 1 : 2);
+        action = ACTIONS[idx];
+      }
+
+      const actual = history[i];
+      const pnl = payoutFor(action, actual, 10);
+      cumulativePnl += pnl;
+      const reward = pnl > 0 ? 1 : pnl < 0 ? -1 : 0;
+      const nextState = encodeState(history.slice(0, i + 1));
+      memory.push({ state, nextState, action, reward, done: i === trainEnd });
+
+      // Train
+      if (memory.length >= batchSize) {
+        const batch = memory.slice(-batchSize);
+        const states = tf.tensor2d(batch.map(x => x.state));
+        const nextStates = tf.tensor2d(batch.map(x => x.nextState));
+        const qPred = model.predict(states);
+        const qNext = targetModel.predict(nextStates);
+        const predVals = await qPred.array();
+        const nextVals = await qNext.array();
+        const targets = predVals.map((row, j) => {
+          const s = batch[j];
+          const tr = [...row];
+          const bestNext = Math.max(...nextVals[j]);
+          const aIdx = ACTIONS.indexOf(s.action);
+          tr[aIdx] = s.reward + (s.done ? 0 : gamma * bestNext);
+          return tr;
+        });
+        await model.fit(tf.tensor2d(targets), { epochs: 1, verbose: 0 });
+        tf.dispose([states, nextStates, qPred, qNext]);
+        if (i % 100 === 0) {
+          targetModel.setWeights(model.getWeights().map(w => w.clone()));
+        }
+      }
+
+      epsilon = Math.max(epsilonMin, epsilon * epsilonDecay);
+
+      // Rolling win rate
+      rollingWindow.push(pnl > 0 ? 1 : pnl < 0 ? 0 : 0.5);
+      if (rollingWindow.length > 50) rollingWindow.shift();
+
+      // Update UI every 50 rounds
+      if (i % 50 === 0) {
+        const wr = rollingWindow.reduce((a, b) => a + b, 0) / rollingWindow.length;
+        updateTrainDashUI({
+          winRate: wr,
+          pnl: cumulativePnl,
+          rounds: i,
+          epsilon,
+          converged: false,
+          baselines: null,
+          testPnl: null
+        });
+        msgEl.textContent = `Training round ${i}/${trainEnd} (${Math.round(i/trainEnd*100)}%)`;
+      }
+    }
+
+    // Test on held-out data
+    const testStart = trainEnd + 1;
+    const testEnd = history.length - 1;
+    let testPnl = 0, testWins = 0, testTotal = 0;
+    const baselines = { 'always-bank': { pnl: 0 }, 'always-play': { pnl: 0 } };
+
+    msgEl.textContent = 'Testing on held-out data...';
+    for (let i = testStart; i <= testEnd; i++) {
+      const state = encodeState(history.slice(0, i));
+      const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
+      const idx = qVals[0] >= qVals[1] ? (qVals[0] >= qVals[2] ? 0 : 2) : (qVals[1] >= qVals[2] ? 1 : 2);
+      const action = ACTIONS[idx];
+      const actual = history[i];
+      const pnl = payoutFor(action, actual, 10);
+      testPnl += pnl;
+      if (pnl > 0) testWins++;
+      testTotal++;
+
+      baselines['always-bank'].pnl += payoutFor('B', actual, 10);
+      baselines['always-play'].pnl += payoutFor('P', actual, 10);
+    }
+
+    const testWinRate = testWins / testTotal;
+    const finalWr = rollingWindow.reduce((a, b) => a + b, 0) / rollingWindow.length;
+    updateTrainDashUI({
+      winRate: finalWr,
+      pnl: testPnl,
+      rounds: trainEnd,
+      epsilon,
+      converged: true,
+      baselines,
+      testPnl
+    });
+
+    statusEl.textContent = 'DONE';
+    statusEl.className = 'train-dash-status done';
+    msgEl.innerHTML = 'Training complete! <b style="color:var(--green-pos)">AI vs always-play: ' +
+      (testPnl - baselines['always-play'].pnl >= 0 ? 'WIN' : 'LOSE') + '</b>';
+
+  } catch (e) {
+    msgEl.innerHTML = '<span class="err">Error: ' + e.message + '</span>';
+    statusEl.textContent = 'ERROR';
+    statusEl.className = 'train-dash-status idle';
+  }
+
+  _td.running = false;
+  document.getElementById('trainStartBtn').disabled = false;
+  document.getElementById('trainStopBtn').disabled = true;
+}
+
+function stopTraining() {
+  _td.stop = true;
+  document.getElementById('trainMsg').textContent = 'Stopping...';
+}
 </script>
 </body>
 </html>
