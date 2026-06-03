@@ -31,7 +31,7 @@ if errorlevel 1 (
 
 echo.
 echo Verifying backend startup...
-start "Baccarat Pro 2.0" /min cmd /c "node backend\server.js"
+powershell -NoProfile -Command "Start-Process -FilePath 'node.exe' -ArgumentList 'backend\\server.js' -WorkingDirectory (Get-Location) -WindowStyle Minimized"
 timeout /t 3 >nul
 
 echo.
