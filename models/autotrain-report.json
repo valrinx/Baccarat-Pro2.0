@@ -1,87 +1,945 @@
 {
   "converged": true,
-  "finalEpsilon": 0.7854013679368537,
-  "bestWinRate": 0.63,
-  "testWinRate": 0.43043043043043044,
-  "testPnl": -26,
-  "trainingRounds": 3980,
-  "testRounds": 998,
-  "totalRounds": 5000,
+  "finalEpsilon": 0.05,
+  "bestWinRate": 0.65,
+  "testWinRate": 0.5002501250625313,
+  "testPnl": 467,
+  "trainingRounds": 7980,
+  "testRounds": 1998,
+  "totalRounds": 10000,
   "winRateHistory": [
     {
       "round": 50,
       "winRate": 0.5,
       "epsilon": 0.9846156900862658,
-      "pnl": -6
+      "pnl": -4
     },
     {
       "round": 100,
-      "winRate": 0.45,
+      "winRate": 0.48,
       "epsilon": 0.9602994381881231,
-      "pnl": -61
+      "pnl": -32
     },
     {
       "round": 150,
-      "winRate": 0.52,
+      "winRate": 0.49,
       "epsilon": 0.9365837049617094,
       "pnl": -49
     },
     {
       "round": 200,
-      "winRate": 0.53,
+      "winRate": 0.43,
       "epsilon": 0.9134536598864085,
-      "pnl": -28
+      "pnl": -124
     },
     {
       "round": 250,
-      "winRate": 0.63,
+      "winRate": 0.51,
       "epsilon": 0.8908948386988933,
-      "pnl": 89
+      "pnl": -124
     },
     {
       "round": 300,
-      "winRate": 0.43,
+      "winRate": 0.53,
       "epsilon": 0.8688931343479711,
-      "pnl": 15
+      "pnl": -107
     },
     {
       "round": 350,
-      "winRate": 0.5,
+      "winRate": 0.48,
       "epsilon": 0.8474347881728043,
-      "pnl": 8
+      "pnl": -135
     },
     {
       "round": 400,
-      "winRate": 0.48,
+      "winRate": 0.58,
       "epsilon": 0.8265063812989984,
-      "pnl": -21
+      "pnl": -65
     },
     {
       "round": 450,
-      "winRate": 0.48,
+      "winRate": 0.54,
       "epsilon": 0.8060948262471712,
-      "pnl": -48
+      "pnl": -34
     },
     {
       "round": 500,
-      "winRate": 0.48,
+      "winRate": 0.45,
       "epsilon": 0.7861873587487627,
-      "pnl": -75
+      "pnl": -94
+    },
+    {
+      "round": 550,
+      "winRate": 0.53,
+      "epsilon": 0.7667715297639581,
+      "pnl": -72
+    },
+    {
+      "round": 600,
+      "winRate": 0.52,
+      "epsilon": 0.7478351976967421,
+      "pnl": -59
+    },
+    {
+      "round": 650,
+      "winRate": 0.54,
+      "epsilon": 0.7293665208022085,
+      "pnl": -27
+    },
+    {
+      "round": 700,
+      "winRate": 0.48,
+      "epsilon": 0.7113539497813829,
+      "pnl": -53
+    },
+    {
+      "round": 750,
+      "winRate": 0.45,
+      "epsilon": 0.6937862205589209,
+      "pnl": -112
+    },
+    {
+      "round": 800,
+      "winRate": 0.5,
+      "epsilon": 0.6766523472391763,
+      "pnl": -120
+    },
+    {
+      "round": 850,
+      "winRate": 0.57,
+      "epsilon": 0.6599416152362202,
+      "pnl": -66
+    },
+    {
+      "round": 900,
+      "winRate": 0.47,
+      "epsilon": 0.6436435745735278,
+      "pnl": -105
+    },
+    {
+      "round": 950,
+      "winRate": 0.55,
+      "epsilon": 0.6277480333491344,
+      "pnl": -63
+    },
+    {
+      "round": 1000,
+      "winRate": 0.47,
+      "epsilon": 0.6122450513621789,
+      "pnl": -100
+    },
+    {
+      "round": 1050,
+      "winRate": 0.4,
+      "epsilon": 0.5971249338968463,
+      "pnl": -207
+    },
+    {
+      "round": 1100,
+      "winRate": 0.53,
+      "epsilon": 0.582378225659823,
+      "pnl": -184
+    },
+    {
+      "round": 1150,
+      "winRate": 0.51,
+      "epsilon": 0.5679957048674754,
+      "pnl": -186
+    },
+    {
+      "round": 1200,
+      "winRate": 0.45,
+      "epsilon": 0.55396837747905,
+      "pnl": -246
+    },
+    {
+      "round": 1250,
+      "winRate": 0.53,
+      "epsilon": 0.5402874715722938,
+      "pnl": -224
+    },
+    {
+      "round": 1300,
+      "winRate": 0.61,
+      "epsilon": 0.526944431857975,
+      "pnl": -131
+    },
+    {
+      "round": 1350,
+      "winRate": 0.52,
+      "epsilon": 0.5139309143298726,
+      "pnl": -120
+    },
+    {
+      "round": 1400,
+      "winRate": 0.46,
+      "epsilon": 0.5012387810468929,
+      "pnl": -167
+    },
+    {
+      "round": 1450,
+      "winRate": 0.53,
+      "epsilon": 0.4888600950440462,
+      "pnl": -143
+    },
+    {
+      "round": 1500,
+      "winRate": 0.37,
+      "epsilon": 0.47678711536910373,
+      "pnl": -276
+    },
+    {
+      "round": 1550,
+      "winRate": 0.6,
+      "epsilon": 0.4650122922418305,
+      "pnl": -186
+    },
+    {
+      "round": 1600,
+      "winRate": 0.45,
+      "epsilon": 0.4535282623327658,
+      "pnl": -242
+    },
+    {
+      "round": 1650,
+      "winRate": 0.43,
+      "epsilon": 0.44232784415860044,
+      "pnl": -318
+    },
+    {
+      "round": 1700,
+      "winRate": 0.48,
+      "epsilon": 0.4314040335912707,
+      "pnl": -344
+    },
+    {
+      "round": 1750,
+      "winRate": 0.52,
+      "epsilon": 0.42074999947795994,
+      "pnl": -333
+    },
+    {
+      "round": 1800,
+      "winRate": 0.55,
+      "epsilon": 0.4103590793692694,
+      "pnl": -295
+    },
+    {
+      "round": 1850,
+      "winRate": 0.57,
+      "epsilon": 0.4002247753528884,
+      "pnl": -238
+    },
+    {
+      "round": 1900,
+      "winRate": 0.6,
+      "epsilon": 0.3903407499901545,
+      "pnl": -147
+    },
+    {
+      "round": 1950,
+      "winRate": 0.56,
+      "epsilon": 0.38070082235296737,
+      "pnl": -98
+    },
+    {
+      "round": 2000,
+      "winRate": 0.51,
+      "epsilon": 0.37129896415857505,
+      "pnl": -95
+    },
+    {
+      "round": 2050,
+      "winRate": 0.49,
+      "epsilon": 0.36212929599981525,
+      "pnl": -110
+    },
+    {
+      "round": 2100,
+      "winRate": 0.43,
+      "epsilon": 0.3531860836684566,
+      "pnl": -185
+    },
+    {
+      "round": 2150,
+      "winRate": 0.55,
+      "epsilon": 0.3444637345693393,
+      "pnl": -145
+    },
+    {
+      "round": 2200,
+      "winRate": 0.53,
+      "epsilon": 0.3359567942230718,
+      "pnl": -125
+    },
+    {
+      "round": 2250,
+      "winRate": 0.5,
+      "epsilon": 0.327659942855098,
+      "pnl": -132
+    },
+    {
+      "round": 2300,
+      "winRate": 0.62,
+      "epsilon": 0.31956799206900227,
+      "pnl": -25
+    },
+    {
+      "round": 2350,
+      "winRate": 0.53,
+      "epsilon": 0.3116758816019705,
+      "pnl": -7
+    },
+    {
+      "round": 2400,
+      "winRate": 0.56,
+      "epsilon": 0.3039786761603784,
+      "pnl": 43
+    },
+    {
+      "round": 2450,
+      "winRate": 0.56,
+      "epsilon": 0.2964715623335288,
+      "pnl": 97
+    },
+    {
+      "round": 2500,
+      "winRate": 0.48,
+      "epsilon": 0.2891498455836096,
+      "pnl": 73
+    },
+    {
+      "round": 2550,
+      "winRate": 0.42,
+      "epsilon": 0.2820089473099857,
+      "pnl": -17
+    },
+    {
+      "round": 2600,
+      "winRate": 0.42,
+      "epsilon": 0.2750444019859935,
+      "pnl": -103
+    },
+    {
+      "round": 2650,
+      "winRate": 0.47,
+      "epsilon": 0.26825185436644505,
+      "pnl": -140
+    },
+    {
+      "round": 2700,
+      "winRate": 0.39,
+      "epsilon": 0.26162705676409614,
+      "pnl": -255
+    },
+    {
+      "round": 2750,
+      "winRate": 0.54,
+      "epsilon": 0.25516586639337596,
+      "pnl": -221
+    },
+    {
+      "round": 2800,
+      "winRate": 0.55,
+      "epsilon": 0.24886424277971447,
+      "pnl": -179
+    },
+    {
+      "round": 2850,
+      "winRate": 0.57,
+      "epsilon": 0.24271824523285251,
+      "pnl": -119
+    },
+    {
+      "round": 2900,
+      "winRate": 0.49,
+      "epsilon": 0.2367240303825487,
+      "pnl": -134
+    },
+    {
+      "round": 2950,
+      "winRate": 0.65,
+      "epsilon": 0.23087784977514708,
+      "pnl": 11
+    },
+    {
+      "round": 3000,
+      "winRate": 0.59,
+      "epsilon": 0.22517604752949924,
+      "pnl": 91
+    },
+    {
+      "round": 3050,
+      "winRate": 0.56,
+      "epsilon": 0.21961505805077597,
+      "pnl": 142
+    },
+    {
+      "round": 3100,
+      "winRate": 0.55,
+      "epsilon": 0.2141914038007406,
+      "pnl": 189
+    },
+    {
+      "round": 3150,
+      "winRate": 0.46,
+      "epsilon": 0.208901693123086,
+      "pnl": 139
+    },
+    {
+      "round": 3200,
+      "winRate": 0.47,
+      "epsilon": 0.20374261812247907,
+      "pnl": 101
+    },
+    {
+      "round": 3250,
+      "winRate": 0.54,
+      "epsilon": 0.19871095259598395,
+      "pnl": 135
+    },
+    {
+      "round": 3300,
+      "winRate": 0.49,
+      "epsilon": 0.1938035500155716,
+      "pnl": 119
+    },
+    {
+      "round": 3350,
+      "winRate": 0.52,
+      "epsilon": 0.18901734156045344,
+      "pnl": 127
+    },
+    {
+      "round": 3400,
+      "winRate": 0.5,
+      "epsilon": 0.18434933419800867,
+      "pnl": 120
+    },
+    {
+      "round": 3450,
+      "winRate": 0.46,
+      "epsilon": 0.17979660881210627,
+      "pnl": 69
+    },
+    {
+      "round": 3500,
+      "winRate": 0.59,
+      "epsilon": 0.17535631837764862,
+      "pnl": 152
+    },
+    {
+      "round": 3550,
+      "winRate": 0.55,
+      "epsilon": 0.17102568618019878,
+      "pnl": 188
+    },
+    {
+      "round": 3600,
+      "winRate": 0.44,
+      "epsilon": 0.1668020040795752,
+      "pnl": 124
+    },
+    {
+      "round": 3650,
+      "winRate": 0.52,
+      "epsilon": 0.16268263081632905,
+      "pnl": 129
+    },
+    {
+      "round": 3700,
+      "winRate": 0.46,
+      "epsilon": 0.15866499036004522,
+      "pnl": 80
+    },
+    {
+      "round": 3750,
+      "winRate": 0.61,
+      "epsilon": 0.15474657029843394,
+      "pnl": 184
+    },
+    {
+      "round": 3800,
+      "winRate": 0.44,
+      "epsilon": 0.15092492026620585,
+      "pnl": 114
+    },
+    {
+      "round": 3850,
+      "winRate": 0.53,
+      "epsilon": 0.14719765041274788,
+      "pnl": 141
+    },
+    {
+      "round": 3900,
+      "winRate": 0.43,
+      "epsilon": 0.14356242990764143,
+      "pnl": 64
+    },
+    {
+      "round": 3950,
+      "winRate": 0.57,
+      "epsilon": 0.14001698548308852,
+      "pnl": 129
+    },
+    {
+      "round": 4000,
+      "winRate": 0.53,
+      "epsilon": 0.13655910001233484,
+      "pnl": 153
+    },
+    {
+      "round": 4050,
+      "winRate": 0.47,
+      "epsilon": 0.13318661112320024,
+      "pnl": 115
+    },
+    {
+      "round": 4100,
+      "winRate": 0.46,
+      "epsilon": 0.12989740984584922,
+      "pnl": 65
+    },
+    {
+      "round": 4150,
+      "winRate": 0.57,
+      "epsilon": 0.1266894392939569,
+      "pnl": 130
+    },
+    {
+      "round": 4200,
+      "winRate": 0.4,
+      "epsilon": 0.12356069337844508,
+      "pnl": 26
+    },
+    {
+      "round": 4250,
+      "winRate": 0.54,
+      "epsilon": 0.1205092155529839,
+      "pnl": 56
+    },
+    {
+      "round": 4300,
+      "winRate": 0.55,
+      "epsilon": 0.11753309759047491,
+      "pnl": 91
+    },
+    {
+      "round": 4350,
+      "winRate": 0.32,
+      "epsilon": 0.11463047838975042,
+      "pnl": -96
+    },
+    {
+      "round": 4400,
+      "winRate": 0.54,
+      "epsilon": 0.11179954281174273,
+      "pnl": -64
+    },
+    {
+      "round": 4450,
+      "winRate": 0.59,
+      "epsilon": 0.10903852054439558,
+      "pnl": 19
+    },
+    {
+      "round": 4500,
+      "winRate": 0.54,
+      "epsilon": 0.10634568499560795,
+      "pnl": 49
+    },
+    {
+      "round": 4550,
+      "winRate": 0.47,
+      "epsilon": 0.10371935221351795,
+      "pnl": 8
+    },
+    {
+      "round": 4600,
+      "winRate": 0.53,
+      "epsilon": 0.10115787983345143,
+      "pnl": 21
+    },
+    {
+      "round": 4650,
+      "winRate": 0.43,
+      "epsilon": 0.09865966605087727,
+      "pnl": -61
+    },
+    {
+      "round": 4700,
+      "winRate": 0.56,
+      "epsilon": 0.09622314861972649,
+      "pnl": -5
+    },
+    {
+      "round": 4750,
+      "winRate": 0.51,
+      "epsilon": 0.09384680387544904,
+      "pnl": -5
+    },
+    {
+      "round": 4800,
+      "winRate": 0.59,
+      "epsilon": 0.09152914578219735,
+      "pnl": 72
+    },
+    {
+      "round": 4850,
+      "winRate": 0.49,
+      "epsilon": 0.08926872500354135,
+      "pnl": 62
+    },
+    {
+      "round": 4900,
+      "winRate": 0.47,
+      "epsilon": 0.08706412799613236,
+      "pnl": 18
+    },
+    {
+      "round": 4950,
+      "winRate": 0.43,
+      "epsilon": 0.08491397612575076,
+      "pnl": -56
+    },
+    {
+      "round": 5000,
+      "winRate": 0.55,
+      "epsilon": 0.08281692480518352,
+      "pnl": -7
+    },
+    {
+      "round": 5050,
+      "winRate": 0.63,
+      "epsilon": 0.08077166265339315,
+      "pnl": 121
+    },
+    {
+      "round": 5100,
+      "winRate": 0.57,
+      "epsilon": 0.07877691067545174,
+      "pnl": 188
+    },
+    {
+      "round": 5150,
+      "winRate": 0.51,
+      "epsilon": 0.07683142146272753,
+      "pnl": 194
+    },
+    {
+      "round": 5200,
+      "winRate": 0.63,
+      "epsilon": 0.07493397841282412,
+      "pnl": 324
+    },
+    {
+      "round": 5250,
+      "winRate": 0.53,
+      "epsilon": 0.07308339496878355,
+      "pnl": 344
+    },
+    {
+      "round": 5300,
+      "winRate": 0.42,
+      "epsilon": 0.07127851387707895,
+      "pnl": 252
+    },
+    {
+      "round": 5350,
+      "winRate": 0.55,
+      "epsilon": 0.06951820646393138,
+      "pnl": 295
+    },
+    {
+      "round": 5400,
+      "winRate": 0.49,
+      "epsilon": 0.067801371929499,
+      "pnl": 273
+    },
+    {
+      "round": 5450,
+      "winRate": 0.48,
+      "epsilon": 0.06612693665949743,
+      "pnl": 241
+    },
+    {
+      "round": 5500,
+      "winRate": 0.62,
+      "epsilon": 0.06449385355381988,
+      "pnl": 352
+    },
+    {
+      "round": 5550,
+      "winRate": 0.53,
+      "epsilon": 0.06290110137173838,
+      "pnl": 380
+    },
+    {
+      "round": 5600,
+      "winRate": 0.5,
+      "epsilon": 0.06134768409327535,
+      "pnl": 377
+    },
+    {
+      "round": 5650,
+      "winRate": 0.53,
+      "epsilon": 0.05983263029634767,
+      "pnl": 405
+    },
+    {
+      "round": 5700,
+      "winRate": 0.6,
+      "epsilon": 0.05835499254929232,
+      "pnl": 504
+    },
+    {
+      "round": 5750,
+      "winRate": 0.56,
+      "epsilon": 0.056913846818394516,
+      "pnl": 559
+    },
+    {
+      "round": 5800,
+      "winRate": 0.38,
+      "epsilon": 0.05550829189004766,
+      "pnl": 435
+    },
+    {
+      "round": 5850,
+      "winRate": 0.51,
+      "epsilon": 0.054137448807183755,
+      "pnl": 435
+    },
+    {
+      "round": 5900,
+      "winRate": 0.44,
+      "epsilon": 0.05280046031962176,
+      "pnl": 369
+    },
+    {
+      "round": 5950,
+      "winRate": 0.46,
+      "epsilon": 0.05149649034799016,
+      "pnl": 328
+    },
+    {
+      "round": 6000,
+      "winRate": 0.52,
+      "epsilon": 0.050224723460888965,
+      "pnl": 345
+    },
+    {
+      "round": 6050,
+      "winRate": 0.47,
+      "epsilon": 0.05,
+      "pnl": 306
+    },
+    {
+      "round": 6100,
+      "winRate": 0.47,
+      "epsilon": 0.05,
+      "pnl": 270
+    },
+    {
+      "round": 6150,
+      "winRate": 0.44,
+      "epsilon": 0.05,
+      "pnl": 207
+    },
+    {
+      "round": 6200,
+      "winRate": 0.49,
+      "epsilon": 0.05,
+      "pnl": 189
+    },
+    {
+      "round": 6250,
+      "winRate": 0.41,
+      "epsilon": 0.05,
+      "pnl": 94
+    },
+    {
+      "round": 6300,
+      "winRate": 0.47,
+      "epsilon": 0.05,
+      "pnl": 52
+    },
+    {
+      "round": 6350,
+      "winRate": 0.59,
+      "epsilon": 0.05,
+      "pnl": 139
+    },
+    {
+      "round": 6400,
+      "winRate": 0.48,
+      "epsilon": 0.05,
+      "pnl": 112
+    },
+    {
+      "round": 6450,
+      "winRate": 0.53,
+      "epsilon": 0.05,
+      "pnl": 142
+    },
+    {
+      "round": 6500,
+      "winRate": 0.37,
+      "epsilon": 0.05,
+      "pnl": -1
+    },
+    {
+      "round": 6550,
+      "winRate": 0.51,
+      "epsilon": 0.05,
+      "pnl": 2
+    },
+    {
+      "round": 6600,
+      "winRate": 0.48,
+      "epsilon": 0.05,
+      "pnl": -19
+    },
+    {
+      "round": 6650,
+      "winRate": 0.47,
+      "epsilon": 0.05,
+      "pnl": -53
+    },
+    {
+      "round": 6700,
+      "winRate": 0.47,
+      "epsilon": 0.05,
+      "pnl": -89
+    },
+    {
+      "round": 6750,
+      "winRate": 0.55,
+      "epsilon": 0.05,
+      "pnl": -47
+    },
+    {
+      "round": 6800,
+      "winRate": 0.52,
+      "epsilon": 0.05,
+      "pnl": -28
+    },
+    {
+      "round": 6850,
+      "winRate": 0.47,
+      "epsilon": 0.05,
+      "pnl": -69
+    },
+    {
+      "round": 6900,
+      "winRate": 0.44,
+      "epsilon": 0.05,
+      "pnl": -136
+    },
+    {
+      "round": 6950,
+      "winRate": 0.55,
+      "epsilon": 0.05,
+      "pnl": -96
+    },
+    {
+      "round": 7000,
+      "winRate": 0.49,
+      "epsilon": 0.05,
+      "pnl": -110
+    },
+    {
+      "round": 7050,
+      "winRate": 0.42,
+      "epsilon": 0.05,
+      "pnl": -194
+    },
+    {
+      "round": 7100,
+      "winRate": 0.39,
+      "epsilon": 0.05,
+      "pnl": -304
+    },
+    {
+      "round": 7150,
+      "winRate": 0.44,
+      "epsilon": 0.05,
+      "pnl": -379
+    },
+    {
+      "round": 7200,
+      "winRate": 0.47,
+      "epsilon": 0.05,
+      "pnl": -417
+    },
+    {
+      "round": 7250,
+      "winRate": 0.41,
+      "epsilon": 0.05,
+      "pnl": -515
+    },
+    {
+      "round": 7300,
+      "winRate": 0.45,
+      "epsilon": 0.05,
+      "pnl": -570
+    },
+    {
+      "round": 7350,
+      "winRate": 0.6,
+      "epsilon": 0.05,
+      "pnl": -483
+    },
+    {
+      "round": 7400,
+      "winRate": 0.42,
+      "epsilon": 0.05,
+      "pnl": -571
+    },
+    {
+      "round": 7450,
+      "winRate": 0.65,
+      "epsilon": 0.05,
+      "pnl": -427
+    },
+    {
+      "round": 7500,
+      "winRate": 0.53,
+      "epsilon": 0.05,
+      "pnl": -404
+    },
+    {
+      "round": 7550,
+      "winRate": 0.53,
+      "epsilon": 0.05,
+      "pnl": -383
+    },
+    {
+      "round": 7600,
+      "winRate": 0.56,
+      "epsilon": 0.05,
+      "pnl": -323
+    },
+    {
+      "round": 7650,
+      "winRate": 0.53,
+      "epsilon": 0.05,
+      "pnl": -296
     }
   ],
   "baselines": {
     "always-bank": {
-      "pnl": -1074,
-      "winRate": 0.4644644644644645
+      "pnl": -1523,
+      "winRate": 0.4817408704352176
     },
     "always-play": {
-      "pnl": 610,
-      "winRate": 0.5255255255255256
+      "pnl": 560,
+      "winRate": 0.5097548774387194
     },
     "alternating": {
-      "pnl": -183,
-      "winRate": 0.4974974974974975
+      "pnl": -462,
+      "winRate": 0.496248124062031
     }
   },
-  "timestamp": "2026-06-03T19:18:08.756Z"
+  "timestamp": "2026-06-03T19:32:38.362Z"
 }
