@@ -7,7 +7,8 @@
     "start": "node backend/server.js",
     "dev": "node backend/server.js",
     "lint": "node --check backend/server.js",
-    "backtest": "node tests/backtest.js"
+    "backtest": "node tests/backtest.js",
+    "autotrain": "node tests/autotrain.js"
   },
   "dependencies": {
     "@tensorflow/tfjs-node": "^4.22.0",
