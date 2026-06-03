@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Baccarat Pro 2.0</title>
+  <link rel="stylesheet" href="./css/base.css" />
+  <link rel="stylesheet" href="./css/theme.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="app-header">
+      <div>
+        <h1>Baccarat Pro 2.0</h1>
+        <p>Modular AI Baccarat Platform</p>
+      </div>
+      <div class="header-status" id="serviceStatus">BOOTING</div>
+    </header>
+
+    <main class="app-grid">
+      <section class="panel panel-hero">
+        <h2>Prediction Panel</h2>
+        <div id="predictionText">Waiting for data...</div>
+        <div class="subline" id="recommendationText">Recommendation: SKIP</div>
+      </section>
+
+      <section class="panel">
+        <h2>Confidence</h2>
+        <div id="confidenceMeter">0%</div>
+      </section>
+
+      <section class="panel">
+        <h2>Chaos</h2>
+        <div id="chaosMeter">0%</div>
+      </section>
+
+      <section class="panel">
+        <h2>Risk</h2>
+        <div id="riskMeter">LOW</div>
+      </section>
+
+      <section class="panel">
+        <h2>AI Stats</h2>
+        <div id="aiStats">Model warming up...</div>
+      </section>
+
+      <section class="panel">
+        <h2>Training Status</h2>
+        <div id="trainingStatus">No training run yet</div>
+      </section>
+
+      <section class="panel panel-wide">
+        <h2>Roadmap Visualization</h2>
+        <div id="roadmapCanvas" class="placeholder-box">Roadmap view will render here</div>
+      </section>
+
+      <section class="panel panel-wide">
+        <h2>Session Memory</h2>
+        <div id="sessionList" class="session-list">No sessions</div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

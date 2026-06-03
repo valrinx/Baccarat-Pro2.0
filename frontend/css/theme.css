@@ -1,0 +1,75 @@
+.panel h2 {
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #cbd5e1;
+}
+
+#predictionText {
+  margin-top: 14px;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+#confidenceMeter,
+#chaosMeter,
+#riskMeter {
+  margin-top: 14px;
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--accent-2);
+}
+
+.subline {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.roadmap-block,
+.session-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  margin-bottom: 10px;
+}
+
+.roadmap-diagnostics {
+  border-style: dashed;
+}
+
+.session-list {
+  display: grid;
+  gap: 10px;
+}
+
+.session-title {
+  font-weight: 700;
+}
+
+.session-meta {
+  color: var(--muted);
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.session-pnl.pos {
+  color: #22c55e;
+  font-weight: 700;
+}
+
+.session-pnl.neg {
+  color: #ef4444;
+  font-weight: 700;
+}
