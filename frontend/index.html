@@ -437,7 +437,17 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
     </div>
     <div class="train-dash-controls">
       <label>Rounds<input type="number" id="trainRoundsInput" value="2000" min="500" max="50000" step="500"></label>
-      <label>Seed<input type="number" id="trainSeedInput" value="42" min="1" max="99999"></label>
+      <label style="display:none"><span style="font-size:8px;color:var(--dim)">Seed</span><input type="number" id="trainSeedInput" value="0" min="0" max="999999"></label>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <select id="trainModeSelect" onchange="onTrainModeChange()" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:9px;padding:5px 8px;width:100%">
+          <option value="random">Mode: Random Sequence</option>
+          <option value="history">Mode: Real History (localStorage)</option>
+        </select>
+        <div id="trainSeedRow" style="display:flex;gap:4px;align-items:center">
+          <input type="number" id="trainSeedInput" value="0" min="0" max="999999" style="width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:9px;padding:4px 6px">
+          <button onclick="document.getElementById('trainSeedInput').value=Math.floor(Math.random()*99999)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-size:8px;padding:4px 6px;cursor:pointer">🎲</button>
+        </div>
+      </div>
       <button class="bsbtn" id="trainStartBtn" onclick="startTraining()" style="flex:1;padding:6px 4px;border-color:var(--green-pos);color:var(--green-pos)">START</button>
       <button class="bsbtn" id="trainStopBtn" onclick="stopTraining()" style="flex:1;padding:6px 4px;border-color:var(--red-neg);color:var(--red-neg)" disabled>STOP</button>
     </div>
@@ -2212,17 +2222,87 @@ function loadCurrent(){
 loadQTable();
 buildGrid();renderHands();loadCurrent();
 
-// ======================================================
-// TRAINING DASHBOARD — self-train AI in browser
-// ======================================================
+// ---- TRAINING DASHBOARD — self-train AI in browser ----
+// NOTE: The training dashboard trains a TF.js DQN model in-browser for
+// backtesting/benchmarking purposes. The trained model weights are exported
+// to S.qTable so the in-game Q-Learning system can use them.
 
 let _td = {
   running: false,
   stop: false,
-  interval: null,
   chartData: [],
   maxPoints: 50
 };
+
+function _tdMakeModel() {
+  const m = tf.sequential();
+  m.add(tf.layers.dense({ inputShape: [10], units: 64, activation: 'relu' }));
+  m.add(tf.layers.dropout({ rate: 0.1 }));
+  m.add(tf.layers.dense({ units: 64, activation: 'relu' }));
+  m.add(tf.layers.dense({ units: 3, activation: 'linear' }));
+  m.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
+  return m;
+}
+
+function _tdExportToQTable(model) {
+  // Sample states from the Q-table key space and get Q-values from the TF model,
+  // then inject into S.qTable so the in-game heuristic engine can read them.
+  try {
+    // We transfer knowledge by evaluating a fixed set of representative states.
+    const stateSamples = [];
+    for (let streak = 1; streak <= 6; streak++) {
+      for (const lastW of ['P', 'B']) {
+        for (const g1 of ['x', '0', '1']) {
+          for (const g2 of ['x', '0', '1']) {
+            for (const g3 of ['x', '0', '1']) {
+              for (const cBit of ['0', '1']) {
+                const stateKey = `s${streak}${lastW}_g${g1}${g2}${g3}_c${cBit}`;
+                const v = encodeStateFromPattern(streak, lastW, g1, g2, g3, cBit === '1');
+                stateSamples.push({ key: stateKey, vec: v });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Batch predict all samples
+    const batch = stateSamples.map(s => s.vec);
+    const qValues = model.predict(tf.tensor2d(batch)).arraySync();
+
+    qValues.forEach((qv, i) => {
+      const key = stateSamples[i].key;
+      if (!S.qTable[key]) { S.qTable[key] = { P: 0, B: 0 }; S.qCount[key] = { P: 0, B: 0 }; }
+      S.qTable[key].P = qv[1]; // P = index 1
+      S.qTable[key].B = qv[0]; // B = index 0
+      S.qCount[key].P = 10;
+      S.qCount[key].B = 10;
+    });
+
+    saveQTable();
+    const hint = document.getElementById('trainDashToggleHint');
+    if (hint) hint.textContent = '✓ วิเคราะห์จาก AI เทรนแล้ว';
+  } catch (e) {
+    console.warn('Failed to export TF model to Q-table:', e);
+  }
+}
+
+function encodeStateFromPattern(streak, lastW, g1, g2, g3, highChaos) {
+  const br = lastW === 'B' ? 0.55 : 0.45;
+  const pc = 1 - br;
+  const sl = Math.min(1, streak / 10);
+  const chop = 0.4;
+  const mb = Math.abs(br - pc);
+  return [
+    1, sl, br, chop,
+    Math.min(1, chop * 0.5 + mb * 0.5),
+    Math.min(1, chop * 0.7 + mb * 0.3),
+    Math.min(1, 1 / Math.max(1, streak)),
+    0.5,
+    Math.min(1, Math.max(br, pc) * (1 - chop)),
+    Math.min(1, mb)
+  ];
+}
 
 function toggleTrainDash() {
   const el = document.getElementById('trainDash');
@@ -2338,6 +2418,12 @@ function updateTrainDashUI(stats) {
   }
 }
 
+function onTrainModeChange() {
+  const mode = document.getElementById('trainModeSelect').value;
+  const seedRow = document.getElementById('trainSeedRow');
+  if (seedRow) seedRow.style.display = mode === 'history' ? 'none' : 'flex';
+}
+
 function generateSequence(rounds, seed) {
   let state = (seed >>> 0);
   const rng = () => {
@@ -2411,8 +2497,11 @@ function payoutFor(bet, actual, stake) {
 async function startTraining() {
   if (_td.running) return;
 
-  const rounds = Math.max(500, parseInt(document.getElementById('trainRoundsInput').value) || 2000);
-  const seed = parseInt(document.getElementById('trainSeedInput').value) || 42;
+  const mode = document.getElementById('trainModeSelect').value;
+  let rounds = Math.max(500, parseInt(document.getElementById('trainRoundsInput').value) || 2000);
+  let seed = mode === 'random'
+    ? (parseInt(document.getElementById('trainSeedInput').value) || 0)
+    : 42;
 
   _td.running = true;
   _td.stop = false;
@@ -2433,19 +2522,8 @@ async function startTraining() {
   let model, targetModel;
   try {
     await tf.ready();
-    model = tf.sequential();
-    model.add(tf.layers.dense({ inputShape: [10], units: 64, activation: 'relu' }));
-    model.add(tf.layers.dropout({ rate: 0.1 }));
-    model.add(tf.layers.dense({ units: 64, activation: 'relu' }));
-    model.add(tf.layers.dense({ units: 3, activation: 'linear' }));
-    model.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
-
-    targetModel = tf.sequential();
-    targetModel.add(tf.layers.dense({ inputShape: [10], units: 64, activation: 'relu' }));
-    targetModel.add(tf.layers.dropout({ rate: 0.1 }));
-    targetModel.add(tf.layers.dense({ units: 64, activation: 'relu' }));
-    targetModel.add(tf.layers.dense({ units: 3, activation: 'linear' }));
-    targetModel.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
+    model = _tdMakeModel();
+    targetModel = _tdMakeModel();
   } catch (e) {
     document.getElementById('trainMsg').innerHTML = '<span class="err">TensorFlow init failed: ' + e.message + '</span>';
     _td.running = false;
@@ -2465,7 +2543,63 @@ async function startTraining() {
   const trainEnd = Math.floor(rounds * 0.8);
   const batchSize = 32;
 
-  const history = generateSequence(rounds, seed);
+  // Build training sequence
+  let history;
+  if (mode === 'history') {
+    try {
+      const d = localStorage.getItem('bac_cur');
+      const o = JSON.parse(d);
+      history = o && o.hist && o.hist.length > 10 ? o.hist : null;
+      if (!history) {
+        msgEl.textContent = 'No history in localStorage. Play some rounds first.';
+        _td.running = false;
+        document.getElementById('trainStartBtn').disabled = false;
+        document.getElementById('trainStopBtn').disabled = true;
+        return;
+      }
+      // Replay history to extend it if needed
+      const needed = Math.max(rounds, history.length);
+      while (history.length < needed) {
+        // Bootstrap from existing pattern distribution
+        const last10 = history.slice(-10);
+        const streakLen = (() => {
+          const last = last10[last10.length - 1];
+          let n = 0;
+          for (let i = last10.length - 1; i >= 0; i--) {
+            if (last10[i] === last) n++; else break;
+          }
+          return n;
+        })();
+        const last = last10[last10.length - 1];
+        const r = Math.random();
+        let next;
+        if (streakLen >= 4 && r < 0.32) {
+          next = last === 'B' ? 'P' : 'B';
+        } else if (r < 0.56) {
+          next = last;
+        } else if (r < 0.83) {
+          next = last === 'B' ? 'P' : 'B';
+        } else {
+          const r2 = Math.random();
+          next = r2 < 0.48 ? 'B' : r2 < 0.96 ? 'P' : 'T';
+        }
+        if (next !== 'T') last = next;
+        history.push(next);
+      }
+      msgEl.textContent = `Using real history: ${o.hist.length} rounds (extended to ${history.length})`;
+    } catch (e) {
+      msgEl.textContent = 'Failed to load history: ' + e.message;
+      _td.running = false;
+      document.getElementById('trainStartBtn').disabled = false;
+      document.getElementById('trainStopBtn').disabled = true;
+      return;
+    }
+  } else {
+    if (!seed) seed = Math.floor(Math.random() * 99999);
+    history = generateSequence(rounds, seed);
+    msgEl.textContent = 'Generating sequence...';
+  }
+
   const rollingWindow = [];
   let cumulativePnl = 0;
 
@@ -2511,7 +2645,7 @@ async function startTraining() {
           tr[aIdx] = s.reward + (s.done ? 0 : gamma * bestNext);
           return tr;
         });
-        await model.fit(tf.tensor2d(targets), { epochs: 1, verbose: 0 });
+        await model.fit(states, tf.tensor2d(targets), { epochs: 1, verbose: 0 });
         tf.dispose([states, nextStates, qPred, qNext]);
         if (i % 100 === 0) {
           targetModel.setWeights(model.getWeights().map(w => w.clone()));
@@ -2536,7 +2670,7 @@ async function startTraining() {
           baselines: null,
           testPnl: null
         });
-        msgEl.textContent = `Training round ${i}/${trainEnd} (${Math.round(i/trainEnd*100)}%)`;
+        msgEl.textContent = `Training round ${i}/${trainEnd} (${Math.round(i/trainEnd*100)}%) · mode: ${mode}`;
       }
     }
 
@@ -2574,10 +2708,14 @@ async function startTraining() {
       testPnl
     });
 
+    // Export TF model knowledge into S.qTable for in-game use
+    _tdExportToQTable(model);
+
     statusEl.textContent = 'DONE';
     statusEl.className = 'train-dash-status done';
     msgEl.innerHTML = 'Training complete! <b style="color:var(--green-pos)">AI vs always-play: ' +
-      (testPnl - baselines['always-play'].pnl >= 0 ? 'WIN' : 'LOSE') + '</b>';
+      (testPnl - baselines['always-play'].pnl >= 0 ? 'WIN' : 'LOSE') + '</b>' +
+      ' <span style="color:var(--dim);font-size:7px">| ' + (mode === 'history' ? 'trained on real history' : 'seed=' + seed) + ' | Q-table updated</span>';
 
   } catch (e) {
     msgEl.innerHTML = '<span class="err">Error: ' + e.message + '</span>';
