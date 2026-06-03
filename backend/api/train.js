@@ -5,4 +5,15 @@ export function registerTrainRoute(app, services) {
     const status = await services.training.status(payload.modelName ?? 'dqn-main');
     res.json({ ok: true, result, status });
   });
+
+  app.post('/api/train/continuous', async (req, res) => {
+    const payload = req.body ?? {};
+    const state = await services.training.enableContinuous(payload);
+    const result = await services.training.run({
+      ...payload,
+      continuous: true
+    });
+    const status = await services.training.status(payload.modelName ?? 'dqn-main');
+    res.json({ ok: true, result, status, mode: 'continuous', state });
+  });
 }
