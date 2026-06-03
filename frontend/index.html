@@ -426,7 +426,7 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
     <div class="train-dash-mini-chart"><canvas class="train-dash-canvas" id="trainChart" width="200" height="40"></canvas></div>
     <!-- Unified comparison: AI vs Baselines (replaces trainVsRow + trainCasinoBox + trainBaselines) -->
     <div id="trainCompareBox" style="display:none;margin-bottom:8px;padding:8px;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);border-radius:5px">
-      <div style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:.1em;color:var(--gold);margin-bottom:6px">◆ เปรียบเทียบผล (Test Set 200 รอบ)</div>
+      <div id="trainCompareHeader" style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:.1em;color:var(--gold);margin-bottom:6px">◆ เปรียบเทียบผล (ทั้งหมดที่เทรน)</div>
       <!-- Header -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-bottom:4px;text-align:center">
         <div style="font-size:7px;color:var(--dim)">ระบบ</div>
@@ -2544,26 +2544,28 @@ function updateTrainDashUI(stats) {
   drawTrainChart();
 
   // Unified comparison box: AI vs Banker vs Player (replaces baselines + casinoBox + vsRow)
-  if (baselines && testPnl != null) {
+  if (baselines && pnl != null) {
     const box = document.getElementById('trainCompareBox');
     if (box) {
       box.style.display = 'block';
+      // Update header with actual trained rounds
+      const hdr = document.getElementById('trainCompareHeader');
+      if (hdr && rounds) hdr.textContent = '◆ เปรียบเทียบผล (' + rounds + ' รอบที่เทรน)';
+      // Use full-pass stats (all trained rounds) for AI
       const bankPnl = baselines['always-bank']?.pnl || 0;
       const playPnl = baselines['always-play']?.pnl || 0;
       const bankWins = baselines['always-bank']?.wins || 0;
       const bankTotal = baselines['always-bank']?.total || 1;
       const playWins = baselines['always-play']?.wins || 0;
       const playTotal = baselines['always-play']?.total || 1;
-      const aiWins = baselines['ai']?.wins || 0;
-      const aiTotal = baselines['ai']?.total || 1;
 
-      // AI row
+      // AI row — uses full-pass pnl & winRate from training, baselines for comparison
       const aiPct = document.getElementById('trainAiPct');
       const aiPnl = document.getElementById('trainAiPnl');
       const aiDiff = document.getElementById('trainAiDiff');
-      if (aiPct) { aiPct.textContent = Math.round(aiWins / aiTotal * 100) + '%'; aiPct.style.color = aiWins / aiTotal >= 0.5 ? 'var(--green-pos)' : 'var(--red-neg)'; }
-      if (aiPnl) { aiPnl.textContent = Math.round(testPnl) > 0 ? '+' + Math.round(testPnl) : Math.round(testPnl); aiPnl.style.color = testPnl > 0 ? 'var(--green-pos)' : testPnl < 0 ? 'var(--red-neg)' : 'var(--dim)'; }
-      if (aiDiff) { const diff = Math.round(testPnl - bankPnl); aiDiff.textContent = diff > 0 ? '+' + diff : diff; aiDiff.style.color = diff > 0 ? 'var(--green-pos)' : diff < 0 ? 'var(--red-neg)' : 'var(--dim)'; }
+      if (aiPct) { aiPct.textContent = winRate != null ? _pct(winRate) : '—'; aiPct.style.color = winRate != null && winRate >= 0.5 ? 'var(--green-pos)' : 'var(--red-neg)'; }
+      if (aiPnl) { aiPnl.textContent = Math.round(pnl) > 0 ? '+' + Math.round(pnl) : Math.round(pnl); aiPnl.style.color = pnl > 0 ? 'var(--green-pos)' : pnl < 0 ? 'var(--red-neg)' : 'var(--dim)'; }
+      if (aiDiff) { const diff = Math.round(pnl - bankPnl); aiDiff.textContent = diff > 0 ? '+' + diff : diff; aiDiff.style.color = diff > 0 ? 'var(--green-pos)' : diff < 0 ? 'var(--red-neg)' : 'var(--dim)'; }
 
       // Banker baseline row
       const bankPctEl = document.getElementById('trainBankPct');
@@ -2732,7 +2734,6 @@ async function startTraining() {
   const epsilonDecay = 0.9998;           // faster convergence
   const gamma = 0.95;
   const trainStart = Math.min(20, Math.floor(rounds * 0.1));
-  const trainEnd = Math.floor(rounds * 0.5); // 50% train, 50% test
   const batchSize = 32;
 
   // Build training sequence
@@ -2784,6 +2785,7 @@ async function startTraining() {
     msgEl.textContent = 'Generating sequence...';
   }
 
+  const trainEnd = history.length; // train on ALL generated rounds (no split)
   const rollingWindow = [];
   let cumulativePnl = 0;
 
@@ -2796,8 +2798,8 @@ async function startTraining() {
   }
 
   try {
-    // Train until exploration rate drops to minimum (model converges)
-    for (let i = trainStart; epsilon > epsilonMin && i < history.length - 200; i++) {
+    // Train until exploration rate drops to minimum (model converges) or trainEnd reached
+    for (let i = trainStart; epsilon > epsilonMin && i < trainEnd; i++) {
       if (_td.stop) break;
 
       const state = encodeState(history.slice(0, i));
@@ -2870,7 +2872,7 @@ async function startTraining() {
         msgEl.textContent = `กำลังเทรน รอบ ${i} กำไร=${cumulativePnl > 0 ? '+' : ''}${cumulativePnl}${epsilon <= epsilonMin ? ' [จบแล้ว]' : ''}`;
       }
     }
-    const trainedRounds = history.length; // how much was trained
+    const trainedRounds = trainEnd; // actual rounds trained
 
     // === TEST on last 200 unseen rounds ===
     const testStart = history.length - 200;
@@ -2901,26 +2903,47 @@ async function startTraining() {
       }
     }
 
+    // === Full-pass evaluation: all trained rounds ===
+    let fullPnl = 0, fullWins = 0, fullNonTie = 0;
+    let fullBPnl = 0, fullPPnl = 0;
+    let fullBWins = 0, fullPWins = 0;
+    for (let i = 0; i < history.length; i++) {
+      const state = encodeState(history.slice(0, i));
+      const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
+      const action = qVals[0] >= qVals[1] ? 'B' : 'P';
+      const actual = history[i];
+      const pnl = pnlFor(action, actual);
+      fullPnl += pnl;
+      fullBPnl += pnlFor('B', actual);
+      fullPPnl += pnlFor('P', actual);
+      if (actual !== 'T') {
+        fullNonTie++;
+        if (pnl > 0) fullWins++;
+        if (pnlFor('B', actual) > 0) fullBWins++;
+        if (pnlFor('P', actual) > 0) fullPWins++;
+      }
+    }
+
     const testWinRate = testNonTie > 0 ? testWins / testNonTie : 0;
-    const aiVsBank = testPnl - alwaysBPnl;
-    const aiVsPlay = testPnl - alwaysPPnl;
+    const fullWinRate = fullNonTie > 0 ? fullWins / fullNonTie : 0;
+    const testRounds = testEnd - testStart + 1;
     const baselines = {
-      'always-bank': { pnl: alwaysBPnl, wins: alwaysBWins, total: testNonTie },
-      'always-play': { pnl: alwaysPPnl, wins: alwaysPWins, total: testNonTie },
-      'ai': { wins: testWins, total: testNonTie }
+      'always-bank': { pnl: fullBPnl, wins: fullBWins, total: fullNonTie },
+      'always-play': { pnl: fullPPnl, wins: fullPWins, total: fullNonTie },
+      'ai': { wins: fullWins, total: fullNonTie }
     };
 
-    // Save test set for backtest panel (so both use the exact same 200 rounds)
-    _td.trainingHistory = history.slice(testStart);
+    // Save for backtest panel (full-pass stats, all trained rounds)
+    _td.trainingHistory = history.slice();
     _td.trainingTestResults = {
-      ai:    { pnl: testPnl, wins: testWins, total: testNonTie },
-      bank:  { pnl: alwaysBPnl, wins: alwaysBWins, total: testNonTie },
-      play:  { pnl: alwaysPPnl, wins: alwaysPWins, total: testNonTie }
+      ai:    { pnl: fullPnl, wins: fullWins, total: fullNonTie, rounds: history.length },
+      bank:  { pnl: fullBPnl, wins: fullBWins, total: fullNonTie, rounds: history.length },
+      play:  { pnl: fullPPnl, wins: fullPWins, total: fullNonTie, rounds: history.length }
     };
 
     updateTrainDashUI({
-      winRate: testWinRate,
-      pnl: testPnl,
+      winRate: fullWinRate,
+      pnl: fullPnl,
       rounds: history.length,
       epsilon,
       converged: true,
@@ -2937,6 +2960,7 @@ async function startTraining() {
 
     statusEl.textContent = 'เสร็จ';
     statusEl.className = 'train-dash-status done';
+    const aiVsBank = Math.round(fullPnl - fullBPnl);
     const vsTag = aiVsBank >= 0
       ? '<b style="color:var(--green-pos)">ชนะ Banker +' + aiVsBank + '</b>'
       : '<b style="color:var(--red-neg)">แพ้ Banker ' + aiVsBank + '</b>';
@@ -3002,9 +3026,9 @@ function runBacktest() {
       const minHist = 20;
 
       const results = {
-        ai:    { correct: 0, total: 0, pnl: 0 },
-        ql:    { correct: 0, total: 0, pnl: 0 },
-        bank:  { correct: 0, total: 0, pnl: 0 }
+        ai:    { correct: 0, total: 0, pnl: 0, wins: 0 },
+        ql:    { correct: 0, total: 0, pnl: 0, wins: 0 },
+        bank:  { correct: 0, total: 0, pnl: 0, wins: 0 }
       };
 
       // Clone S for safe backtest (don't pollute live state)
@@ -3025,7 +3049,7 @@ function runBacktest() {
           const aiPnl = _pnlFor(aiBet, actual);
           results.ai.pnl += aiPnl;
           results.ai.total++;
-          if (aiPnl > 0) results.ai.correct++;
+          if (actual !== 'T' && aiPnl > 0) results.ai.wins++;
         }
 
         // --- Q-Learning + 3 เกลอ ---
@@ -3054,13 +3078,13 @@ function runBacktest() {
         const qlPnl = _pnlFor(qlBet, actual);
         results.ql.pnl += qlPnl;
         results.ql.total++;
-        if (qlPnl > 0) results.ql.correct++;
+        if (actual !== 'T' && qlPnl > 0) results.ql.wins++;
 
         // --- Always Banker ---
         const bankPnl = _pnlFor('B', actual);
         results.bank.pnl += bankPnl;
         results.bank.total++;
-        if (bankPnl > 0) results.bank.correct++;
+        if (actual !== 'T' && bankPnl > 0) results.bank.wins++;
       }
 
       // === Render Results ===
@@ -3084,8 +3108,8 @@ function runBacktest() {
       const qlPct = document.getElementById('btQLPct');
       const qlPnlEl = document.getElementById('btQLPnl');
       const qlDiff = document.getElementById('btQLDiff');
-      if (qlCorrect) { qlCorrect.textContent = results.ql.total > 0 ? results.ql.correct + '/' + results.ql.total : '—'; qlCorrect.style.color = _c(1); }
-      if (qlPct) { qlPct.textContent = results.ql.total > 0 ? Math.round(results.ql.correct / results.ql.total * 100) + '%' : '—'; qlPct.style.color = results.ql.total > 0 ? _c(results.ql.correct / results.ql.total - 0.5) : 'var(--dim)'; }
+      if (qlCorrect) { qlCorrect.textContent = results.ql.total > 0 ? results.ql.wins + '/' + results.ql.total : '—'; qlCorrect.style.color = _c(1); }
+      if (qlPct) { qlPct.textContent = results.ql.total > 0 ? Math.round(results.ql.wins / results.ql.total * 100) + '%' : '—'; qlPct.style.color = results.ql.total > 0 ? _c((results.ql.wins / results.ql.total) - 0.5) : 'var(--dim)'; }
       if (qlPnlEl) { qlPnlEl.textContent = Math.round(results.ql.pnl) > 0 ? '+' + Math.round(results.ql.pnl) : Math.round(results.ql.pnl); qlPnlEl.style.color = _c(Math.round(results.ql.pnl)); }
       if (qlDiff) { const diff = cached ? Math.round(results.ql.pnl - cached.bank.pnl) : Math.round(results.ql.pnl - results.bank.pnl); qlDiff.textContent = diff > 0 ? '+' + diff : diff; qlDiff.style.color = _c(diff); }
 
@@ -3093,11 +3117,11 @@ function runBacktest() {
       const bankCorrect = document.getElementById('btBankCorrect');
       const bankPct = document.getElementById('btBankPct');
       const bankPnlEl = document.getElementById('btBankPnl');
-      if (bankCorrect) { bankCorrect.textContent = results.bank.total > 0 ? results.bank.correct + '/' + results.bank.total : '—'; }
-      if (bankPct) { bankPct.textContent = results.bank.total > 0 ? Math.round(results.bank.correct / results.bank.total * 100) + '%' : '—'; bankPct.style.color = results.bank.total > 0 ? _c((results.bank.correct / results.bank.total) - 0.5) : 'var(--dim)'; }
+      if (bankCorrect) { bankCorrect.textContent = results.bank.total > 0 ? results.bank.wins + '/' + results.bank.total : '—'; }
+      if (bankPct) { bankPct.textContent = results.bank.total > 0 ? Math.round(results.bank.wins / results.bank.total * 100) + '%' : '—'; bankPct.style.color = results.bank.total > 0 ? _c((results.bank.wins / results.bank.total) - 0.5) : 'var(--dim)'; }
       if (bankPnlEl) { bankPnlEl.textContent = Math.round(results.bank.pnl) > 0 ? '+' + Math.round(results.bank.pnl) : Math.round(results.bank.pnl); bankPnlEl.style.color = _c(Math.round(results.bank.pnl)); }
 
-      const totalRounds = cached ? cached.ai.total : results.ai.total;
+      const totalRounds = cached ? cached.ai.rounds : results.ai.total;
       const bestPnl = cached ? Math.max(cached.ai.pnl, results.ql.pnl, results.bank.pnl) : Math.max(results.ai.pnl, results.ql.pnl, results.bank.pnl);
       const bestName = (cached && cached.ai.pnl === bestPnl) ? 'AI (Training)' : (results.ql.pnl === bestPnl ? 'Q-Learning+3เกลอ' : 'แทง Banker เสมอ');
       note.innerHTML = '✅ จบแล้ว ' + totalRounds + ' รอบ · อันดับ 1: <b style="color:var(--gold)">' + bestName + '</b> (' + (bestPnl > 0 ? '+' : '') + Math.round(bestPnl) + ')';
