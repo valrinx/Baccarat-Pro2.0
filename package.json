@@ -1,0 +1,18 @@
+{
+  "name": "baccarat-pro-2",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js",
+    "lint": "node --check backend/server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "zod": "^3.24.1"
+  },
+  "optionalDependencies": {
+    "@tensorflow/tfjs": "^4.22.0"
+  }
+}
