@@ -406,41 +406,73 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   <!-- TRAINING DASHBOARD -->
   <div class="train-dash" id="trainDash">
     <div class="train-dash-header">
-      <div class="train-dash-title">◆ AI SELF-TRAINING</div>
-      <div class="train-dash-status idle" id="trainStatus">IDLE</div>
+      <div class="train-dash-title">◆ AI เรียนรู้เกม</div>
+      <div class="train-dash-status idle" id="trainStatus">รอ</div>
     </div>
     <div class="train-dash-progress" id="trainProgress"><div class="train-dash-progress-bar" id="trainProgressBar" style="width:0%"></div></div>
     <div class="train-dash-stats">
-      <div class="tstat-box"><div class="tv" id="trainWinRate">—</div><div class="tl">WIN RATE</div></div>
-      <div class="tstat-box"><div class="tv" id="trainPnl">—</div><div class="tl">P&L</div></div>
-      <div class="tstat-box"><div class="tv" id="trainRounds">0</div><div class="tl">ROUNDS</div></div>
-      <div class="tstat-box"><div class="tv" id="trainEpsilon">—</div><div class="tl">EPSILON</div></div>
+      <div class="tstat-box"><div class="tv" id="trainWinRate">—</div><div class="tl">% ถูก</div></div>
+      <div class="tstat-box"><div class="tv" id="trainPnl">—</div><div class="tl">กำไร/ขาดทุน</div></div>
+      <div class="tstat-box"><div class="tv" id="trainRounds">0</div><div class="tl">รอบที่เทรน</div></div>
+      <div class="tstat-box"><div class="tv" id="trainEpsilon">—</div><div class="tl">สำรวจ (ε)</div></div>
+    </div>
+    <!-- EXPLANATION BOX -->
+    <div style="font-size:7px;color:var(--dim);line-height:1.5;padding:6px 8px;background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.15);border-radius:5px;margin-bottom:8px">
+      <span style="color:var(--gold)">📖 ตัวเลขหมายความว่า:</span><br>
+      <span style="color:var(--green-pos)">% ถูก</span> = AI ทายถูกกี่ %<br>
+      <span style="color:var(--green-pos)">กำไร/ขาดทุน</span> = รวมทั้งหมด (บวก = ได้เงิน, ลบ = เสียเงิน)<br>
+      <span style="color:var(--green-pos)">สำรวจ (ε)</span> = ยังสุ่มอยู่กี่% (0.05 = เรียนจบแล้ว)
     </div>
     <div class="train-dash-mini-chart"><canvas class="train-dash-canvas" id="trainChart" width="200" height="40"></canvas></div>
+    <div class="train-dash-vs" id="trainVsRow" style="display:none">
+      <div class="train-dash-vs-title">⚖️ ผลเทียบกับวิธีอื่น</div>
+      <div style="font-size:7px;color:var(--dim);margin-bottom:4px">หลังเทรนเสร็จ AI จะเทียบกับ 2 วิธี:</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;background:rgba(0,0,0,.15);border-radius:4px;border:1px solid var(--border)">
+          <div><span style="font-size:8px;color:var(--dim)">เทียบกับ</span><br><span style="font-size:8px;color:var(--gold)">แทง Banker เสมอ</span></div>
+          <div class="train-dash-vs-value" id="trainVsBankValue" style="font-size:11px">—</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:4px 6px;background:rgba(0,0,0,.15);border-radius:4px;border:1px solid var(--border)">
+          <div><span style="font-size:8px;color:var(--dim)">เทียบกับ</span><br><span style="font-size:8px;color:var(--gold)">แทง Player เสมอ</span></div>
+          <div class="train-dash-vs-value" id="trainVsPlayValue" style="font-size:11px">—</div>
+        </div>
+      </div>
+    </div>
+    <!-- CASINO vs YOU comparison box -->
+    <div id="trainCasinoBox" style="display:none;margin-bottom:8px;padding:8px;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);border-radius:5px">
+      <div style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:.1em;color:var(--gold);margin-bottom:6px">◆ ฝั่งคุณ vs คาสิโน</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center">
+        <div>
+          <div style="font-size:7px;color:var(--dim)">คุณ</div>
+          <div id="trainYouPnl" style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:var(--green-pos)">—</div>
+        </div>
+        <div>
+          <div style="font-size:7px;color:var(--dim)">คาสิโน</div>
+          <div id="trainCasinoPnl" style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:var(--red-neg)">—</div>
+        </div>
+        <div>
+          <div style="font-size:7px;color:var(--dim)">ส่วนต่าง</div>
+          <div id="trainDiffPnl" style="font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:var(--gold)">—</div>
+        </div>
+      </div>
+    </div>
     <div class="train-dash-baselines" id="trainBaselines" style="display:none">
       <div class="train-dash-baselines-title">BASELINES</div>
       <div class="train-dash-baselines-row">
-        <div class="bl">always-bank</div>
+        <div class="bl">แทง Banker เสมอ</div>
         <div class="bp neg" id="trainBlBank">—</div>
       </div>
       <div class="train-dash-baselines-row">
-        <div class="bl">always-play</div>
+        <div class="bl">แทง Player เสมอ</div>
         <div class="bp" id="trainBlPlay">—</div>
       </div>
     </div>
-    <div class="train-dash-vs" id="trainVsRow" style="display:none">
-      <div class="train-dash-vs-title">VS ALWAYS-PLAY</div>
-      <div class="train-dash-vs-row">
-        <div class="train-dash-vs-label">AI vs Baseline</div>
-        <div class="train-dash-vs-value" id="trainVsValue">—</div>
-      </div>
-    </div>
     <div class="train-dash-controls">
-      <label>Rounds<input type="number" id="trainRoundsInput" value="2000" min="500" max="50000" step="500"></label>
+      <label>รอบ<input type="number" id="trainRoundsInput" value="2000" min="500" max="50000" step="500"></label>
       <div style="flex:1;display:flex;flex-direction:column;gap:4px">
         <select id="trainModeSelect" onchange="onTrainModeChange()" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:9px;padding:5px 8px;width:100%">
-          <option value="random">Mode: Random Sequence</option>
-          <option value="history">Mode: Real History (localStorage)</option>
+          <option value="random">Mode: สุ่ม (ไม่แนะนำ)</option>
+          <option value="history">Mode: ใช้ประวัติจริง ✓</option>
         </select>
         <div id="trainSeedRow" style="display:flex;gap:4px;align-items:center">
           <input type="number" id="trainSeedInput" value="0" min="0" max="999999" style="width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:9px;padding:4px 6px">
@@ -451,6 +483,47 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
       <button class="bsbtn" id="trainStopBtn" onclick="stopTraining()" style="flex:1;padding:6px 4px;border-color:var(--red-neg);color:var(--red-neg)" disabled>STOP</button>
     </div>
     <div class="train-dash-msg" id="trainMsg"></div>
+  </div>
+
+  <!-- BACKTEST COMPARISON -->
+  <div id="backtestPanel" style="display:none;margin:0 14px 0;padding:10px 12px;background:var(--surface);border:1px solid rgba(201,168,76,.3);border-radius:8px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div style="font-family:'Cinzel',serif;font-size:8px;letter-spacing:.15em;color:var(--gold)">◆ เปรียบเทียบระบบ (Backtest)</div>
+      <button onclick="runBacktest()" id="backtestRunBtn" style="background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;color:var(--gold);font-size:8px;padding:3px 8px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.1em">▶ รัน Backtest</button>
+    </div>
+    <!-- Header row -->
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:4px;margin-bottom:4px">
+      <div style="font-size:7px;color:var(--dim);text-align:center">ระบบ</div>
+      <div style="font-size:7px;color:var(--dim);text-align:center">ทายถูก</div>
+      <div style="font-size:7px;color:var(--dim);text-align:center">% ถูก</div>
+      <div style="font-size:7px;color:var(--dim);text-align:center">P&L</div>
+      <div style="font-size:7px;color:var(--dim);text-align:center">vs เสมอ</div>
+    </div>
+    <!-- AI Train row -->
+    <div id="backtestAIRow" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:4px;align-items:center;padding:5px 6px;background:rgba(0,0,0,.2);border-radius:5px;border:1px solid rgba(201,168,76,.15);margin-bottom:4px">
+      <div style="font-size:8px;color:var(--gold)">🤖 AI (TF Model)</div>
+      <div id="btAiCorrect" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+      <div id="btAiPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+      <div id="btAiPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+      <div id="btAiDiff" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+    </div>
+    <!-- Q-Learning+3Gelo row -->
+    <div id="backtestQLRow" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:4px;align-items:center;padding:5px 6px;background:rgba(0,0,0,.2);border-radius:5px;border:1px solid rgba(201,168,76,.15);margin-bottom:4px">
+      <div style="font-size:8px;color:var(--gold)">📊 Q-Learning+3เกลอ</div>
+      <div id="btQLCorrect" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+      <div id="btQLPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+      <div id="btQLPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+      <div id="btQLDiff" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+    </div>
+    <!-- Always-Bank row -->
+    <div id="backtestBankRow" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:4px;align-items:center;padding:5px 6px;background:rgba(0,0,0,.15);border-radius:5px;border:1px solid var(--border);margin-bottom:4px">
+      <div style="font-size:8px;color:var(--dim)">🎯 แทง Banker เสมอ</div>
+      <div id="btBankCorrect" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+      <div id="btBankPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+      <div id="btBankPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+      <div style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+    </div>
+    <div style="font-size:7px;color:var(--dim);text-align:center;margin-top:4px" id="backtestNote">กด ▶ รัน Backtest เพื่อเปรียบเทียบทั้ง 3 ระบบ</div>
   </div>
 
   <!-- BET PLACEMENT -->
@@ -468,10 +541,10 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
         <div class="auto-sw" id="trainingSw"></div>
         <span class="auto-lbl" id="trainingLbl">TRAINING MODE: OFF</span>
       </div>
-      <span style="font-size:8px;color:var(--dim);font-family:'Cinzel',serif" id="trainingHint">learn only · no P&L</span>
+      <span style="font-size:8px;color:var(--dim);font-family:'Cinzel',serif" id="trainingHint">เรียนรู้อย่างเดียว · ไม่นับกำไร</span>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding-top:4px">
-      <button onclick="toggleTrainDash()" id="trainDashToggle" style="background:none;border:none;color:var(--dim);font-size:8px;font-family:'Cinzel',serif;letter-spacing:.1em;cursor:pointer;padding:2px 4px">▼ AI TRAINING PANEL</button>
+      <button onclick="toggleTrainDash()" id="trainDashToggle" style="background:none;border:none;color:var(--dim);font-size:8px;font-family:'Cinzel',serif;letter-spacing:.1em;cursor:pointer;padding:2px 4px">▼ AI เรียนรู้</button>
       <span style="font-size:8px;color:var(--dim)" id="trainDashToggleHint"></span>
     </div>
     <div class="mm-row" id="betControlsRow">
@@ -2391,52 +2464,76 @@ function drawTrainChart() {
   const data = _td.chartData;
   if (data.length < 2) return;
 
-  const max = Math.max(...data.map(d => d.winRate), 0.7);
-  const min = Math.min(...data.map(d => d.winRate), 0.3);
-  const range = max - min || 0.1;
+  const PAD = 4;
+  const dataMin = 0.25, dataMax = 0.75;
+  const range = dataMax - dataMin;
 
-  const getY = (v) => H - ((v - min) / range) * (H - 8) - 4;
+  const getY = (v) => H - PAD - ((Math.max(dataMin, Math.min(dataMax, v)) - dataMin) / range) * (H - PAD * 2);
 
-  // Draw line
+  const stepX = W / (data.length - 1);
+
+  // Background reference lines at 25%, 50%, 75%
+  ctx.strokeStyle = 'rgba(201,168,76,0.08)';
+  ctx.lineWidth = 1;
+  [0.25, 0.5, 0.75].forEach(ref => {
+    const y = getY(ref);
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(W, y);
+    ctx.stroke();
+  });
+
+  // Fill under the curve
+  ctx.fillStyle = 'rgba(201,168,76,0.08)';
+  ctx.beginPath();
+  ctx.moveTo(0, H - PAD);
+  data.forEach((d, i) => {
+    const x = i * stepX;
+    const y = getY(d.winRate);
+    ctx.lineTo(x, y);
+  });
+  ctx.lineTo(W, H - PAD);
+  ctx.closePath();
+  ctx.fill();
+
+  // Main curve line
   ctx.beginPath();
   ctx.strokeStyle = '#c9a84c';
   ctx.lineWidth = 1.5;
+  ctx.lineJoin = 'round';
   data.forEach((d, i) => {
-    const x = (i / (_td.maxPoints - 1)) * W;
+    const x = i * stepX;
     const y = getY(d.winRate);
     if (i === 0) ctx.moveTo(x, y);
     else ctx.lineTo(x, y);
   });
   ctx.stroke();
 
-  // Fill under
-  ctx.fillStyle = 'rgba(201,168,76,0.1)';
-  ctx.beginPath();
+  // Data points
+  ctx.fillStyle = '#c9a84c';
   data.forEach((d, i) => {
-    const x = (i / (_td.maxPoints - 1)) * W;
+    const x = i * stepX;
     const y = getY(d.winRate);
-    if (i === 0) ctx.moveTo(x, H);
-    else ctx.lineTo(x, y);
+    ctx.beginPath();
+    ctx.arc(x, y, 2, 0, Math.PI * 2);
+    ctx.fill();
   });
-  ctx.lineTo(W, H);
-  ctx.closePath();
-  ctx.fill();
 }
 
 function updateTrainDashUI(stats) {
   if (!stats) return;
-  const { winRate, pnl, rounds, epsilon, converged, baselines, testPnl } = stats;
+  const { winRate, pnl, rounds, epsilon, converged, baselines, testPnl, youPnl, casinoPnl } = stats;
 
   document.getElementById('trainWinRate').textContent = winRate != null ? _pct(winRate) : '—';
   document.getElementById('trainPnl').textContent = pnl != null ? _fmtN(pnl) : '—';
   document.getElementById('trainRounds').textContent = rounds != null ? rounds : '0';
   document.getElementById('trainEpsilon').textContent = epsilon != null ? epsilon.toFixed(3) : '—';
 
-  // Progress bar (approximate based on rounds)
-  const roundsInput = parseInt(document.getElementById('trainRoundsInput').value) || 2000;
-  const pct = Math.min(100, (rounds / roundsInput) * 100);
+  // Progress bar tracks epsilon convergence (0→epsilonMin)
+  const initialEps = 1.0;
+  const epsProgress = Math.min(100, ((initialEps - epsilon) / (initialEps - 0.05)) * 100);
   const bar = document.getElementById('trainProgressBar');
-  if (bar) bar.style.width = pct + '%';
+  if (bar) bar.style.width = epsProgress + '%';
 
   // Chart
   _td.chartData.push({ winRate });
@@ -2459,22 +2556,43 @@ function updateTrainDashUI(stats) {
     }
   }
 
-  // VS row
-  if (testPnl != null && baselines) {
-    const vsEl = document.getElementById('trainVsRow');
-    if (vsEl) vsEl.style.display = 'block';
-    const vsVal = document.getElementById('trainVsValue');
-    if (vsVal) {
-      const diff = testPnl - (baselines['always-play']?.pnl || 0);
-      vsVal.textContent = diff >= 0 ? 'WIN +' + _fmtN(diff) : 'LOSE ' + _fmtN(diff);
-      vsVal.className = 'train-dash-vs-value ' + (diff >= 0 ? 'win' : 'lose');
+  // Casino vs You comparison box
+  if (youPnl !== undefined && casinoPnl !== undefined) {
+    const box = document.getElementById('trainCasinoBox');
+    if (box) {
+      box.style.display = 'block';
+      const youEl = document.getElementById('trainYouPnl');
+      const casinoEl = document.getElementById('trainCasinoPnl');
+      const diffEl = document.getElementById('trainDiffPnl');
+      const diff = youPnl - casinoPnl;
+      if (youEl) { youEl.textContent = _fmtN(youPnl); youEl.style.color = _cls(youPnl) === 'pos' ? 'var(--green-pos)' : _cls(youPnl) === 'neg' ? 'var(--red-neg)' : 'var(--dim)'; }
+      if (casinoEl) { casinoEl.textContent = _fmtN(casinoPnl); casinoEl.style.color = _cls(casinoPnl) === 'pos' ? 'var(--green-pos)' : _cls(casinoPnl) === 'neg' ? 'var(--red-neg)' : 'var(--dim)'; }
+      if (diffEl) { diffEl.textContent = (diff >= 0 ? '+' : '') + diff; diffEl.style.color = diff >= 0 ? 'var(--green-pos)' : 'var(--red-neg)'; }
+    }
+  }
+
+  // VS section (always-play comparison)
+  const vsRow = document.getElementById('trainVsRow');
+  if (vsRow) vsRow.style.display = baselines ? 'flex' : 'none';
+  if (baselines) {
+    const vsBankVal = document.getElementById('trainVsBankValue');
+    const vsPlayVal = document.getElementById('trainVsPlayValue');
+    const aiVsBank = testPnl - baselines['always-bank'].pnl;
+    const aiVsPlay = testPnl - baselines['always-play'].pnl;
+    if (vsBankVal) {
+      vsBankVal.textContent = (aiVsBank >= 0 ? '+' : '') + aiVsBank;
+      vsBankVal.className = 'train-dash-vs-value ' + (aiVsBank >= 0 ? 'win' : 'lose');
+    }
+    if (vsPlayVal) {
+      vsPlayVal.textContent = (aiVsPlay >= 0 ? '+' : '') + aiVsPlay;
+      vsPlayVal.className = 'train-dash-vs-value ' + (aiVsPlay >= 0 ? 'win' : 'lose');
     }
   }
 
   // Status
   const statusEl = document.getElementById('trainStatus');
   if (converged) {
-    statusEl.textContent = 'CONVERGED';
+    statusEl.textContent = 'เสร็จ';
     statusEl.className = 'train-dash-status done';
   }
 }
@@ -2572,7 +2690,7 @@ async function startTraining() {
   document.getElementById('trainStartBtn').disabled = true;
   document.getElementById('trainStopBtn').disabled = false;
   const statusEl = document.getElementById('trainStatus');
-  statusEl.textContent = 'TRAINING...';
+  statusEl.textContent = 'กำลังเทรน...';
   statusEl.className = 'train-dash-status running';
   const msgEl = document.getElementById('trainMsg');
   msgEl.textContent = '';
@@ -2738,7 +2856,7 @@ async function startTraining() {
           baselines: null,
           testPnl: null
         });
-        msgEl.textContent = `Training ${i}/${history.length} eps=${epsilon.toFixed(3)} pnl=${cumulativePnl > 0 ? '+' : ''}${cumulativePnl} ${epsilon <= epsilonMin ? '[CONVERGED]' : ''}`;
+        msgEl.textContent = `กำลังเทรน รอบ ${i} eps=${epsilon.toFixed(3)} กำไร=${cumulativePnl > 0 ? '+' : ''}${cumulativePnl}${epsilon <= epsilonMin ? ' [จบแล้ว]' : ''}`;
       }
     }
     const trainedRounds = history.length; // how much was trained
@@ -2749,7 +2867,7 @@ async function startTraining() {
     let testPnl = 0, testWins = 0, testNonTie = 0;
     let alwaysBPnl = 0, alwaysPPnl = 0;
 
-    msgEl.textContent = 'Testing on held-out data...';
+    msgEl.textContent = 'ทดสอบผลบนข้อมูลจริง...';
     for (let i = testStart; i <= testEnd; i++) {
       const state = encodeState(history.slice(0, i));
       const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
@@ -2782,7 +2900,9 @@ async function startTraining() {
       epsilon,
       converged: true,
       baselines,
-      testPnl
+      testPnl,
+      youPnl: testPnl,
+      casinoPnl: -testPnl
     });
 
     // Save model globally for in-game use
@@ -2790,12 +2910,12 @@ async function startTraining() {
     _tdExportKnowledgeToQTable(model);
     updateTrainDashToggleHint();
 
-    statusEl.textContent = 'DONE';
+    statusEl.textContent = 'เสร็จ';
     statusEl.className = 'train-dash-status done';
     const vsTag = aiVsBank >= 0
-      ? '<b style="color:var(--green-pos)">WIN vs bank +' + aiVsBank + '</b>'
-      : '<b style="color:var(--red-neg)">LOSE vs bank ' + aiVsBank + '</b>';
-    msgEl.innerHTML = 'Training complete! ' + vsTag +
+      ? '<b style="color:var(--green-pos)">ชนะ Banker +' + aiVsBank + '</b>'
+      : '<b style="color:var(--red-neg)">แพ้ Banker ' + aiVsBank + '</b>';
+    msgEl.innerHTML = 'เทรนเสร็จแล้ว! ' + vsTag +
       ' <span style="color:var(--green-pos);font-size:7px">| TF Model Active</span>';
 
   } catch (e) {
@@ -2811,7 +2931,7 @@ async function startTraining() {
 
 function stopTraining() {
   _td.stop = true;
-  document.getElementById('trainMsg').textContent = 'Stopping...';
+  document.getElementById('trainMsg').textContent = 'กำลังหยุด...';
 }
 </script>
 </body>
