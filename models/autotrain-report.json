@@ -1,0 +1,87 @@
+{
+  "converged": true,
+  "finalEpsilon": 0.7854013679368537,
+  "bestWinRate": 0.63,
+  "testWinRate": 0.43043043043043044,
+  "testPnl": -26,
+  "trainingRounds": 3980,
+  "testRounds": 998,
+  "totalRounds": 5000,
+  "winRateHistory": [
+    {
+      "round": 50,
+      "winRate": 0.5,
+      "epsilon": 0.9846156900862658,
+      "pnl": -6
+    },
+    {
+      "round": 100,
+      "winRate": 0.45,
+      "epsilon": 0.9602994381881231,
+      "pnl": -61
+    },
+    {
+      "round": 150,
+      "winRate": 0.52,
+      "epsilon": 0.9365837049617094,
+      "pnl": -49
+    },
+    {
+      "round": 200,
+      "winRate": 0.53,
+      "epsilon": 0.9134536598864085,
+      "pnl": -28
+    },
+    {
+      "round": 250,
+      "winRate": 0.63,
+      "epsilon": 0.8908948386988933,
+      "pnl": 89
+    },
+    {
+      "round": 300,
+      "winRate": 0.43,
+      "epsilon": 0.8688931343479711,
+      "pnl": 15
+    },
+    {
+      "round": 350,
+      "winRate": 0.5,
+      "epsilon": 0.8474347881728043,
+      "pnl": 8
+    },
+    {
+      "round": 400,
+      "winRate": 0.48,
+      "epsilon": 0.8265063812989984,
+      "pnl": -21
+    },
+    {
+      "round": 450,
+      "winRate": 0.48,
+      "epsilon": 0.8060948262471712,
+      "pnl": -48
+    },
+    {
+      "round": 500,
+      "winRate": 0.48,
+      "epsilon": 0.7861873587487627,
+      "pnl": -75
+    }
+  ],
+  "baselines": {
+    "always-bank": {
+      "pnl": -1074,
+      "winRate": 0.4644644644644645
+    },
+    "always-play": {
+      "pnl": 610,
+      "winRate": 0.5255255255255256
+    },
+    "alternating": {
+      "pnl": -183,
+      "winRate": 0.4974974974974975
+    }
+  },
+  "timestamp": "2026-06-03T19:18:08.756Z"
+}
