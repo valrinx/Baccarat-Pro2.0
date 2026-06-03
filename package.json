@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "node backend/server.js",
-    "lint": "node --check backend/server.js"
+    "lint": "node --check backend/server.js",
+    "backtest": "node tests/backtest.js"
   },
   "dependencies": {
     "express": "^4.21.2",
