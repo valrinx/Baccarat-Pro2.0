@@ -437,7 +437,6 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
     </div>
     <div class="train-dash-controls">
       <label>Rounds<input type="number" id="trainRoundsInput" value="2000" min="500" max="50000" step="500"></label>
-      <label style="display:none"><span style="font-size:8px;color:var(--dim)">Seed</span><input type="number" id="trainSeedInput" value="0" min="0" max="999999"></label>
       <div style="flex:1;display:flex;flex-direction:column;gap:4px">
         <select id="trainModeSelect" onchange="onTrainModeChange()" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:9px;padding:5px 8px;width:100%">
           <option value="random">Mode: Random Sequence</option>
@@ -1751,6 +1750,20 @@ function qConfidenceFromGap(qP,qB){
 }
 
 function getQLearningDecision(h,streak,streakSide){
+  const tfResult = getTFDecision(h);
+  if (tfResult) {
+    const explore = tfResult.conf <= 2;
+    return {
+      state: 'tf:' + (streak + '-' + (h[h.length-1]||'?')),
+      winner: tfResult.winner,
+      conf: tfResult.conf,
+      qP: tfResult.qP,
+      qB: tfResult.qB,
+      visits: 999,
+      explore,
+      reason: `TF-DQN [${tfResult.winner}] Q(P)=${tfResult.qP.toFixed(2)} Q(B)=${tfResult.qB.toFixed(2)} ${explore?'Explore':'Exploit'}`
+    };
+  }
   const state=getQLearningState(h,streak,streakSide);
   if(!state)return null;
   const q=getQValues(state);
@@ -2223,15 +2236,15 @@ loadQTable();
 buildGrid();renderHands();loadCurrent();
 
 // ---- TRAINING DASHBOARD — self-train AI in browser ----
-// NOTE: The training dashboard trains a TF.js DQN model in-browser for
-// backtesting/benchmarking purposes. The trained model weights are exported
-// to S.qTable so the in-game Q-Learning system can use them.
+// The trained model is stored in window._tfModel and used directly by
+// getTFDecision() for in-game predictions (bypasses S.qTable).
 
 let _td = {
   running: false,
   stop: false,
   chartData: [],
-  maxPoints: 50
+  maxPoints: 50,
+  model: null
 };
 
 function _tdMakeModel() {
@@ -2244,64 +2257,111 @@ function _tdMakeModel() {
   return m;
 }
 
-function _tdExportToQTable(model) {
-  // Sample states from the Q-table key space and get Q-values from the TF model,
-  // then inject into S.qTable so the in-game heuristic engine can read them.
+/** Encode game history → 10-feature vector (same as training encodeState) */
+function encodeStateForTF(hist) {
+  const h = hist.filter(x => x !== 'T');
+  if (h.length < 2) return null;
+
+  const bc = h.filter(x => x === 'B').length;
+  const pc = h.length - bc;
+  const total = h.length;
+  const last = h[h.length - 1];
+
+  let sl = 1;
+  for (let i = h.length - 2; i >= 0; i--) {
+    if (h[i] === last) sl++;
+    else break;
+  }
+
+  const last10 = h.slice(-10);
+  let chop = 0;
+  for (let i = 1; i < last10.length; i++) {
+    if (last10[i] !== last10[i - 1]) chop++;
+  }
+  chop = chop / Math.max(1, last10.length - 1);
+
+  const br = bc / total;
+  const mb = Math.abs(br - pc / total);
+
+  return [
+    h[h.length - 1] === h[h.length - 2] ? 1 : 0,
+    Math.min(1, sl / 10),
+    Math.min(1, br),
+    Math.min(1, chop),
+    Math.min(1, chop * 0.5 + mb * 0.5),
+    Math.min(1, chop * 0.7 + mb * 0.3),
+    Math.min(1, 1 / Math.max(1, sl)),
+    Math.min(1, h.length / 60),
+    Math.min(1, Math.max(br, pc / total) * (1 - chop)),
+    Math.min(1, mb)
+  ];
+}
+
+/** Sync TF prediction for in-game use — returns {bet, conf, qP, qB} or null */
+function getTFDecision(hist) {
+  if (!window._tfModel) return null;
+  const vec = encodeStateForTF(hist);
+  if (!vec) return null;
   try {
-    // We transfer knowledge by evaluating a fixed set of representative states.
-    const stateSamples = [];
-    for (let streak = 1; streak <= 6; streak++) {
-      for (const lastW of ['P', 'B']) {
-        for (const g1 of ['x', '0', '1']) {
-          for (const g2 of ['x', '0', '1']) {
-            for (const g3 of ['x', '0', '1']) {
-              for (const cBit of ['0', '1']) {
-                const stateKey = `s${streak}${lastW}_g${g1}${g2}${g3}_c${cBit}`;
-                const v = encodeStateFromPattern(streak, lastW, g1, g2, g3, cBit === '1');
-                stateSamples.push({ key: stateKey, vec: v });
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // Batch predict all samples
-    const batch = stateSamples.map(s => s.vec);
-    const qValues = model.predict(tf.tensor2d(batch)).arraySync();
-
-    qValues.forEach((qv, i) => {
-      const key = stateSamples[i].key;
-      if (!S.qTable[key]) { S.qTable[key] = { P: 0, B: 0 }; S.qCount[key] = { P: 0, B: 0 }; }
-      S.qTable[key].P = qv[1]; // P = index 1
-      S.qTable[key].B = qv[0]; // B = index 0
-      S.qCount[key].P = 10;
-      S.qCount[key].B = 10;
-    });
-
-    saveQTable();
-    const hint = document.getElementById('trainDashToggleHint');
-    if (hint) hint.textContent = '✓ วิเคราะห์จาก AI เทรนแล้ว';
+    const qVals = window._tfModel.predict(tf.tensor2d([vec])).arraySync()[0];
+    // qVals: [0]=B, [1]=P, [2]=T
+    const qB = qVals[0], qP = qVals[1];
+    const gap = Math.abs(qP - qB);
+    const winner = qP >= qB ? 'P' : 'B';
+    let conf = 1;
+    if (gap >= 1.5) conf = 5;
+    else if (gap >= 1.0) conf = 4;
+    else if (gap >= 0.5) conf = 3;
+    else if (gap >= 0.2) conf = 2;
+    return { winner, conf, qP, qB, source: 'tf' };
   } catch (e) {
-    console.warn('Failed to export TF model to Q-table:', e);
+    return null;
   }
 }
 
-function encodeStateFromPattern(streak, lastW, g1, g2, g3, highChaos) {
-  const br = lastW === 'B' ? 0.55 : 0.45;
-  const pc = 1 - br;
-  const sl = Math.min(1, streak / 10);
-  const chop = 0.4;
-  const mb = Math.abs(br - pc);
-  return [
-    1, sl, br, chop,
-    Math.min(1, chop * 0.5 + mb * 0.5),
-    Math.min(1, chop * 0.7 + mb * 0.3),
-    Math.min(1, 1 / Math.max(1, streak)),
-    0.5,
-    Math.min(1, Math.max(br, pc) * (1 - chop)),
-    Math.min(1, mb)
-  ];
+/** Show TF model status on the training panel toggle button */
+function updateTrainDashToggleHint() {
+  const hint = document.getElementById('trainDashToggleHint');
+  if (!hint) return;
+  if (window._tfModel) {
+    hint.textContent = '✓ TF Model Active';
+    hint.style.color = 'var(--green-pos)';
+  } else {
+    hint.textContent = 'no model';
+    hint.style.color = 'var(--dim)';
+  }
+}
+
+/** Export TF model knowledge into S.qTable for the simple in-game Q learner */
+function _tdExportKnowledgeToQTable(model) {
+  try {
+    const stateSamples = [];
+    for (let streak = 1; streak <= 6; streak++) {
+      for (const lastW of ['P', 'B']) {
+        const h = [];
+        for (let i = 0; i < streak; i++) h.push(lastW);
+        const vec = encodeStateForTF(h);
+        if (vec) {
+          stateSamples.push({ streak, lastW, vec });
+        }
+      }
+    }
+    if (!stateSamples.length) return;
+    const batch = stateSamples.map(s => s.vec);
+    const qValues = model.predict(tf.tensor2d(batch)).arraySync();
+    qValues.forEach((qv, i) => {
+      const { streak, lastW } = stateSamples[i];
+      const key = `s${streak}${lastW}_gxxx_c0`;
+      if (!S.qTable[key]) { S.qTable[key] = { P: 0, B: 0 }; S.qCount[key] = { P: 0, B: 0 }; }
+      S.qTable[key].P = qv[1];
+      S.qTable[key].B = qv[0];
+      S.qCount[key].P = 10;
+      S.qCount[key].B = 10;
+    });
+    saveQTable();
+  } catch (e) {
+    console.warn('Export to QTable failed:', e);
+  }
 }
 
 function toggleTrainDash() {
@@ -2513,7 +2573,8 @@ async function startTraining() {
   const statusEl = document.getElementById('trainStatus');
   statusEl.textContent = 'TRAINING...';
   statusEl.className = 'train-dash-status running';
-  document.getElementById('trainMsg').textContent = '';
+  const msgEl = document.getElementById('trainMsg');
+  msgEl.textContent = '';
   document.getElementById('trainBaselines').style.display = 'none';
   document.getElementById('trainVsRow').style.display = 'none';
   document.getElementById('trainProgressBar').style.width = '0%';
@@ -2602,9 +2663,6 @@ async function startTraining() {
 
   const rollingWindow = [];
   let cumulativePnl = 0;
-
-  const msgEl = document.getElementById('trainMsg');
-  msgEl.textContent = 'Generating sequence...';
 
   try {
     for (let i = trainStart; i <= trainEnd; i++) {
@@ -2708,14 +2766,18 @@ async function startTraining() {
       testPnl
     });
 
-    // Export TF model knowledge into S.qTable for in-game use
-    _tdExportToQTable(model);
+    // Save model to window so in-game getTFDecision() can use it
+    window._tfModel = model;
+    updateTrainDashToggleHint();
+
+    // Export TF model knowledge into S.qTable too (for reference)
+    _tdExportKnowledgeToQTable(model);
 
     statusEl.textContent = 'DONE';
     statusEl.className = 'train-dash-status done';
     msgEl.innerHTML = 'Training complete! <b style="color:var(--green-pos)">AI vs always-play: ' +
       (testPnl - baselines['always-play'].pnl >= 0 ? 'WIN' : 'LOSE') + '</b>' +
-      ' <span style="color:var(--dim);font-size:7px">| ' + (mode === 'history' ? 'trained on real history' : 'seed=' + seed) + ' | Q-table updated</span>';
+      ' <span style="color:var(--green-pos);font-size:7px">| TF Model Active</span>';
 
   } catch (e) {
     msgEl.innerHTML = '<span class="err">Error: ' + e.message + '</span>';
