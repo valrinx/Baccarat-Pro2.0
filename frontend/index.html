@@ -2601,7 +2601,7 @@ async function startTraining() {
   let epsilon = 1.0, epsilonMin = 0.05, epsilonDecay = 0.9995;
   const gamma = 0.95;
   const trainStart = Math.min(20, Math.floor(rounds * 0.1));
-  const trainEnd = Math.floor(rounds * 0.8);
+  const trainEnd = Math.floor(rounds * 0.5); // 50% train, 50% test
   const batchSize = 32;
 
   // Build training sequence
