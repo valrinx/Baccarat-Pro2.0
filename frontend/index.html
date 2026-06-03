@@ -2398,10 +2398,10 @@ function updateTrainDashToggleHint() {
   const hint = document.getElementById('trainDashToggleHint');
   if (!hint) return;
   if (window._tfModel) {
-    hint.textContent = '✓ TF Model Active';
+    hint.textContent = '✓ มีโมเดล AI';
     hint.style.color = 'var(--green-pos)';
   } else {
-    hint.textContent = 'no model';
+    hint.textContent = 'ยังไม่มีโมเดล';
     hint.style.color = 'var(--dim)';
   }
 }
@@ -2440,9 +2440,12 @@ function _tdExportKnowledgeToQTable(model) {
 
 function toggleTrainDash() {
   const el = document.getElementById('trainDash');
+  const btPanel = document.getElementById('backtestPanel');
   const btn = document.getElementById('trainDashToggle');
   const vis = el.classList.toggle('show');
-  btn.textContent = vis ? '▲ AI TRAINING PANEL' : '▼ AI TRAINING PANEL';
+  btn.textContent = vis ? '▲ AI เรียนรู้' : '▼ AI เรียนรู้';
+  // Show backtest panel alongside train panel
+  if (btPanel) btPanel.style.display = vis ? 'block' : 'none';
 }
 
 function _fmtN(n) {
@@ -2918,6 +2921,11 @@ async function startTraining() {
     msgEl.innerHTML = 'เทรนเสร็จแล้ว! ' + vsTag +
       ' <span style="color:var(--green-pos);font-size:7px">| TF Model Active</span>';
 
+    // Auto-show and run backtest
+    const btPanel = document.getElementById('backtestPanel');
+    if (btPanel) btPanel.style.display = 'block';
+    setTimeout(() => runBacktest(), 100);
+
   } catch (e) {
     msgEl.innerHTML = '<span class="err">Error: ' + e.message + '</span>';
     statusEl.textContent = 'ERROR';
@@ -2932,6 +2940,198 @@ async function startTraining() {
 function stopTraining() {
   _td.stop = true;
   document.getElementById('trainMsg').textContent = 'กำลังหยุด...';
+}
+
+/* =============================================
+   BACKTEST — เปรียบเทียบระบบทั้ง 3 บน data เดียวกัน
+   ============================================= */
+
+function runBacktest() {
+  const btn = document.getElementById('backtestRunBtn');
+  const note = document.getElementById('backtestNote');
+  btn.disabled = true;
+  btn.textContent = 'กำลังรัน...';
+  note.textContent = 'กำลังประมวลผล...';
+
+  // Run async so UI doesn't freeze
+  setTimeout(() => {
+    try {
+      const raw = localStorage.getItem('bac_shoe') || localStorage.getItem('bac_shoe_history');
+      let history = [];
+      if (raw) {
+        try { history = JSON.parse(raw); } catch(e) {}
+      }
+      // Fallback: build from S.hist
+      if (!history.length && typeof S !== 'undefined' && S.hist) {
+        history = S.hist.slice();
+      }
+      if (history.length < 10) {
+        note.textContent = '⚠️ ข้อมูลน้อยเกินไป (ต้อง ≥10 รอบ)';
+        btn.disabled = false; btn.textContent = '▶ รัน Backtest';
+        return;
+      }
+
+      // Use all non-T outcomes for prediction (T=skip)
+      const nonT = history.filter(x => x !== 'T');
+      // We'll predict on all non-T, starting from index where we have enough history
+      const minHist = 20; // need at least 20 for patterns to be meaningful
+
+      const results = {
+        ai:    { correct: 0, total: 0, pnl: 0 },
+        ql:    { correct: 0, total: 0, pnl: 0 },
+        bank:  { correct: 0, total: 0, pnl: 0 }
+      };
+
+      // Clone S for safe backtest (don't pollute live state)
+      const savedQTable = S.qTable ? JSON.parse(JSON.stringify(S.qTable)) : {};
+      const savedQCount = S.qCount ? JSON.parse(JSON.stringify(S.qCount)) : {};
+      const savedPw = loadPatternWeights();
+
+      for (let i = minHist; i < history.length; i++) {
+        const actual = history[i];
+        if (actual === 'T') continue;
+
+        // --- AI TF Model ---
+        const model = window._tfModel;
+        if (model) {
+          const state = _encodeStateForModel(history.slice(0, i));
+          const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
+          const aiBet = qVals[0] >= qVals[1] ? 'B' : 'P';
+          const aiPnl = _pnlFor(aiBet, actual);
+          results.ai.pnl += aiPnl;
+          results.ai.total++;
+          if (aiPnl > 0) results.ai.correct++;
+        }
+
+        // --- Q-Learning + 3 เกลอ ---
+        // Reconstruct streak from history[0..i-1]
+        const hSlice = history.slice(0, i);
+        const pbSlice = hSlice.filter(x => x !== 'T');
+        let streak = 1, streakSide = pbSlice[pbSlice.length - 1] || null;
+        for (let j = pbSlice.length - 2; j >= 0; j--) {
+          if (pbSlice[j] === streakSide) streak++;
+          else break;
+        }
+
+        let qlBet = 'B';
+        try {
+          const qlState = getQLearningState(hSlice, streak, streakSide);
+          if (qlState && savedQTable[qlState]) {
+            qlBet = savedQTable[qlState].P >= savedQTable[qlState].B ? 'P' : 'B';
+          } else {
+            // Fallback: use derived consensus
+            const dr = getDerivedRoads(hSlice);
+            const cons = computeDerivedConsensus(hSlice, dr);
+            qlBet = cons ? cons.bet : 'B';
+          }
+        } catch(e) { qlBet = 'B'; }
+
+        const qlPnl = _pnlFor(qlBet, actual);
+        results.ql.pnl += qlPnl;
+        results.ql.total++;
+        if (qlPnl > 0) results.ql.correct++;
+
+        // --- Always Banker ---
+        const bankPnl = _pnlFor('B', actual);
+        results.bank.pnl += bankPnl;
+        results.bank.total++;
+        if (bankPnl > 0) results.bank.correct++;
+      }
+
+      // === Render Results ===
+      const _cls = (n) => n > 0 ? 'pos' : n < 0 ? 'neg' : 'neu';
+      const _c = (n) => n > 0 ? 'var(--green-pos)' : n < 0 ? 'var(--red-neg)' : 'var(--dim)';
+
+      // AI row
+      const aiCorrect = document.getElementById('btAiCorrect');
+      const aiPct = document.getElementById('btAiPct');
+      const aiPnlEl = document.getElementById('btAiPnl');
+      const aiDiff = document.getElementById('btAiDiff');
+      if (aiCorrect) { aiCorrect.textContent = results.ai.total > 0 ? results.ai.correct + '/' + results.ai.total : '—'; aiCorrect.style.color = _c(1); }
+      if (aiPct) { aiPct.textContent = results.ai.total > 0 ? Math.round(results.ai.correct / results.ai.total * 100) + '%' : '—'; aiPct.style.color = results.ai.total > 0 ? _c(results.ai.correct / results.ai.total - 0.5) : 'var(--dim)'; }
+      if (aiPnlEl) { aiPnlEl.textContent = results.ai.pnl > 0 ? '+' + results.ai.pnl : results.ai.pnl; aiPnlEl.style.color = _c(results.ai.pnl); }
+      if (aiDiff) {
+        const diff = results.ai.pnl - results.bank.pnl;
+        aiDiff.textContent = diff > 0 ? '+' + diff : diff;
+        aiDiff.style.color = _c(diff);
+      }
+
+      // QL row
+      const qlCorrect = document.getElementById('btQLCorrect');
+      const qlPct = document.getElementById('btQLPct');
+      const qlPnlEl = document.getElementById('btQLPnl');
+      const qlDiff = document.getElementById('btQLDiff');
+      if (qlCorrect) { qlCorrect.textContent = results.ql.total > 0 ? results.ql.correct + '/' + results.ql.total : '—'; qlCorrect.style.color = _c(1); }
+      if (qlPct) { qlPct.textContent = results.ql.total > 0 ? Math.round(results.ql.correct / results.ql.total * 100) + '%' : '—'; qlPct.style.color = results.ql.total > 0 ? _c(results.ql.correct / results.ql.total - 0.5) : 'var(--dim)'; }
+      if (qlPnlEl) { qlPnlEl.textContent = results.ql.pnl > 0 ? '+' + results.ql.pnl : results.ql.pnl; qlPnlEl.style.color = _c(results.ql.pnl); }
+      if (qlDiff) {
+        const diff = results.ql.pnl - results.bank.pnl;
+        qlDiff.textContent = diff > 0 ? '+' + diff : diff;
+        qlDiff.style.color = _c(diff);
+      }
+
+      // Bank row
+      const bankCorrect = document.getElementById('btBankCorrect');
+      const bankPct = document.getElementById('btBankPct');
+      const bankPnlEl = document.getElementById('btBankPnl');
+      if (bankCorrect) { bankCorrect.textContent = results.bank.total > 0 ? results.bank.correct + '/' + results.bank.total : '—'; }
+      if (bankPct) { bankPct.textContent = results.bank.total > 0 ? Math.round(results.bank.correct / results.bank.total * 100) + '%' : '—'; bankPct.style.color = _c(results.bank.correct / results.bank.total - 0.5); }
+      if (bankPnlEl) { bankPnlEl.textContent = results.bank.pnl > 0 ? '+' + results.bank.pnl : results.bank.pnl; bankPnlEl.style.color = _c(results.bank.pnl); }
+
+      const totalRounds = results.ai.total;
+      const best = [ {name:'AI', pnl: results.ai.pnl}, {name:'Q-Learning+3เกลอ', pnl: results.ql.pnl}, {name:'แทง Banker เสมอ', pnl: results.bank.pnl} ]
+        .sort((a,b) => b.pnl - a.pnl);
+      note.innerHTML = '✅ Backtest จบแล้ว ' + totalRounds + ' รอบ · อันดับ 1: <b style="color:var(--gold)">' + best[0].name + '</b> (' + (best[0].pnl > 0 ? '+' : '') + best[0].pnl + ')';
+
+    } catch(e) {
+      note.textContent = '❌ Error: ' + e.message;
+    }
+    btn.disabled = false;
+    btn.textContent = '▶ รัน Backtest';
+  }, 50);
+}
+
+// Helpers shared with TF training — MUST match encodeState() used in TF training
+function _encodeStateForModel(history) {
+  // Mirror encodeState() from TF training block exactly
+  const h = history.filter(x => x !== 'T');
+  if (h.length < 2) return Array(10).fill(0);
+  const bc = h.filter(x => x === 'B').length;
+  const pc = h.length - bc;
+  const total = h.length;
+  const last = h[h.length - 1];
+  let sl = 1;
+  for (let i = h.length - 2; i >= 0; i--) {
+    if (h[i] === last) sl++;
+    else break;
+  }
+  const chop = h.slice(-10).reduce((acc, item, idx, arr) => {
+    if (idx === 0) return acc;
+    if (item !== arr[idx - 1] && item !== 'T' && arr[idx - 1] !== 'T') return acc + 1;
+    return acc;
+  }, 0) / Math.max(1, Math.min(10, h.length - 1));
+  const br = bc / total;
+  const mb = Math.abs(br - pc / total);
+  return [
+    h[h.length - 1] === h[h.length - 2] ? 1 : 0,
+    Math.min(1, sl / 10),
+    Math.min(1, br),
+    Math.min(1, chop),
+    Math.min(1, chop * 0.5 + mb * 0.5),
+    Math.min(1, chop * 0.7 + mb * 0.3),
+    Math.min(1, 1 / Math.max(1, sl)),
+    Math.min(1, h.length / 60),
+    Math.min(1, Math.max(br, pc / total) * (1 - chop)),
+    Math.min(1, mb)
+  ];
+}
+
+function _pnlFor(bet, actual) {
+  if (actual === 'T') return 0;
+  if (bet === actual) {
+    return bet === 'B' ? 0.95 : 1.0;
+  }
+  return -1.0;
 }
 </script>
 </body>
