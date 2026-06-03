@@ -372,7 +372,7 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 <body>
 
 <div class="hdr">
-  <div class="logo">BACCARAT PRO 2.0</div>
+  <div class="logo">BACCARAT PRO 2.1</div>
   <div class="logo-sub">CALCULATOR · TRACKER · SYSTEM</div>
 </div>
 
@@ -2249,10 +2249,11 @@ let _td = {
 
 function _tdMakeModel() {
   const m = tf.sequential();
-  m.add(tf.layers.dense({ inputShape: [10], units: 64, activation: 'relu' }));
-  m.add(tf.layers.dropout({ rate: 0.1 }));
+  m.add(tf.layers.dense({ inputShape: [10], units: 128, activation: 'relu' }));
+  m.add(tf.layers.dropout({ rate: 0.15 }));
   m.add(tf.layers.dense({ units: 64, activation: 'relu' }));
-  m.add(tf.layers.dense({ units: 3, activation: 'linear' }));
+  m.add(tf.layers.dense({ units: 32, activation: 'relu' }));
+  m.add(tf.layers.dense({ units: 2, activation: 'linear' })); // B=0, P=1
   m.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
   return m;
 }
@@ -2304,7 +2305,7 @@ function getTFDecision(hist) {
   if (!vec) return null;
   try {
     const qVals = window._tfModel.predict(tf.tensor2d([vec])).arraySync()[0];
-    // qVals: [0]=B, [1]=P, [2]=T
+    // qVals: [0]=B, [1]=P
     const qB = qVals[0], qP = qVals[1];
     const gap = Math.abs(qP - qB);
     const winner = qP >= qB ? 'P' : 'B';
@@ -2595,10 +2596,12 @@ async function startTraining() {
     return;
   }
 
-  // Memory
+  // === TRAINING HYPERPARAMETERS ===
   const memory = [];
-  const ACTIONS = ['B', 'P', 'T'];
-  let epsilon = 1.0, epsilonMin = 0.05, epsilonDecay = 0.9995;
+  const ACTIONS = ['B', 'P'];            // no Tie — Tie never profits long-term
+  let epsilon = 1.0;
+  const epsilonMin = 0.05;
+  const epsilonDecay = 0.9998;           // faster convergence
   const gamma = 0.95;
   const trainStart = Math.min(20, Math.floor(rounds * 0.1));
   const trainEnd = Math.floor(rounds * 0.5); // 50% train, 50% test
@@ -2618,20 +2621,14 @@ async function startTraining() {
         document.getElementById('trainStopBtn').disabled = true;
         return;
       }
-      // Replay history to extend it if needed
       const needed = Math.max(rounds, history.length);
       while (history.length < needed) {
-        // Bootstrap from existing pattern distribution
         const last10 = history.slice(-10);
-        const streakLen = (() => {
-          const last = last10[last10.length - 1];
-          let n = 0;
-          for (let i = last10.length - 1; i >= 0; i--) {
-            if (last10[i] === last) n++; else break;
-          }
-          return n;
-        })();
         const last = last10[last10.length - 1];
+        let streakLen = 0;
+        for (let i = last10.length - 1; i >= 0; i--) {
+          if (last10[i] === last) streakLen++; else break;
+        }
         const r = Math.random();
         let next;
         if (streakLen >= 4 && r < 0.32) {
@@ -2641,10 +2638,8 @@ async function startTraining() {
         } else if (r < 0.83) {
           next = last === 'B' ? 'P' : 'B';
         } else {
-          const r2 = Math.random();
-          next = r2 < 0.48 ? 'B' : r2 < 0.96 ? 'P' : 'T';
+          next = Math.random() < 0.48 ? 'B' : 'P';
         }
-        if (next !== 'T') last = next;
         history.push(next);
       }
       msgEl.textContent = `Using real history: ${o.hist.length} rounds (extended to ${history.length})`;
@@ -2664,29 +2659,40 @@ async function startTraining() {
   const rollingWindow = [];
   let cumulativePnl = 0;
 
+  /** Payout — same as real Baccarat odds */
+  const stake = 10;
+  function pnlFor(bet, actual) {
+    if (actual === 'T') return 0;        // tie = push, no loss
+    if (bet === actual) return bet === 'B' ? Math.floor(stake * 0.95) : stake;
+    return -stake;
+  }
+
   try {
-    for (let i = trainStart; i <= trainEnd; i++) {
+    // Train until exploration rate drops to minimum (model converges)
+    for (let i = trainStart; epsilon > epsilonMin && i < history.length - 200; i++) {
       if (_td.stop) break;
 
       const state = encodeState(history.slice(0, i));
       const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
 
+      // Epsilon-greedy — only B or P
       let action;
       if (Math.random() < epsilon) {
         action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
       } else {
-        const idx = qVals[0] >= qVals[1] ? (qVals[0] >= qVals[2] ? 0 : 2) : (qVals[1] >= qVals[2] ? 1 : 2);
-        action = ACTIONS[idx];
+        action = qVals[0] >= qVals[1] ? 'B' : 'P';
       }
 
       const actual = history[i];
-      const pnl = payoutFor(action, actual, 10);
+      const pnl = pnlFor(action, actual);
       cumulativePnl += pnl;
-      const reward = pnl > 0 ? 1 : pnl < 0 ? -1 : 0;
+
+      // Reward = actual payout (positive = win, negative = loss)
+      const reward = pnl;
       const nextState = encodeState(history.slice(0, i + 1));
       memory.push({ state, nextState, action, reward, done: i === trainEnd });
 
-      // Train
+      // Train on batch
       if (memory.length >= batchSize) {
         const batch = memory.slice(-batchSize);
         const states = tf.tensor2d(batch.map(x => x.state));
@@ -2712,13 +2718,17 @@ async function startTraining() {
 
       epsilon = Math.max(epsilonMin, epsilon * epsilonDecay);
 
-      // Rolling win rate
-      rollingWindow.push(pnl > 0 ? 1 : pnl < 0 ? 0 : 0.5);
-      if (rollingWindow.length > 50) rollingWindow.shift();
+      // Rolling win rate (skip ties)
+      if (actual !== 'T') {
+        rollingWindow.push(pnl > 0 ? 1 : 0);
+        if (rollingWindow.length > 50) rollingWindow.shift();
+      }
 
       // Update UI every 50 rounds
       if (i % 50 === 0) {
-        const wr = rollingWindow.reduce((a, b) => a + b, 0) / rollingWindow.length;
+        const wr = rollingWindow.length > 0
+          ? rollingWindow.reduce((a, b) => a + b, 0) / rollingWindow.length
+          : 0;
         updateTrainDashUI({
           winRate: wr,
           pnl: cumulativePnl,
@@ -2728,55 +2738,64 @@ async function startTraining() {
           baselines: null,
           testPnl: null
         });
-        msgEl.textContent = `Training round ${i}/${trainEnd} (${Math.round(i/trainEnd*100)}%) · mode: ${mode}`;
+        msgEl.textContent = `Training ${i}/${history.length} eps=${epsilon.toFixed(3)} pnl=${cumulativePnl > 0 ? '+' : ''}${cumulativePnl} ${epsilon <= epsilonMin ? '[CONVERGED]' : ''}`;
       }
     }
+    const trainedRounds = history.length; // how much was trained
 
-    // Test on held-out data
-    const testStart = trainEnd + 1;
+    // === TEST on last 200 unseen rounds ===
+    const testStart = history.length - 200;
     const testEnd = history.length - 1;
-    let testPnl = 0, testWins = 0, testTotal = 0;
-    const baselines = { 'always-bank': { pnl: 0 }, 'always-play': { pnl: 0 } };
+    let testPnl = 0, testWins = 0, testNonTie = 0;
+    let alwaysBPnl = 0, alwaysPPnl = 0;
 
     msgEl.textContent = 'Testing on held-out data...';
     for (let i = testStart; i <= testEnd; i++) {
       const state = encodeState(history.slice(0, i));
       const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
-      const idx = qVals[0] >= qVals[1] ? (qVals[0] >= qVals[2] ? 0 : 2) : (qVals[1] >= qVals[2] ? 1 : 2);
-      const action = ACTIONS[idx];
+      const action = qVals[0] >= qVals[1] ? 'B' : 'P';
       const actual = history[i];
-      const pnl = payoutFor(action, actual, 10);
-      testPnl += pnl;
-      if (pnl > 0) testWins++;
-      testTotal++;
 
-      baselines['always-bank'].pnl += payoutFor('B', actual, 10);
-      baselines['always-play'].pnl += payoutFor('P', actual, 10);
+      const pnl = pnlFor(action, actual);
+      testPnl += pnl;
+      alwaysBPnl += pnlFor('B', actual);
+      alwaysPPnl += pnlFor('P', actual);
+
+      if (actual !== 'T') {
+        testNonTie++;
+        if (pnl > 0) testWins++;
+      }
     }
 
-    const testWinRate = testWins / testTotal;
-    const finalWr = rollingWindow.reduce((a, b) => a + b, 0) / rollingWindow.length;
+    const testWinRate = testNonTie > 0 ? testWins / testNonTie : 0;
+    const aiVsBank = testPnl - alwaysBPnl;
+    const aiVsPlay = testPnl - alwaysPPnl;
+    const baselines = {
+      'always-bank': { pnl: alwaysBPnl },
+      'always-play': { pnl: alwaysPPnl }
+    };
+
     updateTrainDashUI({
-      winRate: finalWr,
+      winRate: testWinRate,
       pnl: testPnl,
-      rounds: trainEnd,
+      rounds: history.length,
       epsilon,
       converged: true,
       baselines,
       testPnl
     });
 
-    // Save model to window so in-game getTFDecision() can use it
+    // Save model globally for in-game use
     window._tfModel = model;
-    updateTrainDashToggleHint();
-
-    // Export TF model knowledge into S.qTable too (for reference)
     _tdExportKnowledgeToQTable(model);
+    updateTrainDashToggleHint();
 
     statusEl.textContent = 'DONE';
     statusEl.className = 'train-dash-status done';
-    msgEl.innerHTML = 'Training complete! <b style="color:var(--green-pos)">AI vs always-play: ' +
-      (testPnl - baselines['always-play'].pnl >= 0 ? 'WIN' : 'LOSE') + '</b>' +
+    const vsTag = aiVsBank >= 0
+      ? '<b style="color:var(--green-pos)">WIN vs bank +' + aiVsBank + '</b>'
+      : '<b style="color:var(--red-neg)">LOSE vs bank ' + aiVsBank + '</b>';
+    msgEl.innerHTML = 'Training complete! ' + vsTag +
       ' <span style="color:var(--green-pos);font-size:7px">| TF Model Active</span>';
 
   } catch (e) {
