@@ -171,16 +171,19 @@ async function runBacktestSegment(history, start, end, options, trainingMode = t
   return { rows, memoryFilled };
 }
 
-function buildWalkForwardWindows(length, splitRatio) {
+function buildWalkForwardWindows(length, splitRatio, numSlices = 10) {
   const anchor = Math.max(1, Math.floor(length * splitRatio));
-  const testSize = Math.max(25, Math.floor((length - anchor) / 2));
+  const step = Math.max(1, Math.floor((length - anchor) / numSlices));
   const windows = [];
-  let testStart = anchor;
+  let trainEnd = anchor;
 
-  while (testStart < length) {
-    const testEnd = Math.min(length - 1, testStart + testSize - 1);
-    windows.push({ trainEnd: testStart - 1, testStart, testEnd });
-    testStart = testEnd + 1;
+  for (let i = 0; i < numSlices; i += 1) {
+    const testStart = trainEnd;
+    const testEnd = Math.min(length - 1, testStart + step - 1);
+    if (testStart >= length - 1) break;
+    windows.push({ trainEnd, testStart, testEnd });
+    trainEnd = testEnd + 1;
+    if (trainEnd >= length - 1) break;
   }
 
   return windows;
@@ -219,7 +222,7 @@ async function main() {
   let totalMemoryFilled = 0;
 
   for (const window of windows) {
-    // eslint-disable-next-line no-await-in-loop
+    // train from fixed window before trainEnd, test on unseen window
     const report = await runBacktestSegment(history, window.trainEnd - args.trainWindow + 1, window.testEnd, args, true);
     const stats = summarizeStats(report.rows);
     sliceReports.push({ window, stats });
