@@ -171,6 +171,12 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 .risk-badge.low{color:var(--green-pos);border-color:rgba(34,197,94,.35)}
 .risk-badge.mid{color:var(--gold);border-color:rgba(201,168,76,.35)}
 .risk-badge.high{color:var(--red-neg);border-color:rgba(239,68,68,.35)}
+/* TF Weight Slider */
+.tf-wt-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.tf-wt-lbl{font-size:8px;color:var(--dim);white-space:nowrap;min-width:60px}
+.tf-wt-slider{flex:1;-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:var(--surface3);outline:none;cursor:pointer}
+.tf-wt-slider::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;border-radius:50%;background:var(--gold);cursor:pointer}
+.tf-wt-val{font-size:8px;color:var(--gold);font-family:'Cinzel',serif;min-width:28px;text-align:right}
 
 /* BET SYSTEM CSS removed */
 
@@ -232,6 +238,13 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 .conf{display:flex;gap:3px;margin-top:5px}
 .cd{width:6px;height:6px;border-radius:50%;background:var(--border)}
 .cd.f{background:var(--gold)}
+.tf-badge{
+  font-family:'Cinzel',serif;font-size:7px;letter-spacing:.06em;
+  padding:3px 7px;border-radius:4px;border:1px solid var(--border);color:var(--dim);
+  background:rgba(201,168,76,.05);display:none
+}
+.tf-badge.active{display:inline-block;border-color:var(--green-pos);color:var(--green-pos);background:rgba(34,197,94,.1)}
+.tf-badge.train-only{display:inline-block;border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.1)}
 
 /* HISTORY BEAD ROW */
 .hist-row{display:flex;flex-wrap:wrap;gap:4px;padding:8px 14px 0;min-height:26px}
@@ -419,14 +432,15 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
     <!-- EXPLANATION BOX -->
     <div style="font-size:7px;color:var(--dim);line-height:1.5;padding:6px 8px;background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.15);border-radius:5px;margin-bottom:8px">
       <span style="color:var(--gold)">📖 ตัวเลขหมายความว่า:</span><br>
-      <span style="color:var(--green-pos)">% ถูก</span> = AI ทายถูกกี่ %<br>
-      <span style="color:var(--green-pos)">กำไร/ขาดทุน</span> = รวมทั้งหมด (บวก = ได้เงิน, ลบ = เสียเงิน)<br>
-      <span style="color:var(--green-pos)">สำรวจ (ε)</span> = ยังสุ่มอยู่กี่% (0.05 = เรียนจบแล้ว)
+      <span style="color:var(--green-pos)">% ถูก</span> = AI ทายถูกกี่ % (Out-of-Sample)<br>
+      <span style="color:var(--green-pos)">กำไร/ขาดทุน</span> = รวม P&amp;L บนข้อมูล OOS (+ = ได้เงิน)<br>
+      <span style="color:var(--green-pos)">สำรวจ (ε)</span> = ยังสุ่มอยู่กี่% (0.05 = เรียนจบแล้ว)<br>
+      <span style="color:var(--gold)">เทรน/ทดสอบ</span> = แบ่งข้อมูล 80%/20% ล่วงหน้า
     </div>
-    <div class="train-dash-mini-chart"><canvas class="train-dash-canvas" id="trainChart" width="200" height="40"></canvas></div>
+    <div class="train-dash-mini-chart"><canvas class="train-dash-canvas" id="trainChart" width="380" height="90"></canvas></div>
     <!-- Unified comparison: AI vs Baselines (replaces trainVsRow + trainCasinoBox + trainBaselines) -->
     <div id="trainCompareBox" style="display:none;margin-bottom:8px;padding:8px;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);border-radius:5px">
-      <div id="trainCompareHeader" style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:.1em;color:var(--gold);margin-bottom:6px">◆ เปรียบเทียบผล (ทั้งหมดที่เทรน)</div>
+      <div id="trainCompareHeader" style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:.1em;color:var(--gold);margin-bottom:6px">◆ เปรียบเทียบผล · Train/Test แบ่งล่วงหน้า</div>
       <!-- Header -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-bottom:4px;text-align:center">
         <div style="font-size:7px;color:var(--dim)">ระบบ</div>
@@ -471,6 +485,13 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
       <button class="bsbtn" id="trainStartBtn" onclick="startTraining()" style="flex:1;padding:6px 4px;border-color:var(--green-pos);color:var(--green-pos)">START</button>
       <button class="bsbtn" id="trainStopBtn" onclick="stopTraining()" style="flex:1;padding:6px 4px;border-color:var(--red-neg);color:var(--red-neg)" disabled>STOP</button>
     </div>
+    <div id="trainModelActions" style="display:flex;gap:4px;margin-top:6px">
+      <button onclick="exportTFModel()" id="tfExportBtn" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-size:8px;padding:5px 6px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.05em">📥 Export</button>
+      <label style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-size:8px;padding:5px 6px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.05em">
+        📤 Import
+        <input type="file" accept=".json" onchange="importTFModel(this)" style="display:none">
+      </label>
+    </div>
     <div class="train-dash-msg" id="trainMsg"></div>
   </div>
 
@@ -512,18 +533,26 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
       <div id="btBankPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
       <div style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
     </div>
-    <div style="font-size:7px;color:var(--dim);text-align:center;margin-top:4px" id="backtestNote">กด ▶ รัน Backtest เพื่อเปรียบเทียบทั้ง 3 ระบบ</div>
+    <div style="font-size:7px;color:var(--dim);text-align:center;margin-top:4px" id="backtestNote">กด ▶ Backtest บนข้อมูล OOS (200 รอบที่ AI ไม่เคยเห็น)</div>
   </div>
 
   <!-- BET PLACEMENT -->
   <div class="bet-place" style="margin:10px 14px 0">
     <div class="bptitle">◆ วางเดิมพัน</div>
-    <div class="auto-row">
+    <div class="auto-row" style="margin-bottom:0">
       <div class="auto-toggle" onclick="toggleAutoPlay()">
         <div class="auto-sw" id="autoSw"></div>
         <span class="auto-lbl" id="autoLbl">Auto Play</span>
       </div>
       <span style="font-size:8px;color:var(--dim);font-family:'Cinzel',serif" id="autoAmtPreview">—</span>
+    </div>
+    <!-- TF Model weight control -->
+    <div class="tf-wt-row" id="tfWtRow">
+      <span class="tf-wt-lbl">🤖 TF AI:</span>
+      <input type="range" id="tfWtSlider" class="tf-wt-slider"
+        min="0" max="5" step="0.5" value="3"
+        oninput="onTfWeightChange(this.value)">
+      <span class="tf-wt-val" id="tfWtVal">3.0×</span>
     </div>
     <div class="auto-row" style="border-bottom:none;padding-bottom:0;margin-bottom:8px">
       <div class="auto-toggle" onclick="toggleTrainingMode()">
@@ -605,7 +634,10 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   <!-- SUGGEST -->
   <div class="suggest" id="suggest">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;flex-wrap:wrap;gap:4px">
-      <div class="sug-t" style="margin:0">◆ แนะนำรอบถัดไป · Q-Learning + 3 เกลอ</div>
+      <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
+        <div class="sug-t" style="margin:0">◆ แนะนำรอบถัดไป</div>
+        <div class="tf-badge" id="tfBadge">TF MODEL</div>
+      </div>
       <div style="display:flex;gap:4px;align-items:center">
         <div class="risk-badge" id="riskBadge">RISK —</div>
         <div class="chaos-badge" id="chaosBadge">CHAOS —</div>
@@ -741,6 +773,7 @@ let S={
   vstForceSkip:false,vstSkipCount:0,
   vstRecoveryLeft:0,
   mirrorWinStreak:0,lastBetPatternName:null,
+  tfWeight:3.0, // TF model influence multiplier (0–5)
   qTable:{},qCount:{},learningRate:0.2,discountFactor:0.8,
   lastQLearningState:null,lastQLearningAction:null
 };
@@ -863,6 +896,12 @@ function setMoneyMgmt(m){
   if(S.hist.length)showSuggest();
   saveCurrent();
 }
+function onTfWeightChange(val){
+  S.tfWeight=parseFloat(val);
+  document.getElementById('tfWtVal').textContent=parseFloat(val).toFixed(1)+'×';
+  if(S.hist.length)showSuggest();
+  saveCurrent();
+}
 function syncAutoPlayUI(){
   const on=S.autoPlay;
   document.getElementById('autoSw').classList.toggle('on',on);
@@ -958,6 +997,11 @@ function updateAutoBotStatus(result){
   if(!S.autoPlay){el.className='auto-bot-bar off';el.textContent='🤖 Auto Play ปิด';return;}
   el.className='auto-bot-bar';
   let st='พร้อมแทงรอบถัดไป';
+  // TF Model awareness line
+  const tfAvail=!!window._tfModel;
+  const tfUsed=result&&result.patternName==='tf_model';
+  if(tfAvail&&tfUsed)st='[TF AI] '+st;
+  else if(tfAvail)st='[TF Model พร้อม] '+st;
   const chaos=result&&result.chaos?result.chaos.score:S.lastSuggestChaos;
   if(isMirrorSafetyBreak()){
     el.textContent='🤖 จบลูปสมมาตรกระจกเงา — เดิมพันขั้นต่ำ (ชนะ mirror '+S.mirrorWinStreak+' ตา)';
@@ -974,6 +1018,7 @@ function updateAutoBotStatus(result){
   else if(result&&result.conf>=4)st='สัญญาณแรง — เดิมพันเต็ม 100%';
   else if(result&&result.conf>=2)st='สัญญาณปานกลาง — เดิมพัน 50%';
   if(result&&result.bet)st+=' → '+(result.bet==='P'?'PLAYER':'BANKER');
+  if(result&&result.patternName==='tf_model')st='🤖 TF AI · '+st;
   el.textContent='🤖 '+st;
 }
 function applyAutoPlayBet(result){
@@ -2143,6 +2188,24 @@ function runPredictionEngine(h,streak,streakSide){
     S.lastQLearningAction=null;
   }
 
+  // TF Model candidate — weight controlled by S.tfWeight slider
+  const tfResult=getTFDecision(h);
+  let tfCandidate=null;
+  if(tfResult&&tfResult.conf>=2){ // FIX: ลด threshold จาก 3→2 ให้ TF เข้า vote ได้บ่อยขึ้น
+    const tfWt=S.tfWeight||4.0; // FIX: เพิ่ม default weight ให้ TF แข่งได้กับ QL
+    tfCandidate={
+      name:'tf_model',
+      bet:tfResult.winner,
+      conf:tfResult.conf,
+      weight:tfWt,
+      reason:'TF Model',
+      isFallback:false
+    };
+    preds.push(tfCandidate);
+    // Boost votes proportional to TF weight
+    votes[tfResult.winner]=(votes[tfResult.winner]||0)+tfResult.conf*0.8*(tfWt/3.0);
+  }
+
   const hybrid=hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr);
   const winner=hybrid.winner;
 
@@ -2153,7 +2216,7 @@ function runPredictionEngine(h,streak,streakSide){
   const vt=votes.P+votes.B;
   const voteMargin=vt>0?(votes[winner]-votes[winner==='P'?'B':'P'])/vt:0;
   const voteConf=voteMargin>0.4?5:voteMargin>0.25?4:voteMargin>0.1?3:2;
-  let confFinal=Math.max(1,Math.min(5,Math.max(gate.conf,hybrid.conf,voteConf,ql?ql.conf:0)));
+  let confFinal=Math.max(1,Math.min(5,Math.max(gate.conf,hybrid.conf,voteConf,ql?ql.conf:0,tfResult?tfResult.conf:0)));
   let reason=hybrid.reason;
   if(best&&best.reason&&!reason.includes(best.reason.split(' — ')[0]))
     reason+=' · '+best.reason;
@@ -2162,13 +2225,17 @@ function runPredictionEngine(h,streak,streakSide){
   if(best.isFallback&&gate.chaos.score>=65&&!reason.includes('ประคอง'))
     reason='ประคองสถิติ (Flat Base) · '+reason;
 
+  if(tfCandidate&&best.name==='tf_model'&&gate.chaos.score<65){
+    reason='TF Model ชนะลูกผสม · '+reason;
+  }
+
   return{
     skip:false,
     hedgeTie:false,
     bet:winner,
     reason,
     conf:confFinal,
-    patternName:ql?'q_hybrid':best.name,
+    patternName:tfCandidate&&winner===tfCandidate.bet&&tfCandidate.weight>=2.0?'tf_model':(ql?'q_hybrid':best.name),
     weight:best.weight,
     allPreds:preds,
     votes,
@@ -2177,6 +2244,7 @@ function runPredictionEngine(h,streak,streakSide){
     riskLevel:gate.riskLevel,
     gate,
     qLearning:ql,
+    tfResult,
     derivedRoads:dr,
     decisionSource:hybrid.source
   };
@@ -2224,6 +2292,24 @@ function showSuggest(){
   if(riskEl){
     riskEl.textContent=result.riskLabel||'—';
     riskEl.className='risk-badge '+(result.riskLevel||'mid');
+  }
+
+  // TF Model badge — shows when TF model is trained and used
+  const tfBadge=document.getElementById('tfBadge');
+  if(tfBadge){
+    tfBadge.className='tf-badge';
+    const tfAvailable=!!window._tfModel;
+    const tfUsed=result.patternName==='tf_model';
+    if(tfUsed&&tfAvailable){
+      tfBadge.textContent='🤖 TF AI';
+      tfBadge.className='tf-badge active';
+    } else if(tfAvailable){
+      tfBadge.textContent='TF MODEL';
+      tfBadge.className='tf-badge train-only';
+    } else {
+      tfBadge.textContent='TF MODEL';
+      tfBadge.className='tf-badge';
+    }
   }
 
   const el=document.getElementById('sugBet');
@@ -2431,7 +2517,8 @@ function saveCurrent(){
     vstRecoveryLeft:S.vstRecoveryLeft||0,
     mirrorWinStreak:S.mirrorWinStreak||0,
     qTable:S.qTable||{},qCount:S.qCount||{},
-    isTrainingMode:!!isTrainingMode
+    isTrainingMode:!!isTrainingMode,
+    tfWeight:S.tfWeight||3.0
   }));
   saveQTable();
   saveTrainingMode();
@@ -2453,7 +2540,9 @@ function loadCurrent(){
     vstRecoveryLeft:o.vstRecoveryLeft||0,
     mirrorWinStreak:o.mirrorWinStreak||0,lastBetPatternName:null,
     qTable:o.qTable&&Object.keys(o.qTable).length?o.qTable:(S.qTable||{}),
-    qCount:o.qCount&&Object.keys(o.qCount).length?o.qCount:(S.qCount||{})});
+    qCount:o.qCount&&Object.keys(o.qCount).length?o.qCount:(S.qCount||{}),
+    tfWeight:typeof o.tfWeight==='number'?o.tfWeight:3.0
+  });
   if(typeof o.isTrainingMode!=='undefined')isTrainingMode=!!o.isTrainingMode;
   ['stRounds','stP','stB','stT'].forEach((id,i)=>
     document.getElementById(id).textContent=[S.hist.length,S.pC,S.bC,S.tC][i]);
@@ -2461,6 +2550,8 @@ function loadCurrent(){
   syncAutoPlayUI();
   syncTrainingModeUI();
   setMoneyMgmt(S.moneyMgmt);
+  document.getElementById('tfWtSlider').value = S.tfWeight;
+  document.getElementById('tfWtVal').textContent = (S.tfWeight||3).toFixed(1)+'×';
   updatePnlBar();updateOdds();renderHistRow();showSuggest();
   setTimeout(()=>{const el=document.getElementById('betDisplayAmt');if(el)el.textContent=fmt(getCurrentBet());},0);
 }
@@ -2468,6 +2559,25 @@ function loadCurrent(){
 // Init
 loadQTable();
 buildGrid();renderHands();loadCurrent();
+
+// Load persisted TF model on startup so it's available for in-game use
+(async () => {
+  try {
+    const hasMeta = localStorage.getItem('tf_model_meta');
+    if (hasMeta && typeof window._tfModel === 'undefined') {
+      await tf.ready();
+      const m = _tdMakeModel();
+      const loaded = await _tdLoadModel(m);
+      if (loaded) {
+        window._tfModel = m;
+        updateTrainDashToggleHint();
+        console.log('[TF Model] Loaded on startup');
+      }
+    }
+  } catch(e) {
+    console.warn('[TF Model] Startup load failed:', e.message);
+  }
+})();
 
 // ---- TRAINING DASHBOARD — self-train AI in browser ----
 // The trained model is stored in window._tfModel and used directly by
@@ -2481,7 +2591,9 @@ let _td = {
   model: null,
   currentEpsilon: 1.0,
   // Cached training test results for backtest panel
-  trainingTestResults: null
+  trainingTestResults: null,
+  // Metadata for persisted model
+  trainingStats: null
 };
 
 function _tdMakeModel() {
@@ -2495,7 +2607,115 @@ function _tdMakeModel() {
   return m;
 }
 
-/** Encode game history → 10-feature vector (same as training encodeState) */
+/** Save trained TF model weights to localStorage */
+async function _tdSaveModel(model, stats) {
+  try {
+    const weights = model.getWeights();
+    const serialized = await Promise.all(weights.map(w => w.data()));
+    const shapes = weights.map(w => w.shape);
+    const dtypes = weights.map(w => w.dtype);
+    const meta = {
+      shapes,
+      dtypes,
+      stats: {
+        winRate: stats.winRate,
+        pnl: stats.pnl,
+        trainedRounds: stats.trainedRounds,
+        testWinRate: stats.testWinRate,
+        testPnl: stats.testPnl,
+        savedAt: Date.now()
+      }
+    };
+    localStorage.setItem('tf_model_weights', JSON.stringify(serialized));
+    localStorage.setItem('tf_model_meta', JSON.stringify(meta));
+    _td.trainingStats = meta.stats;
+    console.log('[TF Model] Saved to localStorage');
+  } catch(e) {
+    console.warn('[TF Model] Save failed:', e.message);
+  }
+}
+
+/** Load persisted TF model weights from localStorage */
+async function _tdLoadModel(model) {
+  try {
+    const weightsJson = localStorage.getItem('tf_model_weights');
+    const metaJson = localStorage.getItem('tf_model_meta');
+    if (!weightsJson || !metaJson) return false;
+    const weightsData = JSON.parse(weightsJson);
+    const meta = JSON.parse(metaJson);
+    if (!weightsData.length) return false;
+    const tensors = weightsData.map((data, i) =>
+      tf.tensor(data, meta.shapes[i], meta.dtypes[i])
+    );
+    model.setWeights(tensors);
+    tensors.forEach(t => t.dispose());
+    _td.trainingStats = meta.stats;
+    console.log('[TF Model] Loaded from localStorage, trained', meta.stats.trainedRounds, 'rounds');
+    return true;
+  } catch(e) {
+    console.warn('[TF Model] Load failed:', e.message);
+    return false;
+  }
+}
+
+/** Export TF model as downloadable .json file */
+async function exportTFModel() {
+  const model = window._tfModel;
+  if (!model) {
+    alert('ยังไม่มีโมเดลที่เทรนแล้ว — กรุณาเทรนก่อน'); return;
+  }
+  try {
+    const weights = model.getWeights();
+    const serialized = await Promise.all(weights.map(w => w.data()));
+    const shapes = weights.map(w => w.shape);
+    const dtypes = weights.map(w => w.dtype);
+    const stats = _td.trainingStats || {};
+    const exportObj = { version: 1, shapes, dtypes, weights: serialized, meta: stats };
+    const blob = new Blob([JSON.stringify(exportObj)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const rounds = stats.trainedRounds || 0;
+    const wr = stats.winRate ? (stats.winRate * 100).toFixed(1) : '?';
+    a.download = `tf-model-${rounds}r-${wr}pc.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Export ล้มเหลว: ' + e.message);
+  }
+}
+
+/** Import TF model from .json file */
+async function importTFModel(fileInput) {
+  const file = fileInput && fileInput.files && fileInput.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!data.version || !data.weights || !data.shapes || !data.dtypes) {
+      alert('ไฟล์ไม่ถูกต้อง: ไม่ใช่ TF Model export file'); return;
+    }
+    await tf.ready();
+    const m = _tdMakeModel();
+    const tensors = data.weights.map((w, i) => tf.tensor(w, data.shapes[i], data.dtypes[i]));
+    m.setWeights(tensors);
+    tensors.forEach(t => t.dispose());
+    window._tfModel = m;
+    _td.trainingStats = data.meta || {};
+    updateTrainDashToggleHint();
+    const msgEl = document.getElementById('trainMsg');
+    if (msgEl) {
+      const r = data.meta?.trainedRounds || '?';
+      const wr = data.meta?.winRate ? (data.meta.winRate * 100).toFixed(1) + '%' : '?';
+      msgEl.innerHTML = '<span style="color:var(--green-pos)">✅ โหลดโมเดลสำเร็จ</span> — ' + r + ' รอบ, Win Rate ' + wr;
+    }
+    fileInput.value = '';
+  } catch(e) {
+    alert('Import ล้มเหลว: ' + e.message);
+    fileInput.value = '';
+  }
+}
+
 /** Encode game history → 16-feature vector (must match encodeState exactly) */
 function encodeStateForTF(hist) {
   return encodeState(hist);
@@ -2516,7 +2736,7 @@ function getTFDecision(hist) {
     if (gap >= 1.5) conf = 5;
     else if (gap >= 1.0) conf = 4;
     else if (gap >= 0.5) conf = 3;
-    else if (gap >= 0.2) conf = 2;
+    else if (gap >= 0.1) conf = 2; // FIX: ขยาย conf=2 zone ให้ TF ได้แสดงตัวมากขึ้น
     return { winner, conf, qP, qB, source: 'tf' };
   } catch (e) {
     return null;
@@ -2597,59 +2817,100 @@ function drawTrainChart() {
   const data = _td.chartData;
   if (data.length < 2) return;
 
-  const PAD = 4;
-  const dataMin = 0.25, dataMax = 0.75;
-  const range = dataMax - dataMin;
+  const PADL = 8, PADR = 8, PADT = 16, PADB = 8;
 
-  const getY = (v) => H - PAD - ((Math.max(dataMin, Math.min(dataMax, v)) - dataMin) / range) * (H - PAD * 2);
+  // Data bounds (winRate 0.30–0.70, epsilon 0–1)
+  const wrMin = 0.30, wrMax = 0.70;
 
-  const stepX = W / (data.length - 1);
+  // If we have epsilon data, normalise it to winRate range for overlay
+  const hasEps = data.some(d => d.epsilon != null);
+  const epsMin = 0, epsMax = 1;
 
-  // Background reference lines at 25%, 50%, 75%
+  const wrY = (v) => PADT + ((wrMax - Math.max(wrMin, Math.min(wrMax, v))) / (wrMax - wrMin)) * (H - PADT - PADB);
+  const epsY = (e) => PADT + ((epsMax - Math.max(epsMin, Math.min(epsMax, e))) / (epsMax - epsMin)) * (H - PADT - PADB);
+
+  // If no epsilon data, use epsY same as wrY (just show winRate)
+  const getY = (d, i) => hasEps ? wrY(d.winRate) : wrY(d.winRate);
+
+  const stepX = (W - PADL - PADR) / Math.max(1, data.length - 1);
+  const xOf = (i) => PADL + i * stepX;
+
+  // Background reference lines
   ctx.strokeStyle = 'rgba(201,168,76,0.08)';
   ctx.lineWidth = 1;
-  [0.25, 0.5, 0.75].forEach(ref => {
-    const y = getY(ref);
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(W, y);
-    ctx.stroke();
+  ctx.setLineDash([]);
+  [0.35, 0.45, 0.50, 0.55, 0.65].forEach(ref => {
+    const y = wrY(ref);
+    ctx.beginPath(); ctx.moveTo(PADL, y); ctx.lineTo(W - PADR, y); ctx.stroke();
   });
 
-  // Fill under the curve
-  ctx.fillStyle = 'rgba(201,168,76,0.08)';
+  // Banker 44.63% baseline
+  const bkY = wrY(0.4463);
+  ctx.strokeStyle = 'rgba(122,109,88,0.25)';
+  ctx.setLineDash([3, 3]);
+  ctx.beginPath(); ctx.moveTo(PADL, bkY); ctx.lineTo(W - PADR, bkY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(122,109,88,0.4)';
+  ctx.font = '7px Sarabun, sans-serif';
+  ctx.fillText('BKR 44.6%', W - PADR - 40, bkY - 2);
+
+  // Legend
+  ctx.fillStyle = 'rgba(201,168,76,0.6)';
+  ctx.font = '7px Sarabun, sans-serif';
+  ctx.fillText('● Win Rate', PADL, PADT - 4);
+  if (hasEps) {
+    ctx.fillStyle = 'rgba(34,197,94,0.6)';
+    ctx.fillText('● ε สำรวจ', PADL + 65, PADT - 4);
+  }
+
+  // Win rate fill under curve
+  ctx.fillStyle = 'rgba(201,168,76,0.10)';
   ctx.beginPath();
-  ctx.moveTo(0, H - PAD);
-  data.forEach((d, i) => {
-    const x = i * stepX;
-    const y = getY(d.winRate);
-    ctx.lineTo(x, y);
-  });
-  ctx.lineTo(W, H - PAD);
+  ctx.moveTo(xOf(0), H - PADB);
+  data.forEach((d, i) => ctx.lineTo(xOf(i), wrY(d.winRate)));
+  ctx.lineTo(xOf(data.length - 1), H - PADB);
   ctx.closePath();
   ctx.fill();
 
-  // Main curve line
+  // Win rate line
   ctx.beginPath();
   ctx.strokeStyle = '#c9a84c';
   ctx.lineWidth = 1.5;
   ctx.lineJoin = 'round';
   data.forEach((d, i) => {
-    const x = i * stepX;
-    const y = getY(d.winRate);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+    if (i === 0) ctx.moveTo(xOf(i), wrY(d.winRate));
+    else ctx.lineTo(xOf(i), wrY(d.winRate));
   });
   ctx.stroke();
 
-  // Data points
+  // Epsilon overlay line
+  if (hasEps) {
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(34,197,94,0.7)';
+    ctx.lineWidth = 1;
+    ctx.lineJoin = 'round';
+    ctx.setLineDash([3, 2]);
+    data.forEach((d, i) => {
+      const y = epsY(d.epsilon);
+      if (i === 0) ctx.moveTo(xOf(i), y);
+      else ctx.lineTo(xOf(i), y);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Epsilon dots at each data point
+    ctx.fillStyle = 'rgba(34,197,94,0.8)';
+    data.forEach((d, i) => {
+      const ex = xOf(i), ey = epsY(d.epsilon);
+      ctx.beginPath(); ctx.arc(ex, ey, 1.5, 0, Math.PI * 2); ctx.fill();
+    });
+  }
+
+  // Data points on win rate
   ctx.fillStyle = '#c9a84c';
   data.forEach((d, i) => {
-    const x = i * stepX;
-    const y = getY(d.winRate);
-    ctx.beginPath();
-    ctx.arc(x, y, 2, 0, Math.PI * 2);
-    ctx.fill();
+    const ex = xOf(i), ey = wrY(d.winRate);
+    ctx.beginPath(); ctx.arc(ex, ey, 2, 0, Math.PI * 2); ctx.fill();
   });
 }
 
@@ -2676,8 +2937,8 @@ function updateTrainDashUI(stats) {
     }
   }
 
-  // Chart
-  _td.chartData.push({ winRate });
+  // Chart — rolling win rate + epsilon overlay
+  _td.chartData.push({ winRate, epsilon: _td.currentEpsilon });
   if (_td.chartData.length > _td.maxPoints) _td.chartData.shift();
   drawTrainChart();
 
@@ -2739,26 +3000,20 @@ function generateSequence(rounds, seed) {
     state = (1664525 * state + 1013904223) >>> 0;
     return state / 2 ** 32;
   };
-  const BANKER = 'B', PLAYER = 'P', SKIP = 'T';
-  let last = rng() < 0.5 ? BANKER : PLAYER;
-  let streak = 1;
+  // Real Baccarat probabilities (from casino data, excluding ties):
+  //   Player: ~45.87%, Banker: ~44.63%, Tie: ~9.51%
+  const P_PROB = 0.4587, B_PROB = 0.4463, T_PROB = 0.0951;
   const history = [];
   for (let i = 0; i < rounds; i++) {
     const roll = rng();
     let next;
-    if (streak >= 4 && roll < 0.32) {
-      next = last === BANKER ? PLAYER : BANKER;
-    } else if (roll < 0.56) {
-      next = last;
-    } else if (roll < 0.83) {
-      next = last === BANKER ? PLAYER : BANKER;
+    if (roll < T_PROB) {
+      next = 'T';
+    } else if (roll < T_PROB + P_PROB) {
+      next = 'P';
     } else {
-      const r2 = rng();
-      next = r2 < 0.48 ? BANKER : r2 < 0.96 ? PLAYER : SKIP;
+      next = 'B';
     }
-    if (next === last) streak++;
-    else streak = 1;
-    if (next !== SKIP) last = next;
     history.push(next);
   }
   return history;
@@ -2859,7 +3114,7 @@ async function startTraining() {
   _clearBacktestRow('btBankPct', '—');
   _clearBacktestRow('btBankPnl', '—');
   const note = document.getElementById('backtestNote');
-  if (note) note.textContent = 'กด ▶ รัน Backtest เพื่อเปรียบเทียบทั้ง 3 ระบบ';
+  if (note) note.textContent = 'กด ▶ Backtest บนข้อมูล OOS (200 รอบที่ AI ไม่เคยเห็น)';
 
   // Init TensorFlow
   let model, targetModel;
@@ -2877,12 +3132,25 @@ async function startTraining() {
     return;
   }
 
+  // Try to load previously trained model from localStorage
+  let loadedFromCache = false;
+  if (mode === 'history') {
+    // Only load cached weights if not starting fresh
+    const hasCached = localStorage.getItem('tf_model_meta');
+    if (hasCached) {
+      loadedFromCache = await _tdLoadModel(model);
+      if (loadedFromCache) {
+        targetModel.setWeights(model.getWeights().map(w => w.clone()));
+        msgEl.textContent = 'โหลดโมเดลเก่าแล้ว — ต่อยอดจากเทรนครั้งก่อน';
+      }
+    }
+  }
+
   // === TRAINING HYPERPARAMETERS ===
   const memory = [];
   const ACTIONS = ['B', 'P'];            // no Tie — Tie never profits long-term
   let epsilon = 1.0;
   const epsilonMin = 0.05;
-  const epsilonDecay = 0.9998;           // faster convergence
   const gamma = 0.95;
   const trainStart = Math.min(20, Math.floor(rounds * 0.1));
   const batchSize = 32;
@@ -2902,24 +3170,14 @@ async function startTraining() {
         return;
       }
       const needed = Math.max(rounds, history.length);
+      // FIX: ต่อ history ด้วย real Baccarat odds ไม่มี streak bias
+      // P=45.87%, B=44.63%, T=9.51%  (ไม่มี conditional ตาม streak)
       while (history.length < needed) {
-        const last10 = history.slice(-10);
-        const last = last10[last10.length - 1];
-        let streakLen = 0;
-        for (let i = last10.length - 1; i >= 0; i--) {
-          if (last10[i] === last) streakLen++; else break;
-        }
         const r = Math.random();
         let next;
-        if (streakLen >= 4 && r < 0.32) {
-          next = last === 'B' ? 'P' : 'B';
-        } else if (r < 0.56) {
-          next = last;
-        } else if (r < 0.83) {
-          next = last === 'B' ? 'P' : 'B';
-        } else {
-          next = Math.random() < 0.48 ? 'B' : 'P';
-        }
+        if (r < 0.0951) next = 'T';
+        else if (r < 0.0951 + 0.4587) next = 'P';
+        else next = 'B';
         history.push(next);
       }
       msgEl.textContent = `Using real history: ${o.hist.length} rounds (extended to ${history.length})`;
@@ -2936,9 +3194,12 @@ async function startTraining() {
     msgEl.textContent = 'Generating sequence...';
   }
 
-  const trainEnd = history.length; // train on ALL generated rounds (no split)
+  const trainEnd = history.length - 200; // reserve last 200 for testing (unseen data)
   const rollingWindow = [];
   let cumulativePnl = 0;
+
+  /** Epsilon decay: reaches epsilonMin exactly when actual training rounds end */
+  const epsilonDecay = Math.pow(epsilonMin / 1.0, 1 / Math.max(1, trainEnd - trainStart));
 
   /** Payout — same as real Baccarat odds */
   const stake = 10;
@@ -3014,20 +3275,16 @@ async function startTraining() {
           ? rollingWindow.reduce((a, b) => a + b, 0) / rollingWindow.length
           : 0;
         updateTrainDashUI({
-      winRate: fullWinRate,
-      pnl: cumulativePnl,   // ← P&L จริงระหว่างเทรน ไม่ใช่ full-pass
-      rounds: history.length,
+      winRate: wr,
+      pnl: cumulativePnl,
+      rounds: i - trainStart,
       epsilon,
-      converged: true,
-      baselines,
-      testPnl,
-      youPnl: testPnl,
-      casinoPnl: -testPnl
+      converged: false
     });
         msgEl.textContent = `กำลังเทรน รอบ ${i} กำไร=${cumulativePnl > 0 ? '+' : ''}${cumulativePnl}${epsilon <= epsilonMin ? ' [จบแล้ว]' : ''}`;
       }
     }
-    const trainedRounds = trainEnd; // actual rounds trained
+    const trainedRounds = trainEnd - trainStart; // actual rounds the model learned on
 
     // === TEST on last 200 unseen rounds ===
     const testStart = history.length - 200;
@@ -3058,12 +3315,12 @@ async function startTraining() {
       }
     }
 
-    // === Full-pass evaluation: all trained rounds ===
+    // === Full-pass evaluation: trained rounds only ===
     let fullPnl = 0, fullWins = 0, fullNonTie = 0;
     let fullBPnl = 0, fullPPnl = 0;
     let fullBWins = 0, fullPWins = 0;
     let fullQLPnl = 0, fullQLWins = 0;
-    for (let i = 0; i < history.length; i++) {
+    for (let i = trainStart; i < trainEnd; i++) {
       const state = encodeState(history.slice(0, i));
       const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
       const action = qVals[0] >= qVals[1] ? 'B' : 'P';
@@ -3112,19 +3369,19 @@ async function startTraining() {
       'ai': { wins: fullWins, total: fullNonTie }
     };
 
-    // Save for backtest panel (full-pass stats, all trained rounds)
+    // Save for backtest panel (full-pass stats, trained rounds only)
     _td.trainingHistory = history.slice();
     _td.trainingTestResults = {
-      ai:    { pnl: fullPnl, wins: fullWins, total: fullNonTie, rounds: history.length },
-      ql:    { pnl: fullQLPnl, wins: fullQLWins, total: fullNonTie, rounds: history.length },
-      bank:  { pnl: fullBPnl, wins: fullBWins, total: fullNonTie, rounds: history.length },
-      play:  { pnl: fullPPnl, wins: fullPWins, total: fullNonTie, rounds: history.length }
+      ai:    { pnl: fullPnl, wins: fullWins, total: fullNonTie, rounds: trainedRounds },
+      ql:    { pnl: fullQLPnl, wins: fullQLWins, total: fullNonTie, rounds: trainedRounds },
+      bank:  { pnl: fullBPnl, wins: fullBWins, total: fullNonTie, rounds: trainedRounds },
+      play:  { pnl: fullPPnl, wins: fullPWins, total: fullNonTie, rounds: trainedRounds }
     };
 
     updateTrainDashUI({
       winRate: fullWinRate,
       pnl: fullPnl,
-      rounds: history.length,
+      rounds: trainedRounds,
       epsilon,
       converged: true,
       baselines,
@@ -3138,6 +3395,15 @@ async function startTraining() {
     _tdExportKnowledgeToQTable(model);
     updateTrainDashToggleHint();
 
+    // Persist weights to localStorage for cross-session use
+    _tdSaveModel(model, {
+      winRate: fullWinRate,
+      pnl: fullPnl,
+      trainedRounds,
+      testWinRate,
+      testPnl
+    });
+
     statusEl.textContent = 'เสร็จ';
     statusEl.className = 'train-dash-status done';
     const aiVsBank = Math.round(fullPnl - fullBPnl);
@@ -3145,7 +3411,8 @@ async function startTraining() {
       ? '<b style="color:var(--green-pos)">ชนะ Banker +' + aiVsBank + '</b>'
       : '<b style="color:var(--red-neg)">แพ้ Banker ' + aiVsBank + '</b>';
     msgEl.innerHTML = 'เทรนเสร็จแล้ว! ' + vsTag +
-      ' <span style="color:var(--green-pos);font-size:7px">| TF Model Active</span>';
+      ' <span style="color:var(--green-pos);font-size:7px">| TF Model Active</span>' +
+      (loadedFromCache ? ' <span style="color:var(--gold);font-size:7px">| ต่อยอดโมเดลเดิม</span>' : '');
 
     // Auto-show and run backtest
     const btPanel = document.getElementById('backtestPanel');
@@ -3182,11 +3449,14 @@ function runBacktest() {
   // Run async so UI doesn't freeze
   setTimeout(() => {
     try {
-      // Priority: use training test set (same 200 rounds as training section)
+      // Priority: use training OOS test set (last 200 rounds, never seen by model)
       // Fallback: localStorage / S.hist (live game data)
       let history = [];
-      if (_td.trainingHistory && _td.trainingHistory.length > 0) {
-        history = _td.trainingHistory.slice();
+      let isOosTest = false;
+      if (_td.trainingHistory && _td.trainingHistory.length > 200) {
+        // Use only the OOS test portion (last 200 rounds)
+        history = _td.trainingHistory.slice(-200);
+        isOosTest = true;
       } else {
         const raw = localStorage.getItem('bac_shoe') || localStorage.getItem('bac_shoe_history');
         if (raw) {
@@ -3271,16 +3541,32 @@ function runBacktest() {
       const _c = (n) => n > 0 ? 'var(--green-pos)' : n < 0 ? 'var(--red-neg)' : 'var(--dim)';
       const cached = _td.trainingTestResults;
 
-      // AI row: use cached training test result (consistent with training section)
-      if (cached) {
+      // FIX: AI row — ใช้ results.ai ที่รัน OOS จริงๆ (ไม่ใช่ cached in-sample)
+      // cached ยังเก็บไว้ใช้ส่วน summary เท่านั้น
+      {
         const aiCorrect = document.getElementById('btAiCorrect');
         const aiPct = document.getElementById('btAiPct');
         const aiPnl = document.getElementById('btAiPnl');
         const aiDiff = document.getElementById('btAiDiff');
-        if (aiCorrect) { aiCorrect.textContent = cached.ai.total > 0 ? cached.ai.wins + '/' + cached.ai.total : '—'; }
-        if (aiPct) { aiPct.textContent = cached.ai.total > 0 ? Math.round(cached.ai.wins / cached.ai.total * 100) + '%' : '—'; aiPct.style.color = cached.ai.total > 0 ? _c((cached.ai.wins / cached.ai.total) - 0.5) : 'var(--dim)'; }
-        if (aiPnl) { aiPnl.textContent = Math.round(cached.ai.pnl) > 0 ? '+' + Math.round(cached.ai.pnl) : Math.round(cached.ai.pnl); aiPnl.style.color = _c(Math.round(cached.ai.pnl)); }
-        if (aiDiff) { const diff = Math.round(cached.ai.pnl - cached.bank.pnl); aiDiff.textContent = diff > 0 ? '+' + diff : diff; aiDiff.style.color = _c(diff); }
+        const ai = results.ai;
+        if (ai.total > 0) {
+          const pct = Math.round(ai.wins / ai.total * 100);
+          if (aiCorrect) aiCorrect.textContent = ai.wins + '/' + ai.total;
+          if (aiPct) { aiPct.textContent = pct + '%'; aiPct.style.color = _c(pct - 50); }
+          if (aiPnl) { aiPnl.textContent = (Math.round(ai.pnl) > 0 ? '+' : '') + Math.round(ai.pnl); aiPnl.style.color = _c(Math.round(ai.pnl)); }
+          if (aiDiff) { const diff = Math.round(ai.pnl - results.bank.pnl); aiDiff.textContent = (diff > 0 ? '+' : '') + diff; aiDiff.style.color = _c(diff); }
+        } else if (cached) {
+          // ไม่มีโมเดล live — fallback แสดง cached พร้อม warning
+          if (aiCorrect) aiCorrect.textContent = cached.ai.total > 0 ? cached.ai.wins + '/' + cached.ai.total : '—';
+          if (aiPct) { aiPct.textContent = cached.ai.total > 0 ? Math.round(cached.ai.wins / cached.ai.total * 100) + '% ⚠️' : '—'; aiPct.style.color = 'var(--gold)'; }
+          if (aiPnl) { aiPnl.textContent = (Math.round(cached.ai.pnl) > 0 ? '+' : '') + Math.round(cached.ai.pnl); aiPnl.style.color = _c(Math.round(cached.ai.pnl)); }
+          if (aiDiff) { const diff = Math.round(cached.ai.pnl - cached.bank.pnl); aiDiff.textContent = (diff > 0 ? '+' : '') + diff; aiDiff.style.color = _c(diff); }
+        } else {
+          if (aiCorrect) aiCorrect.textContent = '—';
+          if (aiPct) { aiPct.textContent = 'เทรนก่อน'; aiPct.style.color = 'var(--dim)'; }
+          if (aiPnl) { aiPnl.textContent = '—'; aiPnl.style.color = 'var(--dim)'; }
+          if (aiDiff) { aiDiff.textContent = '—'; aiDiff.style.color = 'var(--dim)'; }
+        }
       }
 
       // QL row
@@ -3301,13 +3587,15 @@ function runBacktest() {
       if (bankPct) { bankPct.textContent = results.bank.total > 0 ? Math.round(results.bank.wins / results.bank.total * 100) + '%' : '—'; bankPct.style.color = results.bank.total > 0 ? _c((results.bank.wins / results.bank.total) - 0.5) : 'var(--dim)'; }
       if (bankPnlEl) { bankPnlEl.textContent = Math.round(results.bank.pnl) > 0 ? '+' + Math.round(results.bank.pnl) : Math.round(results.bank.pnl); bankPnlEl.style.color = _c(Math.round(results.bank.pnl)); }
 
-      const totalRounds = cached ? cached.ai.rounds : results.ai.total;
-      const aiPnl  = cached ? cached.ai.pnl  : results.ai.pnl;
-      const qlPnl  = cached ? cached.ql.pnl  : results.ql.pnl;
-      const bankPnl = cached ? cached.bank.pnl : results.bank.pnl;
+      // FIX: ใช้ results.ai (OOS) เป็นหลัก สำหรับ summary
+      const totalRounds = results.bank.total || (cached ? cached.ai.rounds : 0);
+      const aiPnl   = results.ai.total > 0 ? results.ai.pnl : (cached ? cached.ai.pnl : -Infinity);
+      const qlPnl   = results.ql.pnl;
+      const bankPnl = results.bank.pnl;
       const bestPnl = Math.max(aiPnl, qlPnl, bankPnl);
-      const bestName = aiPnl === bestPnl ? 'AI (Training)' : qlPnl === bestPnl ? 'Q-Learning+3เกลอ' : 'แทง Banker เสมอ';
-      note.innerHTML = '✅ จบแล้ว ' + totalRounds + ' รอบ · อันดับ 1: <b style="color:var(--gold)">' + bestName + '</b> (' + (bestPnl > 0 ? '+' : '') + Math.round(bestPnl) + ')';
+      const aiLabel = results.ai.total > 0 ? '🤖 AI (TF Model)' : '🤖 AI (cached⚠️)';
+      const bestName = aiPnl === bestPnl ? aiLabel : qlPnl === bestPnl ? 'Q-Learning+3เกลอ' : 'แทง Banker เสมอ';
+      note.innerHTML = '✅ Backtest ' + totalRounds + ' รอบ OOS · อันดับ 1: <b style="color:var(--gold)">' + bestName + '</b> (' + (bestPnl > 0 ? '+' : '') + Math.round(bestPnl) + ')';
 
     } catch(e) {
       note.textContent = '❌ Error: ' + e.message;
@@ -3319,37 +3607,7 @@ function runBacktest() {
 
 // Helpers shared with TF training — MUST match encodeState() used in TF training
 function _encodeStateForModel(history) {
-  // Mirror encodeState() from TF training block exactly
-  const h = history.filter(x => x !== 'T');
-  if (h.length < 2) return Array(10).fill(0);
-  const bc = h.filter(x => x === 'B').length;
-  const pc = h.length - bc;
-  const total = h.length;
-  const last = h[h.length - 1];
-  let sl = 1;
-  for (let i = h.length - 2; i >= 0; i--) {
-    if (h[i] === last) sl++;
-    else break;
-  }
-  const chop = h.slice(-10).reduce((acc, item, idx, arr) => {
-    if (idx === 0) return acc;
-    if (item !== arr[idx - 1] && item !== 'T' && arr[idx - 1] !== 'T') return acc + 1;
-    return acc;
-  }, 0) / Math.max(1, Math.min(10, h.length - 1));
-  const br = bc / total;
-  const mb = Math.abs(br - pc / total);
-  return [
-    h[h.length - 1] === h[h.length - 2] ? 1 : 0,
-    Math.min(1, sl / 10),
-    Math.min(1, br),
-    Math.min(1, chop),
-    Math.min(1, chop * 0.5 + mb * 0.5),
-    Math.min(1, chop * 0.7 + mb * 0.3),
-    Math.min(1, 1 / Math.max(1, sl)),
-    Math.min(1, h.length / 60),
-    Math.min(1, Math.max(br, pc / total) * (1 - chop)),
-    Math.min(1, mb)
-  ];
+  return encodeState(history);
 }
 
 function _pnlFor(bet, actual) {
