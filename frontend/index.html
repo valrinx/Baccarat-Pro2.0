@@ -372,7 +372,7 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 <body>
 
 <div class="hdr">
-  <div class="logo">BACCARAT PRO 2.7</div>
+  <div class="logo">BACCARAT PRO 2.7.1</div>
   <div class="logo-sub">CALCULATOR · TRACKER · SYSTEM</div>
 </div>
 
@@ -1803,10 +1803,9 @@ function patPingPong(h){
 // Pattern: PP-B-PP-B (streak-2 cycle) และ PPP-BB-PPP (streak-3 cycle)
 function patCycleStreak(h){
   const pb=h.filter(x=>x!=='T');
-  if(pb.length<8)return null;
+  if(pb.length<6)return null;
 
-  // ลอง cycle unit 2: XX-Y-XX-Y
-  // encode เป็น run-length encoding
+  // run-length encode
   const runs=[];
   let cur=pb[0],cnt=1;
   for(let i=1;i<pb.length;i++){
@@ -1815,44 +1814,93 @@ function patCycleStreak(h){
   }
   runs.push({s:cur,n:cnt});
 
-  if(runs.length<4)return null;
+  if(runs.length<3)return null;
 
   const last4=runs.slice(-4);
   const last3=runs.slice(-3);
+  const last5=runs.slice(-5);
+  const curRun=runs[runs.length-1];
 
-  // Pattern: A(n)-B(m)-A(n)-B(m) → คาด B(m) ต่อ หรือ switch
-  // PP-B-PP-B → runs: P2,B1,P2,B1 → ตาหน้าควรเป็น P อีกครั้ง
-  const r=last4;
-  if(r[0].s===r[2].s&&r[1].s===r[3].s&&r[0].s!==r[1].s){
-    // cycle ชัด: A(n1)-B(m1)-A(n2)-B(m2) ตาหน้า = A
-    const nextSide=r[0].s;
-    const avgLen=Math.round((r[0].n+r[2].n)/2);
-    const curRunLen=runs[runs.length-1].n;
-    // ถ้า run ปัจจุบันยังสั้นกว่า avg → ยังไม่ switch
-    if(curRunLen<avgLen){
-      return{bet:runs[runs.length-1].s,name:'cycle_streak',
-        reason:`Cycle ${r[0].s}×${avgLen}-${r[1].s}×${Math.round((r[1].n+r[3].n)/2)} — ยังอยู่ใน run`,conf:4};
-    }else{
-      // run ยาวพอแล้ว → คาด switch ฝั่ง
-      return{bet:nextSide===runs[runs.length-1].s?
-        (nextSide==='P'?'B':'P'):nextSide,
-        name:'cycle_streak',
-        reason:`Cycle ${r[0].s}×${avgLen}-${r[1].s} — ถึงเวลา switch`,conf:4};
+  // --- 1. Descending pattern: n, n-1, n-2 ... (3-2-1, 4-3-2, etc.) ---
+  // ตรวจ 3 runs ล่าสุด ว่า streak lengths ลดลงทีละ 1 หรือไม่
+  if(last3.length===3){
+    const [r1,r2,r3]=last3;
+    // descending: r1.n > r2.n > r3.n และแต่ละลดลง 1
+    if(r1.n-r2.n===1&&r2.n-r3.n===1&&r1.s!==r2.s&&r2.s!==r3.s){
+      // PPP-BB-P → ตาหน้าคาดว่าเป็น BB (= r2.s × r2.n หรือสั้นกว่า)
+      // ถ้า curRun ยังสั้นกว่า r3.n-1 → ยังอยู่ใน run
+      const expectedNextLen=r3.n-1; // 3-2-1 → ตาหน้า = 0 = switch
+      if(expectedNextLen<=0){
+        // จบ descending cycle → กลับไปเริ่มใหม่ฝั่งใหม่
+        const nextSide=r3.s==='P'?'B':'P';
+        return{bet:nextSide,name:'cycle_streak',
+          reason:`Descending ${r1.n}-${r2.n}-${r3.n} จบ cycle — คาด ${nextSide==='P'?'PLAYER':'BANKER'}`,conf:5};
+      }
+      if(curRun.n<expectedNextLen){
+        return{bet:curRun.s,name:'cycle_streak',
+          reason:`Descending ${r1.n}-${r2.n}-${r3.n} — ยังอยู่ใน run (${curRun.n}/${expectedNextLen})`,conf:4};
+      }
+      const nextSide=r3.s==='P'?'B':'P';
+      return{bet:nextSide,name:'cycle_streak',
+        reason:`Descending ${r1.n}-${r2.n}-${r3.n} — ถึงเวลา switch`,conf:4};
+    }
+
+    // descending ไม่สม่ำเสมอ: r1.n >= r2.n >= r3.n และ r1.n > r3.n
+    if(r1.n>=r2.n&&r2.n>=r3.n&&r1.n>r3.n&&r1.s!==r2.s&&r2.s!==r3.s){
+      // trend ลดลง → คาดว่า run ต่อไปจะสั้นกว่า r3
+      if(curRun.n>=r3.n){
+        const nextSide=r3.s==='P'?'B':'P';
+        return{bet:nextSide,name:'cycle_streak',
+          reason:`Shrinking runs ${r1.n}-${r2.n}-${r3.n} — คาด switch`,conf:4};
+      }
+      return{bet:curRun.s,name:'cycle_streak',
+        reason:`Shrinking runs — ยังอยู่ใน ${curRun.s==='P'?'PLAYER':'BANKER'} run`,conf:3};
     }
   }
 
-  // Pattern: A(n)-B(m)-A(n) → คาด B(m) ต่อ (3-run)
-  if(last3[0].s===last3[2].s&&last3[0].s!==last3[1].s){
-    const expectedNext=last3[1].s;
-    const curRunLen=runs[runs.length-1].n;
-    const refLen=last3[2].n;
-    if(curRunLen>=refLen){
-      return{bet:expectedNext,name:'cycle_streak',
-        reason:`Cycle ${last3[0].s}×${last3[0].n}-${last3[1].s}×${last3[1].n} — คาด ${expectedNext==='P'?'PLAYER':'BANKER'}`,conf:4};
+  // --- 2. Ascending pattern: n, n+1, n+2 (1-2-3) ---
+  if(last3.length===3){
+    const [r1,r2,r3]=last3;
+    if(r2.n-r1.n===1&&r3.n-r2.n===1&&r1.s!==r2.s&&r2.s!==r3.s){
+      // 1-2-3 ascending → คาดว่า run ต่อไปจะยาว r3.n+1
+      const expectedLen=r3.n+1;
+      if(curRun.n<expectedLen){
+        return{bet:curRun.s,name:'cycle_streak',
+          reason:`Ascending ${r1.n}-${r2.n}-${r3.n} — คาดยาว ${expectedLen} ตา (${curRun.n}/${expectedLen})`,conf:4};
+      }
+      const nextSide=r3.s==='P'?'B':'P';
+      return{bet:nextSide,name:'cycle_streak',
+        reason:`Ascending ${r1.n}-${r2.n}-${r3.n} จบ — switch`,conf:4};
     }
-    // ยังอยู่ใน run เดิม
-    return{bet:last3[2].s,name:'cycle_streak',
-      reason:`Cycle pattern — ยังอยู่ใน ${last3[2].s==='P'?'PLAYER':'BANKER'} run`,conf:3};
+  }
+
+  // --- 3. Equal cycle: A×n - B×m - A×n - B×m ---
+  if(last4.length===4){
+    const [r1,r2,r3,r4]=last4;
+    if(r1.s===r3.s&&r2.s===r4.s&&r1.s!==r2.s){
+      const avgA=Math.round((r1.n+r3.n)/2);
+      const avgB=Math.round((r2.n+r4.n)/2);
+      if(curRun.n<avgA){
+        return{bet:curRun.s,name:'cycle_streak',
+          reason:`Cycle ${r1.s}×${avgA}-${r2.s}×${avgB} — ยังอยู่ใน run`,conf:4};
+      }
+      const nextSide=r4.s==='P'?'B':'P';
+      return{bet:nextSide,name:'cycle_streak',
+        reason:`Cycle ${r1.s}×${avgA}-${r2.s}×${avgB} — switch`,conf:4};
+    }
+  }
+
+  // --- 4. Simple 3-run mirror: A-B-A → คาด B ---
+  if(last3.length===3){
+    const [r1,r2,r3]=last3;
+    if(r1.s===r3.s&&r1.s!==r2.s){
+      if(curRun.n>=r3.n){
+        return{bet:r2.s,name:'cycle_streak',
+          reason:`Mirror ${r1.s}×${r1.n}-${r2.s}×${r2.n}-${r3.s}×${r3.n} — คาด ${r2.s==='P'?'PLAYER':'BANKER'}`,conf:3};
+      }
+      return{bet:curRun.s,name:'cycle_streak',
+        reason:`Mirror pattern — ยังอยู่ใน ${curRun.s==='P'?'PLAYER':'BANKER'} run`,conf:3};
+    }
   }
 
   return null;
