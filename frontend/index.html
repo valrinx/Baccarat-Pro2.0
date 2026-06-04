@@ -372,7 +372,7 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 <body>
 
 <div class="hdr">
-  <div class="logo">BACCARAT PRO 2.6</div>
+  <div class="logo">BACCARAT PRO 2.7</div>
   <div class="logo-sub">CALCULATOR · TRACKER · SYSTEM</div>
 </div>
 
@@ -1800,6 +1800,64 @@ function patPingPong(h){
   return null;
 }
 
+// Pattern: PP-B-PP-B (streak-2 cycle) และ PPP-BB-PPP (streak-3 cycle)
+function patCycleStreak(h){
+  const pb=h.filter(x=>x!=='T');
+  if(pb.length<8)return null;
+
+  // ลอง cycle unit 2: XX-Y-XX-Y
+  // encode เป็น run-length encoding
+  const runs=[];
+  let cur=pb[0],cnt=1;
+  for(let i=1;i<pb.length;i++){
+    if(pb[i]===cur)cnt++;
+    else{runs.push({s:cur,n:cnt});cur=pb[i];cnt=1;}
+  }
+  runs.push({s:cur,n:cnt});
+
+  if(runs.length<4)return null;
+
+  const last4=runs.slice(-4);
+  const last3=runs.slice(-3);
+
+  // Pattern: A(n)-B(m)-A(n)-B(m) → คาด B(m) ต่อ หรือ switch
+  // PP-B-PP-B → runs: P2,B1,P2,B1 → ตาหน้าควรเป็น P อีกครั้ง
+  const r=last4;
+  if(r[0].s===r[2].s&&r[1].s===r[3].s&&r[0].s!==r[1].s){
+    // cycle ชัด: A(n1)-B(m1)-A(n2)-B(m2) ตาหน้า = A
+    const nextSide=r[0].s;
+    const avgLen=Math.round((r[0].n+r[2].n)/2);
+    const curRunLen=runs[runs.length-1].n;
+    // ถ้า run ปัจจุบันยังสั้นกว่า avg → ยังไม่ switch
+    if(curRunLen<avgLen){
+      return{bet:runs[runs.length-1].s,name:'cycle_streak',
+        reason:`Cycle ${r[0].s}×${avgLen}-${r[1].s}×${Math.round((r[1].n+r[3].n)/2)} — ยังอยู่ใน run`,conf:4};
+    }else{
+      // run ยาวพอแล้ว → คาด switch ฝั่ง
+      return{bet:nextSide===runs[runs.length-1].s?
+        (nextSide==='P'?'B':'P'):nextSide,
+        name:'cycle_streak',
+        reason:`Cycle ${r[0].s}×${avgLen}-${r[1].s} — ถึงเวลา switch`,conf:4};
+    }
+  }
+
+  // Pattern: A(n)-B(m)-A(n) → คาด B(m) ต่อ (3-run)
+  if(last3[0].s===last3[2].s&&last3[0].s!==last3[1].s){
+    const expectedNext=last3[1].s;
+    const curRunLen=runs[runs.length-1].n;
+    const refLen=last3[2].n;
+    if(curRunLen>=refLen){
+      return{bet:expectedNext,name:'cycle_streak',
+        reason:`Cycle ${last3[0].s}×${last3[0].n}-${last3[1].s}×${last3[1].n} — คาด ${expectedNext==='P'?'PLAYER':'BANKER'}`,conf:4};
+    }
+    // ยังอยู่ใน run เดิม
+    return{bet:last3[2].s,name:'cycle_streak',
+      reason:`Cycle pattern — ยังอยู่ใน ${last3[2].s==='P'?'PLAYER':'BANKER'} run`,conf:3};
+  }
+
+  return null;
+}
+
 function patMathematicalEdge(h,opts){
   const chaos=opts&&opts.chaos?opts.chaos:computeChaosScore(h);
   const highChaos=chaos.score>=65;
@@ -1976,6 +2034,7 @@ function runPredictionEngine(h,streak,streakSide){
     patStreak(h,streak,streakSide),
     patDragon(h),
     patPingPong(h),
+    patCycleStreak(h),
     patChop(h),
     patSandwichMirror(h),
     patBigEyeBoy(h),
