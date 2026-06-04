@@ -995,17 +995,16 @@ function applyAutoPlayBet(result){
 // ---- DEAL & QUICK ----
 function resolveRound(w,p,b,nat){
   if(S.pendingSug!==null){
-    const countFormula=isFormulaSuggestRound(S.pendingSugResult);
-    if(countFormula&&w!=='T'){
-      S.sugTotal++;
-      const sugHit=(S.pendingSug===w);
-      if(sugHit)S.sugWins++;
-      else if(S.pendingSugResult&&S.pendingSugResult.patternName==='sandwich_mirror')S.mirrorWinStreak=0;
-      S.sugHistory.push({sug:S.pendingSug,hit:sugHit,formula:true});
-      if(S.pendingSugResult)updatePatternWeights(S.pendingSugResult,w);
-    }
-    S.pendingSug=null;
-    S.pendingSugResult=null;
+  if(w!=='T'){
+    S.sugTotal++;
+    const sugHit=(S.pendingSug===w);
+    if(sugHit)S.sugWins++;
+    else if(S.pendingSugResult&&S.pendingSugResult.patternName==='sandwich_mirror')S.mirrorWinStreak=0;
+    S.sugHistory.push({sug:S.pendingSug,hit:sugHit,formula:true});
+    if(S.pendingSugResult)updatePatternWeights(S.pendingSugResult,w);
+  }
+  S.pendingSug=null;
+  S.pendingSugResult=null;
   }
   S.hist.push(w);
   if(w==='P')S.pC++;else if(w==='B')S.bC++;else S.tC++;
