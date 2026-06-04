@@ -372,7 +372,7 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 <body>
 
 <div class="hdr">
-  <div class="logo">BACCARAT PRO 2.4</div>
+  <div class="logo">BACCARAT PRO 2.5</div>
   <div class="logo-sub">CALCULATOR · TRACKER · SYSTEM</div>
 </div>
 
@@ -1402,7 +1402,7 @@ function getContext(h){
   let streak=1;
   for(let i=pb.length-2;i>=0&&pb[i]===pb[pb.length-1];i--)streak++;
   const bankerHeavy=pb.filter(x=>x==='B').length/pb.length>0.56;
-  if(streak>=5)return'dragon';
+  if(streak>=4)return'dragon';
   if(streak>=3)return'trend';
   if(chopRate>=0.65)return'chop';
   if(bankerHeavy)return'banker_bias';
@@ -1644,15 +1644,27 @@ function patStreak(h,streak,streakSide){
 }
 
 function patDragon(h){
-  // Dragon tail: same side 5+ in last 7 (non-tie)
   const pb=h.filter(x=>x!=='T');
-  if(pb.length<5)return null;
-  const last=pb.slice(-7);
-  const cnt={P:0,B:0};last.forEach(x=>cnt[x]=(cnt[x]||0)+1);
-  const dom=cnt.P>cnt.B?'P':'B';
-  const ratio=cnt[dom]/last.length;
-  if(ratio>=0.71)
-    return{bet:dom,name:'dragon',reason:`Dragon — ${dom==='P'?'PLAYER':'BANKER'} ครอง ${Math.round(ratio*100)}%`,conf:4};
+  if(pb.length<4)return null;
+  const last=pb[pb.length-1];
+  // นับ streak ต่อเนื่องจริงๆ
+  let streak=1;
+  for(let i=pb.length-2;i>=0&&pb[i]===last;i--)streak++;
+  // dragon ≥5 ตาต่อเนื่อง → ตามเลย
+  if(streak>=5){
+    const conf=streak>=10?5:streak>=7?5:4;
+    return{bet:last,name:'dragon',
+      reason:`Dragon ${streak} ตา — ${last==='P'?'PLAYER':'BANKER'} ต่อเนื่อง ตามมังกร`,conf};
+  }
+  // หรือ dominant ใน 10 ตาล่าสุด ≥80%
+  if(pb.length>=10){
+    const last10=pb.slice(-10);
+    const cnt={P:0,B:0};last10.forEach(x=>cnt[x]=(cnt[x]||0)+1);
+    const dom=cnt.P>cnt.B?'P':'B';
+    if(cnt[dom]>=8)
+      return{bet:dom,name:'dragon',
+        reason:`Dragon dominant — ${dom==='P'?'PLAYER':'BANKER'} ${cnt[dom]}/10 ตาล่าสุด`,conf:4};
+  }
   return null;
 }
 
@@ -1760,6 +1772,8 @@ function patFreq10(h){
 }
 
 function patAntiStreak(h,streak,streakSide){
+  // ถ้า dragon แรง (≥10 ตา) → ไม่ anti เพราะมังกรยาวไม่มีวันรู้ว่าจบเมื่อไหร่
+  if(streak>=10)return null;
   if(streak>=7&&streakSide!=='T'){
     const opp=streakSide==='P'?'B':'P';
     return{bet:opp,name:'antistreak',reason:`Anti-streak — ไหลยาว ${streak} ตา มีโอกาสตัด`,conf:2};
