@@ -1369,7 +1369,7 @@ function detectPatternConflict(preds){
   return{conflict:false};
 }
 
-const STRONG_PATTERN_NAMES=['dragon','pingpong','doublepair','sandwich_mirror'];
+const STRONG_PATTERN_NAMES=['dragon','pingpong','doublepair','sandwich_mirror','cycle'];
 
 function evaluateBetGate(h,preds,votes,winner,streak,streakSide){
   const chaos=computeChaosScore(h);
@@ -1421,10 +1421,10 @@ function syncStreakFromHist(){
   }
 }
 
-const PATTERNS = ['streak','dragon','chop','doublepair','sandwich_mirror','momentum_bias','markov','freq10','antistreak','pingpong','big_eye','small_road','cockroach'];
+const PATTERNS = ['streak','dragon','chop','doublepair','sandwich_mirror','momentum_bias','markov2','freq10','antistreak','pingpong','big_eye','small_road','cockroach','cycle'];
 const DERIVED_OFFSETS={big_eye:1,small_road:2,cockroach:3};
 const MOMENTUM_TREND_PATS=new Set(['streak','dragon','freq10']);
-const MOMENTUM_CHOP_PATS=new Set(['chop','pingpong']);
+const MOMENTUM_CHOP_PATS=new Set(['chop','pingpong','cycle']);
 
 function loadPatternWeights(){
   try{
@@ -1785,26 +1785,52 @@ function patDoublePair(h){
   return null;
 }
 
-function patMarkov(h){
-  // Markov chain: transition probabilities from full history
+function getRunLengths(h){
   const pb=h.filter(x=>x!=='T');
-  if(pb.length<10)return null;
-  const trans={PP:0,PB:0,BP:0,BB:0};
-  for(let i=0;i<pb.length-1;i++){
-    const key=pb[i]+pb[i+1];
-    if(trans[key]!==undefined)trans[key]++;
+  if(pb.length<1)return[];
+  const runs=[];
+  let cur=pb[0],cnt=1;
+  for(let i=1;i<pb.length;i++){
+    if(pb[i]===cur)cnt++;
+    else{runs.push(cnt);cur=pb[i];cnt=1;}
   }
-  const last=pb[pb.length-1];
-  if(!last)return null;
-  const toP=last==='P'?trans.PP:trans.BP;
-  const toB=last==='P'?trans.PB:trans.BB;
-  const total=toP+toB;
-  if(total<4)return null;
-  const pP=toP/total,pB=toB/total;
-  const bet=pP>pB?'P':'B';
-  const conf=Math.abs(pP-pB)>0.2?4:Math.abs(pP-pB)>0.1?3:2;
-  if(conf<2)return null;
-  return{bet,name:'markov',reason:`Markov — ${bet==='P'?'PLAYER':'BANKER'} ${Math.round(Math.max(pP,pB)*100)}%`,conf};
+  runs.push(cnt);
+  return runs;
+}
+
+function shannonEntropy(h){
+  const pb=h.filter(x=>x!=='T');
+  const last=pb.slice(-20);
+  if(last.length<10)return 0;
+  const pC=last.filter(x=>x==='P').length;
+  const p=pC/last.length;
+  const b=1-p;
+  let e=0;
+  if(p>0)e-=p*Math.log2(p);
+  if(b>0)e-=b*Math.log2(b);
+  return e;
+}
+
+function patMarkov(h){
+  // 2nd-order Markov chain: P(next | prev2, prev1)
+  const pb=h.filter(x=>x!=='T');
+  if(pb.length<20)return null;
+  const trans={};
+  for(let i=0;i<pb.length-2;i++){
+    const key=pb[i]+pb[i+1];
+    const next=pb[i+2];
+    if(!trans[key])trans[key]={P:0,B:0};
+    trans[key][next]++;
+  }
+  const state=pb[pb.length-2]+pb[pb.length-1];
+  const row=trans[state];
+  if(!row)return null;
+  const total=row.P+row.B;
+  if(total<5)return null;
+  const p=row.P/total,b=row.B/total;
+  const bet=p>b?'P':'B';
+  const conf=Math.abs(p-b)>0.2?5:Math.abs(p-b)>0.1?4:3;
+  return{bet,name:'markov2',reason:`Markov2 ${state} P:${Math.round(p*100)}% B:${Math.round(b*100)}%`,conf};
 }
 
 function patFreq10(h){
@@ -1818,6 +1844,30 @@ function patFreq10(h){
   if(bC>=7){return{bet:'B',name:'freq10',reason:`BANKER ครอง ${bC}/10 ตาล่าสุด`,conf:4};}
   if(pC>=6){return{bet:'P',name:'freq10',reason:`PLAYER ${pC}/10 — เหนือกว่า`,conf:3};}
   if(bC>=6){return{bet:'B',name:'freq10',reason:`BANKER ${bC}/10 — เหนือกว่า`,conf:3};}
+  return null;
+}
+
+function patCycle(h){
+  // Cycle Pattern: alternating pairs/groups A-B-A-B over last 4 runs
+  const pb=h.filter(x=>x!=='T');
+  if(pb.length<4)return null;
+  const runs=getRunLengths(h);
+  if(runs.length<4)return null;
+  // build run side sequence
+  const runSides=[];
+  let idx=0;
+  for(const len of runs){
+    runSides.push(pb[idx]);
+    idx+=len;
+  }
+  const ra=runSides[runSides.length-4];
+  const rb=runSides[runSides.length-3];
+  const rc=runSides[runSides.length-2];
+  const rd=runSides[runSides.length-1];
+  // alternating: run[-4].side === run[-2].side && run[-3].side === run[-1].side
+  if(ra&&rc&&ra===rc&&rb&&rd&&rb===rd){
+    return{bet:ra,name:'cycle',conf:4,reason:'Cycle Pattern A-B-A-B'};
+  }
   return null;
 }
 
@@ -2013,7 +2063,14 @@ function getQLearningState(h,streak,streakSide){
   const gelo=encodeDerivedForQLearning(dr);
   const chaosBit=computeChaosScore(h).score>=70?'1':'0';
 
-  return`s${st}${lastW}_${dragBit}${ppBit}${txBit}_g${gelo}_c${chaosBit}`;
+  // Run-Length state: captures structure of streaks/runs
+  const runs=getRunLengths(pb);
+  const lastRun=runs.at(-1)||0;
+  const prevRun=runs.at(-2)||0;
+  const recentRuns=runs.slice(-20);
+  const nr=recentRuns.length;
+
+  return`s${st}${lastW}_${dragBit}${ppBit}${txBit}_g${gelo}_c${chaosBit}_rl${Math.min(9,lastRun)}_pr${Math.min(9,prevRun)}_nr${Math.min(9,nr)}`;
 }
 
 function qConfidenceFromGap(qP,qB){
@@ -2122,6 +2179,19 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
     parts.push(derived.reason);
   }
 
+  // Entropy Skip: Shannon entropy > 0.97 = truly random room
+  const entropy=shannonEntropy(h);
+  if(entropy>0.97){
+    return{
+      winner,conf,
+      reason:parts.join(' · '),
+      source:_chopOvr?'chop_override':(ql?(ql.explore?'q_explore':'q_exploit'):'heuristic'),
+      forceSkip:true,
+      skipReason:'Random Room (Entropy > 0.97)',
+      riskLevel:'high'
+    };
+  }
+
   return{winner,conf,reason:parts.join(' · '),source:_chopOvr?'chop_override':(ql?(ql.explore?'q_explore':'q_exploit'):'heuristic')};
 }
 
@@ -2180,6 +2250,7 @@ function runPredictionEngine(h,streak,streakSide){
     patDoublePair(h),
     patMarkov(h),
     patFreq10(h),
+    patCycle(h),
   ].filter(c=>c!==null);
 
   const momentum=computeMomentumBias(h);
@@ -2192,6 +2263,7 @@ function runPredictionEngine(h,streak,streakSide){
     }
     else if(p.name==='sandwich_mirror')bonus=1.5;
     else if(p.name==='pingpong')bonus=1.4;
+    else if(p.name==='cycle')bonus=1.5;
     else if((p.name==='streak'||p.name==='dragon')&&streak>=5&&streakSide!=='T')bonus=1.3;
     if(momentum.dominant==='trend'&&MOMENTUM_TREND_PATS.has(p.name))bonus*=1.25;
     else if(momentum.dominant==='chop'&&MOMENTUM_CHOP_PATS.has(p.name))bonus*=1.25;
@@ -2296,19 +2368,23 @@ function runPredictionEngine(h,streak,streakSide){
     reason='⚠️ Chop Room — TF suppressed · '+reason;
   }
 
+  // Propagate entropy skip from hybridEnsembleDecision
+  const forceSkip=hybrid.forceSkip||false;
+  const skipReason=hybrid.skipReason||null;
+
   return{
-    skip:false,
+    skip:forceSkip,
     hedgeTie:false,
-    bet:winner,
-    reason,
-    conf:confFinal,
-    patternName:tfCandidate&&winner===tfCandidate.bet&&!tfCandidate.chopSuppressed&&tfCandidate.weight>=1.0?'tf_model':(ql?'q_hybrid':best.name),
+    bet:forceSkip?'N':winner, // no-op bet when skipping
+    reason:forceSkip?(skipReason+' · '+reason):reason,
+    conf:forceSkip?1:confFinal,
+    patternName:forceSkip?'entropy_skip':(tfCandidate&&winner===tfCandidate.bet&&!tfCandidate.chopSuppressed&&tfCandidate.weight>=1.0?'tf_model':(ql?'q_hybrid':best.name)),
     weight:best.weight,
     allPreds:preds,
     votes,
     chaos:gate.chaos,
-    riskLabel:gate.riskLabel,
-    riskLevel:gate.riskLevel,
+    riskLabel:forceSkip?'Entropy สูง — Random Room':gate.riskLabel,
+    riskLevel:forceSkip?'high':gate.riskLevel,
     gate,
     qLearning:ql,
     tfResult,
