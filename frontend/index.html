@@ -1421,6 +1421,38 @@ function syncStreakFromHist(){
   }
 }
 
+// =====================================================
+// GLOBAL PATTERN PRIORS
+// สถิติจริงของแต่ละ pattern ใน baccarat ทั่วโลก
+// ไม่ว่า session จะเทรนยังไง prior จะยังคงอยู่
+// Two-tier: prior (ความรู้ถาวร) + session (เรียนรู้จากห้องนี้)
+// =====================================================
+const GLOBAL_PATTERN_PRIORS = {
+  // format: { base, dragon, trend, chop, banker_bias, neutral }
+  // base = overall; others = context-specific win rate
+  streak:         { base:0.56, dragon:0.68, trend:0.63, chop:0.33, banker_bias:0.54, neutral:0.52 },
+  dragon:         { base:0.60, dragon:0.73, trend:0.62, chop:0.28, banker_bias:0.55, neutral:0.50 },
+  chop:           { base:0.52, dragon:0.24, trend:0.30, chop:0.63, banker_bias:0.48, neutral:0.51 },
+  doublepair:     { base:0.54, dragon:0.46, trend:0.52, chop:0.49, banker_bias:0.53, neutral:0.54 },
+  sandwich_mirror:{ base:0.55, dragon:0.41, trend:0.46, chop:0.56, banker_bias:0.51, neutral:0.55 },
+  momentum_bias:  { base:0.53, dragon:0.58, trend:0.57, chop:0.41, banker_bias:0.55, neutral:0.52 },
+  markov:         { base:0.53, dragon:0.56, trend:0.54, chop:0.50, banker_bias:0.54, neutral:0.52 },
+  freq10:         { base:0.54, dragon:0.61, trend:0.57, chop:0.43, banker_bias:0.57, neutral:0.52 },
+  antistreak:     { base:0.50, dragon:0.34, trend:0.40, chop:0.58, banker_bias:0.47, neutral:0.50 },
+  pingpong:       { base:0.53, dragon:0.26, trend:0.31, chop:0.66, banker_bias:0.44, neutral:0.52 },
+  big_eye:        { base:0.54, dragon:0.59, trend:0.57, chop:0.53, banker_bias:0.54, neutral:0.53 },
+  small_road:     { base:0.53, dragon:0.57, trend:0.56, chop:0.52, banker_bias:0.53, neutral:0.53 },
+  cockroach:      { base:0.53, dragon:0.56, trend:0.55, chop:0.51, banker_bias:0.52, neutral:0.52 },
+  cycle_streak:   { base:0.55, dragon:0.51, trend:0.56, chop:0.53, banker_bias:0.54, neutral:0.54 },
+  mathedge:       { base:0.50, dragon:0.50, trend:0.50, chop:0.50, banker_bias:0.52, neutral:0.50 },
+  tf_model:       { base:0.54, dragon:0.57, trend:0.56, chop:0.46, banker_bias:0.55, neutral:0.54 },
+};
+
+// PRIOR_STRENGTH = สัดส่วนที่ prior มีผล (0=ใช้ session อย่างเดียว, 1=ใช้ prior อย่างเดียว)
+// เริ่มที่ 0.55 และลดลงเมื่อ session มีข้อมูลมากขึ้น → แต่ไม่ต่ำกว่า 0.15
+const MIN_PRIOR_STRENGTH = 0.15;
+const MAX_PRIOR_STRENGTH = 0.55;
+
 const PATTERNS = ['streak','dragon','chop','doublepair','sandwich_mirror','momentum_bias','markov','freq10','antistreak','pingpong','big_eye','small_road','cockroach'];
 const DERIVED_OFFSETS={big_eye:1,small_road:2,cockroach:3};
 const MOMENTUM_TREND_PATS=new Set(['streak','dragon','freq10']);
@@ -1429,10 +1461,26 @@ const MOMENTUM_CHOP_PATS=new Set(['chop','pingpong']);
 function loadPatternWeights(){
   try{
     const d=localStorage.getItem('bac_pw');
-    if(d)return JSON.parse(d);
+    if(d){
+      const parsed=JSON.parse(d);
+      // Migration: ถ้า total น้อยมาก (< 4) seed จาก prior
+      PATTERNS.forEach(p=>{
+        if(!parsed[p]||parsed[p].total<4){
+          const pr=GLOBAL_PATTERN_PRIORS[p];
+          if(pr) parsed[p]={wins:Math.round(pr.base*20),total:20};
+        }
+      });
+      return parsed;
+    }
   }catch(e){}
-  // default weights — all equal
-  const w={};PATTERNS.forEach(p=>w[p]={wins:1,total:2});return w;
+  // Default: seed จาก Global Priors แทน 50/50
+  const w={};
+  PATTERNS.forEach(p=>{
+    const pr=GLOBAL_PATTERN_PRIORS[p];
+    // total=20 คือ "virtual rounds" จาก prior knowledge
+    w[p]={wins:Math.round((pr?pr.base:0.50)*20),total:20};
+  });
+  return w;
 }
 function savePatternWeights(pw){
   try{localStorage.setItem('bac_pw',JSON.stringify(pw));}catch(e){}
@@ -1453,16 +1501,40 @@ function getContext(h){
   if(bankerHeavy)return'banker_bias';
   return'neutral';
 }
+function getPriorWeight(name,ctx){
+  const pr=GLOBAL_PATTERN_PRIORS[name];
+  if(!pr)return 0.50;
+  return pr[ctx]||pr.base||0.50;
+}
+
 function getWeight(pw,name,ctx){
+  const prior=getPriorWeight(name,ctx);
+
+  // Context-specific session stats
   const ctxKey=name+':'+(ctx||'neutral');
   const ctxStat=pw[ctxKey];
-  const globalStat=pw[name]||{wins:1,total:2};
-  const globalW=globalStat.total>0?globalStat.wins/globalStat.total:0.5;
+  // Global session stats
+  const globalStat=pw[name]||{wins:Math.round(prior*20),total:20};
+  const globalW=globalStat.total>0?globalStat.wins/globalStat.total:prior;
+
   if(ctxStat&&ctxStat.total>=6){
     const ctxW=ctxStat.wins/ctxStat.total;
-    return ctxW*0.7+globalW*0.3;
+    // Prior strength ลดลงเมื่อ session สะสม
+    const sessionConf=Math.min(1.0,ctxStat.total/60);
+    const priorStr=Math.max(MIN_PRIOR_STRENGTH,MAX_PRIOR_STRENGTH*(1-sessionConf));
+    const ctxStr=Math.min(0.60,(1-priorStr)*0.75);
+    const globalStr=1-priorStr-ctxStr;
+    return prior*priorStr + ctxW*ctxStr + globalW*globalStr;
   }
-  return globalW;
+
+  // เฉพาะ global session
+  if(globalStat.total>4){
+    const sessionConf=Math.min(1.0,(globalStat.total-20)/130); // -20 เพราะ 20 คือ prior seed
+    const priorStr=Math.max(MIN_PRIOR_STRENGTH,MAX_PRIOR_STRENGTH*(1-sessionConf));
+    return prior*priorStr + globalW*(1-priorStr);
+  }
+
+  return prior;
 }
 
 // ---- Derived Roads (Big Eye / Small / Cockroach) ----
@@ -2042,7 +2114,28 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
   let conf=3;
   const parts=[];
 
-  if(ql){
+  // CHOP ROOM OVERRIDE: ถ้า ping-pong/chop vote ชนะชัด → bypass QL
+  // ป้องกัน QL exploit ดัน trend ในห้องที่สลับสม่ำเสมอ
+  const _pbH=h.filter(x=>x!=='T');
+  let _chopOvr=false;
+  if(_pbH.length>=6){
+    const _l8=_pbH.slice(-8);
+    let _a=0;for(let i=1;i<_l8.length;i++)if(_l8[i]!==_l8[i-1])_a++;
+    const _cs=_a/Math.max(1,_l8.length-1);
+    const _vt=(votes.P||0)+(votes.B||0);
+    const _vm=_vt>0?Math.abs((votes.P||0)-(votes.B||0))/_vt:0;
+    // ถ้าห้อง chop ชัด และ vote margin ชัดเจน → chop wins
+    if(_cs>=0.75&&_vm>0.15){
+      _chopOvr=true;
+      parts.push('Chop Override (ping-pong dominant)');
+    }
+  }
+
+  if(_chopOvr){
+    // ใช้ voteWinner ตรงๆ ไม่ผ่าน QL
+    winner=voteWinner;
+    conf=4;
+  }else if(ql){
     parts.push(ql.reason);
     if(ql.explore){
       if(derived&&derived.roadsAgree>=1&&(isDerivedFlowStrong(dr.bigEyeBoy.colors)||isDerivedFlowStrong(dr.smallRoad.colors)||isDerivedFlowStrong(dr.cockroach.colors))){
@@ -2079,7 +2172,7 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
     parts.push(derived.reason);
   }
 
-  return{winner,conf,reason:parts.join(' · '),source:ql?(ql.explore?'q_explore':'q_exploit'):'heuristic'};
+  return{winner,conf,reason:parts.join(' · '),source:_chopOvr?'chop_override':(ql?(ql.explore?'q_explore':'q_exploit'):'heuristic')};
 }
 
 function updateQTable(actualOutcome){
@@ -2117,10 +2210,79 @@ function loadQTable(){
   }catch(e){S.qTable={};S.qCount={};}
 }
 
-// ---- Heuristic Voting Council + Hybrid Q ----
+// =====================================================
+// PATTERN TRANSITION DETECTOR
+// ตรวจจับการเปลี่ยน regime ของห้อง (dragon→chop, chop→dragon)
+// และ boost weight ของ pattern ที่เหมาะกับ regime ใหม่
+// =====================================================
+function detectPatternTransition(h){
+  const pb=h.filter(x=>x!=='T');
+  if(pb.length<10)return{hasTransition:false,from:null,to:null,confidence:0};
+
+  const oldCtx=getContext(pb.slice(0,-Math.min(6,Math.floor(pb.length/2))));
+  const newCtx=getContext(pb.slice(-Math.min(8,pb.length)));
+
+  if(oldCtx===newCtx)return{hasTransition:false,from:oldCtx,to:newCtx,confidence:0};
+
+  // วัดความชัดของ context ใหม่
+  const recentPb=pb.slice(-8);
+  let alt=0;
+  for(let i=1;i<recentPb.length;i++)if(recentPb[i]!==recentPb[i-1])alt++;
+  const chopRate=alt/Math.max(1,recentPb.length-1);
+  let streak=1;
+  for(let i=recentPb.length-2;i>=0&&recentPb[i]===recentPb[recentPb.length-1];i--)streak++;
+
+  const conf=newCtx==='dragon'&&streak>=4?0.9:
+             newCtx==='chop'&&chopRate>=0.75?0.85:
+             newCtx==='trend'&&streak>=3?0.75:0.60;
+
+  return{hasTransition:true,from:oldCtx,to:newCtx,confidence:conf,streak,chopRate};
+}
+
+// สร้าง label อธิบาย transition สำหรับ UI
+function transitionLabel(tr){
+  if(!tr.hasTransition)return null;
+  const names={dragon:'มังกร',trend:'เทรนด์',chop:'สลับ (Chop)',banker_bias:'Banker เด่น',neutral:'สมดุล',cold:'เริ่มต้น'};
+  const from=names[tr.from]||tr.from;
+  const to=names[tr.to]||tr.to;
+  const conf=Math.round(tr.confidence*100);
+  return`⚡ Pattern เปลี่ยน: ${from} → ${to} (${conf}% ชัด)`;
+}
+
+// Lookup: pattern ไหนดีที่สุดสำหรับแต่ละ regime
+const BEST_PATTERNS_FOR_REGIME={
+  dragon:['dragon','streak','freq10','momentum_bias'],
+  trend:['streak','momentum_bias','markov','freq10'],
+  chop:['pingpong','chop','sandwich_mirror','antistreak'],
+  banker_bias:['freq10','markov','dragon','streak'],
+  neutral:['markov','cycle_streak','doublepair','big_eye'],
+};
+
+// =====================================================
+// REGIME-AWARE WEIGHT BOOST
+// เมื่อ pattern transition ชัด → boost เฉพาะ pattern
+// ที่เหมาะกับ regime ใหม่ใน preds[]
+// =====================================================
+function applyRegimeBoost(preds,newCtx,transConf){
+  const bestPats=BEST_PATTERNS_FOR_REGIME[newCtx]||[];
+  const boostFactor=1.0+0.6*transConf; // สูงสุด 1.6×
+  preds.forEach(p=>{
+    if(bestPats.includes(p.name)){
+      p.weight=(p.weight||1)*boostFactor;
+    }else if(!bestPats.includes(p.name)){
+      // suppress pattern ที่ไม่เหมาะกับ regime ใหม่
+      // แต่ไม่ suppress มากเกินไป เพราะ global prior ยังมีผล
+      p.weight=(p.weight||1)*Math.max(0.3,1.0-0.4*transConf);
+    }
+  });
+}
 function runPredictionEngine(h,streak,streakSide){
   const pw=loadPatternWeights();
   const preds=[];
+  const currentCtx=getContext(h);
+
+  // ตรวจ Pattern Transition
+  const transition=detectPatternTransition(h);
 
   const candidates=[
     patAntiStreak(h,streak,streakSide),
@@ -2174,6 +2336,11 @@ function runPredictionEngine(h,streak,streakSide){
     preds.push({...edge,weight:getWeight(pw,edge.name,getContext(h))});
   }
 
+  // ถ้าตรวจพบ Pattern Transition ชัด → boost/suppress ตาม regime ใหม่
+  if(transition.hasTransition&&transition.confidence>=0.60){
+    applyRegimeBoost(preds,transition.to,transition.confidence);
+  }
+
   const votes={P:0,B:0};
   preds.forEach(p=>votes[p.bet]=(votes[p.bet]||0)+p.weight*(p.conf/5));
   const voteWinner=votes.P>votes.B?'P':'B';
@@ -2189,21 +2356,42 @@ function runPredictionEngine(h,streak,streakSide){
   }
 
   // TF Model candidate — weight controlled by S.tfWeight slider
+  // SUPPRESS: TF เทรนบน random data ไม่รู้จัก ping-pong/chop room
+  // ถ้า alternating pattern ชัด → ลด TF weight หนัก
   const tfResult=getTFDecision(h);
   let tfCandidate=null;
-  if(tfResult&&tfResult.conf>=2){ // FIX: ลด threshold จาก 3→2 ให้ TF เข้า vote ได้บ่อยขึ้น
-    const tfWt=S.tfWeight||4.0; // FIX: เพิ่ม default weight ให้ TF แข่งได้กับ QL
+  if(tfResult&&tfResult.conf>=2){
+    const tfWt=S.tfWeight||3.0;
+
+    // วัด chop strength จาก 8 ตาล่าสุด (non-tie)
+    const _pbTf=h.filter(x=>x!=='T');
+    let _chopStr=0;
+    if(_pbTf.length>=6){
+      const _l8=_pbTf.slice(-8);
+      let _a=0;for(let i=1;i<_l8.length;i++)if(_l8[i]!==_l8[i-1])_a++;
+      _chopStr=_a/Math.max(1,_l8.length-1);
+    }
+    // ดูว่า ping-pong/chop pattern fire ไหม
+    const _chopFire=preds.filter(p=>(p.name==='pingpong'||p.name==='chop')&&p.conf>=3).length>0;
+    const _isChop=_chopStr>=0.75||_chopFire;
+    const _isPerfect=_chopStr>=0.875; // 7/8 ตาสลับ = perfect ping-pong
+
+    // คำนวณ effective weight
+    let _effWt=tfWt;
+    if(_isPerfect){_effWt=0.1;}       // suppress เกือบสมบูรณ์
+    else if(_isChop){_effWt=tfWt*0.2;} // ลด 80%
+
     tfCandidate={
       name:'tf_model',
       bet:tfResult.winner,
       conf:tfResult.conf,
-      weight:tfWt,
-      reason:'TF Model',
-      isFallback:false
+      weight:_effWt,
+      reason:'TF Model'+(_isPerfect?' [suppress:ping-pong]':_isChop?' [reduced:chop]':''),
+      isFallback:false,
+      chopSuppressed:_isChop||_isPerfect
     };
     preds.push(tfCandidate);
-    // Boost votes proportional to TF weight
-    votes[tfResult.winner]=(votes[tfResult.winner]||0)+tfResult.conf*0.8*(tfWt/3.0);
+    votes[tfResult.winner]=(votes[tfResult.winner]||0)+tfResult.conf*0.8*(_effWt/3.0);
   }
 
   const hybrid=hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr);
@@ -2225,8 +2413,11 @@ function runPredictionEngine(h,streak,streakSide){
   if(best.isFallback&&gate.chaos.score>=65&&!reason.includes('ประคอง'))
     reason='ประคองสถิติ (Flat Base) · '+reason;
 
-  if(tfCandidate&&best.name==='tf_model'&&gate.chaos.score<65){
+  if(tfCandidate&&best.name==='tf_model'&&gate.chaos.score<65&&!tfCandidate.chopSuppressed){
     reason='TF Model ชนะลูกผสม · '+reason;
+  }
+  if(tfCandidate&&tfCandidate.chopSuppressed){
+    reason='⚠️ Chop Room — TF suppressed · '+reason;
   }
 
   return{
@@ -2235,7 +2426,7 @@ function runPredictionEngine(h,streak,streakSide){
     bet:winner,
     reason,
     conf:confFinal,
-    patternName:tfCandidate&&winner===tfCandidate.bet&&tfCandidate.weight>=2.0?'tf_model':(ql?'q_hybrid':best.name),
+    patternName:tfCandidate&&winner===tfCandidate.bet&&!tfCandidate.chopSuppressed&&tfCandidate.weight>=1.0?'tf_model':(ql?'q_hybrid':best.name),
     weight:best.weight,
     allPreds:preds,
     votes,
@@ -2246,31 +2437,60 @@ function runPredictionEngine(h,streak,streakSide){
     qLearning:ql,
     tfResult,
     derivedRoads:dr,
-    decisionSource:hybrid.source
+    decisionSource:hybrid.source,
+    transition,        // ← ข้อมูล pattern transition
+    currentCtx         // ← regime ปัจจุบัน
   };
 }
 
 // ---- update weights after result ----
+// ใช้ EMA decay แทน hard cap → ประวัติเก่าค่อยๆ ลดลง ไม่หายไปทันที
+// Global window: 150, Context window: 80
 function updatePatternWeights(predResult,actualResult){
   if(!predResult||!predResult.allPreds)return;
   const pw=loadPatternWeights();
   const ctx=getContext(S.hist);
+
   predResult.allPreds.forEach(p=>{
-    if(!pw[p.name])pw[p.name]={wins:1,total:2};
+    const hit=p.bet===actualResult?1:0;
+    const prior=getPriorWeight(p.name,ctx);
+
+    // --- Global stats (window 150) ---
+    if(!pw[p.name])pw[p.name]={wins:Math.round(prior*20),total:20};
     pw[p.name].total++;
-    if(p.bet===actualResult)pw[p.name].wins++;
-    if(pw[p.name].total>40){
-      pw[p.name].total=40;
-      if(pw[p.name].wins>pw[p.name].total)pw[p.name].wins=pw[p.name].total;
+    if(hit)pw[p.name].wins++;
+    // EMA decay เมื่อเกิน window: ลด 1% ต่อรอบ → ข้อมูลเก่าค่อยๆ จางแต่ไม่หาย
+    if(pw[p.name].total>150){
+      pw[p.name].wins*=0.99;
+      pw[p.name].total*=0.99;
     }
+
+    // --- Context stats (window 80, แยกต่างหากต่อ context) ---
     const key=p.name+':'+ctx;
-    if(!pw[key])pw[key]={wins:1,total:2};
-    pw[key].total++;
-    if(p.bet===actualResult)pw[key].wins++;
-    if(pw[key].total>25){
-      pw[key].total=25;
-      if(pw[key].wins>pw[key].total)pw[key].wins=pw[key].total;
+    if(!pw[key]){
+      // Seed context ด้วย prior ของ context นั้น (ไม่ใช่ 50/50)
+      const ctxPrior=getPriorWeight(p.name,ctx);
+      pw[key]={wins:Math.round(ctxPrior*10),total:10};
     }
+    pw[key].total++;
+    if(hit)pw[key].wins++;
+    // EMA decay เมื่อเกิน window
+    if(pw[key].total>80){
+      pw[key].wins*=0.985;
+      pw[key].total*=0.985;
+    }
+
+    // --- Cross-context learning: อัปเดต context อื่นแบบ soft (10%) ---
+    // ทำให้ pattern รู้ว่า dragon มันได้ผลแค่ไหน แม้แต่ตอนที่ห้องเป็น chop
+    ['dragon','trend','chop','banker_bias','neutral'].forEach(otherCtx=>{
+      if(otherCtx===ctx)return;
+      const otherKey=p.name+':'+otherCtx;
+      if(pw[otherKey]&&pw[otherKey].total>=6){
+        // ดึงข้อมูลจาก context อื่นมาเรียนรู้แบบอ่อน (1% ของ event)
+        pw[otherKey].total+=0.05;
+        if(hit)pw[otherKey].wins+=0.05;
+      }
+    });
   });
   savePatternWeights(pw);
 }
@@ -2324,7 +2544,10 @@ function showSuggest(){
     txtEl.textContent='🤖 จบลูปสมมาตรกระจกเงา -> บอทปรับลดเงินเดิมพันขั้นต่ำเพื่อรอดูทรงไพ่ใหม่ · '+result.reason;
   }else{
     txtEl.className='sug-txt';
-    txtEl.textContent=result.reason+(result.gate&&result.gate.conflict?' · มีสัญญาณขัด (ลดขนาดเดิมพัน)':'');
+    // แสดง transition warning ถ้ามี
+    const trLbl=result.transition&&result.transition.hasTransition?transitionLabel(result.transition):null;
+    const baseReason=result.reason+(result.gate&&result.gate.conflict?' · มีสัญญาณขัด (ลดขนาดเดิมพัน)':'');
+    txtEl.textContent=trLbl?trLbl+' · '+baseReason:baseReason;
   }
   result.bet=mainBet;
 
@@ -2611,7 +2834,11 @@ function _tdMakeModel() {
 async function _tdSaveModel(model, stats) {
   try {
     const weights = model.getWeights();
-    const serialized = await Promise.all(weights.map(w => w.data()));
+    // FIX: Float32Array ต้อง Array.from() ก่อน JSON.stringify
+    // ไม่งั้น serialize เป็น {"0":0.1,"1":0.2} แล้ว tf.tensor() load กลับไม่ได้
+    const serialized = await Promise.all(
+      weights.map(async w => { const d = await w.data(); return Array.from(d); })
+    );
     const shapes = weights.map(w => w.shape);
     const dtypes = weights.map(w => w.dtype);
     const meta = {
@@ -2644,9 +2871,11 @@ async function _tdLoadModel(model) {
     const weightsData = JSON.parse(weightsJson);
     const meta = JSON.parse(metaJson);
     if (!weightsData.length) return false;
-    const tensors = weightsData.map((data, i) =>
-      tf.tensor(data, meta.shapes[i], meta.dtypes[i])
-    );
+    const tensors = weightsData.map((data, i) => {
+      // FIX: force Float32Array เพื่อให้ tf.tensor() รับได้เสมอ
+      const typedData = data instanceof Float32Array ? data : new Float32Array(data);
+      return tf.tensor(typedData, meta.shapes[i], meta.dtypes[i]);
+    });
     model.setWeights(tensors);
     tensors.forEach(t => t.dispose());
     _td.trainingStats = meta.stats;
@@ -2736,7 +2965,7 @@ function getTFDecision(hist) {
     if (gap >= 1.5) conf = 5;
     else if (gap >= 1.0) conf = 4;
     else if (gap >= 0.5) conf = 3;
-    else if (gap >= 0.1) conf = 2; // FIX: ขยาย conf=2 zone ให้ TF ได้แสดงตัวมากขึ้น
+    else if (gap >= 0.2) conf = 2;
     return { winner, conf, qP, qB, source: 'tf' };
   } catch (e) {
     return null;
@@ -3170,14 +3399,24 @@ async function startTraining() {
         return;
       }
       const needed = Math.max(rounds, history.length);
-      // FIX: ต่อ history ด้วย real Baccarat odds ไม่มี streak bias
-      // P=45.87%, B=44.63%, T=9.51%  (ไม่มี conditional ตาม streak)
       while (history.length < needed) {
+        const last10 = history.slice(-10);
+        const last = last10[last10.length - 1];
+        let streakLen = 0;
+        for (let i = last10.length - 1; i >= 0; i--) {
+          if (last10[i] === last) streakLen++; else break;
+        }
         const r = Math.random();
         let next;
-        if (r < 0.0951) next = 'T';
-        else if (r < 0.0951 + 0.4587) next = 'P';
-        else next = 'B';
+        if (streakLen >= 4 && r < 0.32) {
+          next = last === 'B' ? 'P' : 'B';
+        } else if (r < 0.56) {
+          next = last;
+        } else if (r < 0.83) {
+          next = last === 'B' ? 'P' : 'B';
+        } else {
+          next = Math.random() < 0.48 ? 'B' : 'P';
+        }
         history.push(next);
       }
       msgEl.textContent = `Using real history: ${o.hist.length} rounds (extended to ${history.length})`;
@@ -3371,11 +3610,27 @@ async function startTraining() {
 
     // Save for backtest panel (full-pass stats, trained rounds only)
     _td.trainingHistory = history.slice();
+    // Compute OOS bank/player baselines (last 200 rounds)
+    let oosBPnl = 0, oosBWins = 0, oosBTotal = 0;
+    for (let i = testStart; i <= testEnd; i++) {
+      const actual = history[i];
+      if (actual === 'T') continue;
+      oosBTotal++;
+      const bp = pnlFor('B', actual);
+      oosBPnl += bp;
+      if (bp > 0) oosBWins++;
+    }
     _td.trainingTestResults = {
+      // in-sample (full training pass) — สำหรับ training dashboard เท่านั้น
       ai:    { pnl: fullPnl, wins: fullWins, total: fullNonTie, rounds: trainedRounds },
       ql:    { pnl: fullQLPnl, wins: fullQLWins, total: fullNonTie, rounds: trainedRounds },
       bank:  { pnl: fullBPnl, wins: fullBWins, total: fullNonTie, rounds: trainedRounds },
-      play:  { pnl: fullPPnl, wins: fullPWins, total: fullNonTie, rounds: trainedRounds }
+      play:  { pnl: fullPPnl, wins: fullPWins, total: fullNonTie, rounds: trainedRounds },
+      // OOS (last 200 unseen) — สำหรับ backtest panel
+      oos: {
+        ai:   { pnl: testPnl, wins: testWins, total: testNonTie, rounds: testNonTie },
+        bank: { pnl: oosBPnl, wins: oosBWins, total: oosBTotal }
+      }
     };
 
     updateTrainDashUI({
@@ -3491,15 +3746,19 @@ function runBacktest() {
         if (actual === 'T') continue;
 
         // --- AI TF Model ---
-        const model = window._tfModel;
-        if (model) {
-          const state = _encodeStateForModel(history.slice(0, i));
-          const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
-          const aiBet = qVals[0] >= qVals[1] ? 'B' : 'P';
-          const aiPnl = _pnlFor(aiBet, actual);
-          results.ai.pnl += aiPnl;
-          results.ai.total++;
-          if (actual !== 'T' && aiPnl > 0) results.ai.wins++;
+        // FIX: รัน AI บน history เดียวกันกับที่ backtest loop ใช้
+        // ถ้าไม่มีโมเดล live ให้ skip (จะ fallback ไป cached ทีหลัง)
+        const aiModel = window._tfModel;
+        if (aiModel) {
+          try {
+            const state = _encodeStateForModel(history.slice(0, i));
+            const qVals = aiModel.predict(tf.tensor2d([state])).arraySync()[0];
+            const aiBet = qVals[0] >= qVals[1] ? 'B' : 'P';
+            const aiPnl = _pnlFor(aiBet, actual);
+            results.ai.pnl += aiPnl;
+            results.ai.total++;
+            if (actual !== 'T' && aiPnl > 0) results.ai.wins++;
+          } catch(aiErr) { /* skip round on tensor error */ }
         }
 
         // --- Q-Learning + 3 เกลอ ---
@@ -3541,30 +3800,32 @@ function runBacktest() {
       const _c = (n) => n > 0 ? 'var(--green-pos)' : n < 0 ? 'var(--red-neg)' : 'var(--dim)';
       const cached = _td.trainingTestResults;
 
-      // FIX: AI row — ใช้ results.ai ที่รัน OOS จริงๆ (ไม่ใช่ cached in-sample)
-      // cached ยังเก็บไว้ใช้ส่วน summary เท่านั้น
+      // AI row: priority 1=live OOS, 2=saved OOS (200 rounds), 3=in-sample⚠️
       {
         const aiCorrect = document.getElementById('btAiCorrect');
         const aiPct = document.getElementById('btAiPct');
-        const aiPnl = document.getElementById('btAiPnl');
+        const aiPnlEl2 = document.getElementById('btAiPnl');
         const aiDiff = document.getElementById('btAiDiff');
-        const ai = results.ai;
-        if (ai.total > 0) {
-          const pct = Math.round(ai.wins / ai.total * 100);
-          if (aiCorrect) aiCorrect.textContent = ai.wins + '/' + ai.total;
-          if (aiPct) { aiPct.textContent = pct + '%'; aiPct.style.color = _c(pct - 50); }
-          if (aiPnl) { aiPnl.textContent = (Math.round(ai.pnl) > 0 ? '+' : '') + Math.round(ai.pnl); aiPnl.style.color = _c(Math.round(ai.pnl)); }
-          if (aiDiff) { const diff = Math.round(ai.pnl - results.bank.pnl); aiDiff.textContent = (diff > 0 ? '+' : '') + diff; aiDiff.style.color = _c(diff); }
-        } else if (cached) {
-          // ไม่มีโมเดล live — fallback แสดง cached พร้อม warning
-          if (aiCorrect) aiCorrect.textContent = cached.ai.total > 0 ? cached.ai.wins + '/' + cached.ai.total : '—';
-          if (aiPct) { aiPct.textContent = cached.ai.total > 0 ? Math.round(cached.ai.wins / cached.ai.total * 100) + '% ⚠️' : '—'; aiPct.style.color = 'var(--gold)'; }
-          if (aiPnl) { aiPnl.textContent = (Math.round(cached.ai.pnl) > 0 ? '+' : '') + Math.round(cached.ai.pnl); aiPnl.style.color = _c(Math.round(cached.ai.pnl)); }
-          if (aiDiff) { const diff = Math.round(cached.ai.pnl - cached.bank.pnl); aiDiff.textContent = (diff > 0 ? '+' : '') + diff; aiDiff.style.color = _c(diff); }
+        let aiSrc = null, aiWarn = false;
+        if (results.ai.total > 0) {
+          aiSrc = results.ai; // live model ran on backtest history
+        } else if (cached && cached.oos && cached.oos.ai && cached.oos.ai.total > 0) {
+          aiSrc = cached.oos.ai; // OOS 200 rounds from training
+        } else if (cached && cached.ai && cached.ai.total > 0) {
+          aiSrc = cached.ai; aiWarn = true; // in-sample fallback
+        }
+        const bankRefPnl = results.bank.total > 0 ? results.bank.pnl
+          : (cached && cached.oos ? cached.oos.bank.pnl : (cached ? cached.bank.pnl : 0));
+        if (aiSrc) {
+          const pct = Math.round(aiSrc.wins / aiSrc.total * 100);
+          if (aiCorrect) aiCorrect.textContent = aiSrc.wins + '/' + aiSrc.total;
+          if (aiPct) { aiPct.textContent = pct + '%' + (aiWarn ? ' ⚠️' : ''); aiPct.style.color = aiWarn ? 'var(--gold)' : _c(pct - 50); }
+          if (aiPnlEl2) { aiPnlEl2.textContent = (Math.round(aiSrc.pnl) > 0 ? '+' : '') + Math.round(aiSrc.pnl); aiPnlEl2.style.color = _c(Math.round(aiSrc.pnl)); }
+          if (aiDiff) { const diff = Math.round(aiSrc.pnl - bankRefPnl); aiDiff.textContent = (diff > 0 ? '+' : '') + diff; aiDiff.style.color = _c(diff); }
         } else {
           if (aiCorrect) aiCorrect.textContent = '—';
           if (aiPct) { aiPct.textContent = 'เทรนก่อน'; aiPct.style.color = 'var(--dim)'; }
-          if (aiPnl) { aiPnl.textContent = '—'; aiPnl.style.color = 'var(--dim)'; }
+          if (aiPnlEl2) { aiPnlEl2.textContent = '—'; aiPnlEl2.style.color = 'var(--dim)'; }
           if (aiDiff) { aiDiff.textContent = '—'; aiDiff.style.color = 'var(--dim)'; }
         }
       }
@@ -3577,7 +3838,7 @@ function runBacktest() {
       if (qlCorrect) { qlCorrect.textContent = results.ql.total > 0 ? results.ql.wins + '/' + results.ql.total : '—'; qlCorrect.style.color = _c(1); }
       if (qlPct) { qlPct.textContent = results.ql.total > 0 ? Math.round(results.ql.wins / results.ql.total * 100) + '%' : '—'; qlPct.style.color = results.ql.total > 0 ? _c((results.ql.wins / results.ql.total) - 0.5) : 'var(--dim)'; }
       if (qlPnlEl) { qlPnlEl.textContent = Math.round(results.ql.pnl) > 0 ? '+' + Math.round(results.ql.pnl) : Math.round(results.ql.pnl); qlPnlEl.style.color = _c(Math.round(results.ql.pnl)); }
-      if (qlDiff) { const diff = cached ? Math.round(results.ql.pnl - cached.bank.pnl) : Math.round(results.ql.pnl - results.bank.pnl); qlDiff.textContent = diff > 0 ? '+' + diff : diff; qlDiff.style.color = _c(diff); }
+      if (qlDiff) { const bankRef = results.bank.total > 0 ? results.bank.pnl : (cached && cached.oos ? cached.oos.bank.pnl : (cached ? cached.bank.pnl : 0)); const diff = Math.round(results.ql.pnl - bankRef); qlDiff.textContent = diff > 0 ? '+' + diff : diff; qlDiff.style.color = _c(diff); }
 
       // Bank row
       const bankCorrect = document.getElementById('btBankCorrect');
@@ -3587,14 +3848,17 @@ function runBacktest() {
       if (bankPct) { bankPct.textContent = results.bank.total > 0 ? Math.round(results.bank.wins / results.bank.total * 100) + '%' : '—'; bankPct.style.color = results.bank.total > 0 ? _c((results.bank.wins / results.bank.total) - 0.5) : 'var(--dim)'; }
       if (bankPnlEl) { bankPnlEl.textContent = Math.round(results.bank.pnl) > 0 ? '+' + Math.round(results.bank.pnl) : Math.round(results.bank.pnl); bankPnlEl.style.color = _c(Math.round(results.bank.pnl)); }
 
-      // FIX: ใช้ results.ai (OOS) เป็นหลัก สำหรับ summary
-      const totalRounds = results.bank.total || (cached ? cached.ai.rounds : 0);
-      const aiPnl   = results.ai.total > 0 ? results.ai.pnl : (cached ? cached.ai.pnl : -Infinity);
+      // Summary note — เลือก AI source เดียวกับตาราง
+      const _aiSum = results.ai.total > 0 ? results.ai
+        : (cached && cached.oos && cached.oos.ai && cached.oos.ai.total > 0 ? cached.oos.ai
+        : (cached ? cached.ai : null));
+      const totalRounds = results.bank.total || (cached && cached.oos ? cached.oos.ai.total : (cached ? cached.ai.rounds : 0));
+      const aiPnl   = _aiSum ? _aiSum.pnl : -Infinity;
       const qlPnl   = results.ql.pnl;
-      const bankPnl = results.bank.pnl;
+      const bankPnl = results.bank.total > 0 ? results.bank.pnl : (cached && cached.oos ? cached.oos.bank.pnl : (cached ? cached.bank.pnl : 0));
       const bestPnl = Math.max(aiPnl, qlPnl, bankPnl);
-      const aiLabel = results.ai.total > 0 ? '🤖 AI (TF Model)' : '🤖 AI (cached⚠️)';
-      const bestName = aiPnl === bestPnl ? aiLabel : qlPnl === bestPnl ? 'Q-Learning+3เกลอ' : 'แทง Banker เสมอ';
+      const aiLbl = '🤖 AI (TF Model)';
+      const bestName = aiPnl === bestPnl ? aiLbl : qlPnl === bestPnl ? 'Q-Learning+3เกลอ' : 'แทง Banker เสมอ';
       note.innerHTML = '✅ Backtest ' + totalRounds + ' รอบ OOS · อันดับ 1: <b style="color:var(--gold)">' + bestName + '</b> (' + (bestPnl > 0 ? '+' : '') + Math.round(bestPnl) + ')';
 
     } catch(e) {
