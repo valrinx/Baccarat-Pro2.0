@@ -1421,38 +1421,6 @@ function syncStreakFromHist(){
   }
 }
 
-// =====================================================
-// GLOBAL PATTERN PRIORS
-// สถิติจริงของแต่ละ pattern ใน baccarat ทั่วโลก
-// ไม่ว่า session จะเทรนยังไง prior จะยังคงอยู่
-// Two-tier: prior (ความรู้ถาวร) + session (เรียนรู้จากห้องนี้)
-// =====================================================
-const GLOBAL_PATTERN_PRIORS = {
-  // format: { base, dragon, trend, chop, banker_bias, neutral }
-  // base = overall; others = context-specific win rate
-  streak:         { base:0.56, dragon:0.68, trend:0.63, chop:0.33, banker_bias:0.54, neutral:0.52 },
-  dragon:         { base:0.60, dragon:0.73, trend:0.62, chop:0.28, banker_bias:0.55, neutral:0.50 },
-  chop:           { base:0.52, dragon:0.24, trend:0.30, chop:0.63, banker_bias:0.48, neutral:0.51 },
-  doublepair:     { base:0.54, dragon:0.46, trend:0.52, chop:0.49, banker_bias:0.53, neutral:0.54 },
-  sandwich_mirror:{ base:0.55, dragon:0.41, trend:0.46, chop:0.56, banker_bias:0.51, neutral:0.55 },
-  momentum_bias:  { base:0.53, dragon:0.58, trend:0.57, chop:0.41, banker_bias:0.55, neutral:0.52 },
-  markov:         { base:0.53, dragon:0.56, trend:0.54, chop:0.50, banker_bias:0.54, neutral:0.52 },
-  freq10:         { base:0.54, dragon:0.61, trend:0.57, chop:0.43, banker_bias:0.57, neutral:0.52 },
-  antistreak:     { base:0.50, dragon:0.34, trend:0.40, chop:0.58, banker_bias:0.47, neutral:0.50 },
-  pingpong:       { base:0.53, dragon:0.26, trend:0.31, chop:0.66, banker_bias:0.44, neutral:0.52 },
-  big_eye:        { base:0.54, dragon:0.59, trend:0.57, chop:0.53, banker_bias:0.54, neutral:0.53 },
-  small_road:     { base:0.53, dragon:0.57, trend:0.56, chop:0.52, banker_bias:0.53, neutral:0.53 },
-  cockroach:      { base:0.53, dragon:0.56, trend:0.55, chop:0.51, banker_bias:0.52, neutral:0.52 },
-  cycle_streak:   { base:0.55, dragon:0.51, trend:0.56, chop:0.53, banker_bias:0.54, neutral:0.54 },
-  mathedge:       { base:0.50, dragon:0.50, trend:0.50, chop:0.50, banker_bias:0.52, neutral:0.50 },
-  tf_model:       { base:0.54, dragon:0.57, trend:0.56, chop:0.46, banker_bias:0.55, neutral:0.54 },
-};
-
-// PRIOR_STRENGTH = สัดส่วนที่ prior มีผล (0=ใช้ session อย่างเดียว, 1=ใช้ prior อย่างเดียว)
-// เริ่มที่ 0.55 และลดลงเมื่อ session มีข้อมูลมากขึ้น → แต่ไม่ต่ำกว่า 0.15
-const MIN_PRIOR_STRENGTH = 0.15;
-const MAX_PRIOR_STRENGTH = 0.55;
-
 const PATTERNS = ['streak','dragon','chop','doublepair','sandwich_mirror','momentum_bias','markov','freq10','antistreak','pingpong','big_eye','small_road','cockroach'];
 const DERIVED_OFFSETS={big_eye:1,small_road:2,cockroach:3};
 const MOMENTUM_TREND_PATS=new Set(['streak','dragon','freq10']);
@@ -1461,26 +1429,10 @@ const MOMENTUM_CHOP_PATS=new Set(['chop','pingpong']);
 function loadPatternWeights(){
   try{
     const d=localStorage.getItem('bac_pw');
-    if(d){
-      const parsed=JSON.parse(d);
-      // Migration: ถ้า total น้อยมาก (< 4) seed จาก prior
-      PATTERNS.forEach(p=>{
-        if(!parsed[p]||parsed[p].total<4){
-          const pr=GLOBAL_PATTERN_PRIORS[p];
-          if(pr) parsed[p]={wins:Math.round(pr.base*20),total:20};
-        }
-      });
-      return parsed;
-    }
+    if(d)return JSON.parse(d);
   }catch(e){}
-  // Default: seed จาก Global Priors แทน 50/50
-  const w={};
-  PATTERNS.forEach(p=>{
-    const pr=GLOBAL_PATTERN_PRIORS[p];
-    // total=20 คือ "virtual rounds" จาก prior knowledge
-    w[p]={wins:Math.round((pr?pr.base:0.50)*20),total:20};
-  });
-  return w;
+  // default weights — all equal
+  const w={};PATTERNS.forEach(p=>w[p]={wins:1,total:2});return w;
 }
 function savePatternWeights(pw){
   try{localStorage.setItem('bac_pw',JSON.stringify(pw));}catch(e){}
@@ -1501,40 +1453,16 @@ function getContext(h){
   if(bankerHeavy)return'banker_bias';
   return'neutral';
 }
-function getPriorWeight(name,ctx){
-  const pr=GLOBAL_PATTERN_PRIORS[name];
-  if(!pr)return 0.50;
-  return pr[ctx]||pr.base||0.50;
-}
-
 function getWeight(pw,name,ctx){
-  const prior=getPriorWeight(name,ctx);
-
-  // Context-specific session stats
   const ctxKey=name+':'+(ctx||'neutral');
   const ctxStat=pw[ctxKey];
-  // Global session stats
-  const globalStat=pw[name]||{wins:Math.round(prior*20),total:20};
-  const globalW=globalStat.total>0?globalStat.wins/globalStat.total:prior;
-
+  const globalStat=pw[name]||{wins:1,total:2};
+  const globalW=globalStat.total>0?globalStat.wins/globalStat.total:0.5;
   if(ctxStat&&ctxStat.total>=6){
     const ctxW=ctxStat.wins/ctxStat.total;
-    // Prior strength ลดลงเมื่อ session สะสม
-    const sessionConf=Math.min(1.0,ctxStat.total/60);
-    const priorStr=Math.max(MIN_PRIOR_STRENGTH,MAX_PRIOR_STRENGTH*(1-sessionConf));
-    const ctxStr=Math.min(0.60,(1-priorStr)*0.75);
-    const globalStr=1-priorStr-ctxStr;
-    return prior*priorStr + ctxW*ctxStr + globalW*globalStr;
+    return ctxW*0.7+globalW*0.3;
   }
-
-  // เฉพาะ global session
-  if(globalStat.total>4){
-    const sessionConf=Math.min(1.0,(globalStat.total-20)/130); // -20 เพราะ 20 คือ prior seed
-    const priorStr=Math.max(MIN_PRIOR_STRENGTH,MAX_PRIOR_STRENGTH*(1-sessionConf));
-    return prior*priorStr + globalW*(1-priorStr);
-  }
-
-  return prior;
+  return globalW;
 }
 
 // ---- Derived Roads (Big Eye / Small / Cockroach) ----
@@ -2054,16 +1982,38 @@ function getQValues(state){
   return S.qTable[state];
 }
 
-/** State = streak + last winner + 3 เกลอ (g=be|sm|ck) + chaos bit */
+/** Rich State = streak + lastW + dragon + pingpong + transition bits + 3เกลอ + chaos */
 function getQLearningState(h,streak,streakSide){
   const pb=h.filter(x=>x!=='T');
   if(pb.length<3)return null;
   const lastW=pb[pb.length-1];
   const st=Math.min(9,streakSide===lastW&&streak>0?streak:1);
+
+  // Dragon flag
+  const dragBit=streak>=5?'D':streak>=3?'d':'n';
+
+  // Ping-pong flag
+  let ppBit='n';
+  if(pb.length>=4){
+    const l4=pb.slice(-4);
+    if(l4[0]!==l4[1]&&l4[1]!==l4[2]&&l4[2]!==l4[3])ppBit='p';
+  }
+
+  // Transition Matrix bits (top-2 probability as high/low)
+  let txBit='n';
+  if(pb.length>=8){
+    const trans={PP:0,PB:0,BP:0,BB:0};
+    for(let i=0;i<pb.length-1;i++){const k=pb[i]+pb[i+1];if(trans[k]!==undefined)trans[k]++;}
+    const pT=trans.PP+trans.PB,bT=trans.BP+trans.BB;
+    const p_bGivenLast=lastW==='P'?(pT>0?trans.PB/pT:0.5):(bT>0?trans.BB/bT:0.5);
+    txBit=p_bGivenLast>=0.6?'H':p_bGivenLast<=0.4?'L':'M';
+  }
+
   const dr=getDerivedRoads(h);
   const gelo=encodeDerivedForQLearning(dr);
   const chaosBit=computeChaosScore(h).score>=70?'1':'0';
-  return`s${st}${lastW}_g${gelo}_c${chaosBit}`;
+
+  return`s${st}${lastW}_${dragBit}${ppBit}${txBit}_g${gelo}_c${chaosBit}`;
 }
 
 function qConfidenceFromGap(qP,qB){
@@ -2210,79 +2160,10 @@ function loadQTable(){
   }catch(e){S.qTable={};S.qCount={};}
 }
 
-// =====================================================
-// PATTERN TRANSITION DETECTOR
-// ตรวจจับการเปลี่ยน regime ของห้อง (dragon→chop, chop→dragon)
-// และ boost weight ของ pattern ที่เหมาะกับ regime ใหม่
-// =====================================================
-function detectPatternTransition(h){
-  const pb=h.filter(x=>x!=='T');
-  if(pb.length<10)return{hasTransition:false,from:null,to:null,confidence:0};
-
-  const oldCtx=getContext(pb.slice(0,-Math.min(6,Math.floor(pb.length/2))));
-  const newCtx=getContext(pb.slice(-Math.min(8,pb.length)));
-
-  if(oldCtx===newCtx)return{hasTransition:false,from:oldCtx,to:newCtx,confidence:0};
-
-  // วัดความชัดของ context ใหม่
-  const recentPb=pb.slice(-8);
-  let alt=0;
-  for(let i=1;i<recentPb.length;i++)if(recentPb[i]!==recentPb[i-1])alt++;
-  const chopRate=alt/Math.max(1,recentPb.length-1);
-  let streak=1;
-  for(let i=recentPb.length-2;i>=0&&recentPb[i]===recentPb[recentPb.length-1];i--)streak++;
-
-  const conf=newCtx==='dragon'&&streak>=4?0.9:
-             newCtx==='chop'&&chopRate>=0.75?0.85:
-             newCtx==='trend'&&streak>=3?0.75:0.60;
-
-  return{hasTransition:true,from:oldCtx,to:newCtx,confidence:conf,streak,chopRate};
-}
-
-// สร้าง label อธิบาย transition สำหรับ UI
-function transitionLabel(tr){
-  if(!tr.hasTransition)return null;
-  const names={dragon:'มังกร',trend:'เทรนด์',chop:'สลับ (Chop)',banker_bias:'Banker เด่น',neutral:'สมดุล',cold:'เริ่มต้น'};
-  const from=names[tr.from]||tr.from;
-  const to=names[tr.to]||tr.to;
-  const conf=Math.round(tr.confidence*100);
-  return`⚡ Pattern เปลี่ยน: ${from} → ${to} (${conf}% ชัด)`;
-}
-
-// Lookup: pattern ไหนดีที่สุดสำหรับแต่ละ regime
-const BEST_PATTERNS_FOR_REGIME={
-  dragon:['dragon','streak','freq10','momentum_bias'],
-  trend:['streak','momentum_bias','markov','freq10'],
-  chop:['pingpong','chop','sandwich_mirror','antistreak'],
-  banker_bias:['freq10','markov','dragon','streak'],
-  neutral:['markov','cycle_streak','doublepair','big_eye'],
-};
-
-// =====================================================
-// REGIME-AWARE WEIGHT BOOST
-// เมื่อ pattern transition ชัด → boost เฉพาะ pattern
-// ที่เหมาะกับ regime ใหม่ใน preds[]
-// =====================================================
-function applyRegimeBoost(preds,newCtx,transConf){
-  const bestPats=BEST_PATTERNS_FOR_REGIME[newCtx]||[];
-  const boostFactor=1.0+0.6*transConf; // สูงสุด 1.6×
-  preds.forEach(p=>{
-    if(bestPats.includes(p.name)){
-      p.weight=(p.weight||1)*boostFactor;
-    }else if(!bestPats.includes(p.name)){
-      // suppress pattern ที่ไม่เหมาะกับ regime ใหม่
-      // แต่ไม่ suppress มากเกินไป เพราะ global prior ยังมีผล
-      p.weight=(p.weight||1)*Math.max(0.3,1.0-0.4*transConf);
-    }
-  });
-}
+// ---- Heuristic Voting Council + Hybrid Q ----
 function runPredictionEngine(h,streak,streakSide){
   const pw=loadPatternWeights();
   const preds=[];
-  const currentCtx=getContext(h);
-
-  // ตรวจ Pattern Transition
-  const transition=detectPatternTransition(h);
 
   const candidates=[
     patAntiStreak(h,streak,streakSide),
@@ -2334,11 +2215,6 @@ function runPredictionEngine(h,streak,streakSide){
   if(!preds.length){
     const edge=patMathematicalEdge(h,{chaos:chaosPre});
     preds.push({...edge,weight:getWeight(pw,edge.name,getContext(h))});
-  }
-
-  // ถ้าตรวจพบ Pattern Transition ชัด → boost/suppress ตาม regime ใหม่
-  if(transition.hasTransition&&transition.confidence>=0.60){
-    applyRegimeBoost(preds,transition.to,transition.confidence);
   }
 
   const votes={P:0,B:0};
@@ -2437,60 +2313,31 @@ function runPredictionEngine(h,streak,streakSide){
     qLearning:ql,
     tfResult,
     derivedRoads:dr,
-    decisionSource:hybrid.source,
-    transition,        // ← ข้อมูล pattern transition
-    currentCtx         // ← regime ปัจจุบัน
+    decisionSource:hybrid.source
   };
 }
 
 // ---- update weights after result ----
-// ใช้ EMA decay แทน hard cap → ประวัติเก่าค่อยๆ ลดลง ไม่หายไปทันที
-// Global window: 150, Context window: 80
 function updatePatternWeights(predResult,actualResult){
   if(!predResult||!predResult.allPreds)return;
   const pw=loadPatternWeights();
   const ctx=getContext(S.hist);
-
   predResult.allPreds.forEach(p=>{
-    const hit=p.bet===actualResult?1:0;
-    const prior=getPriorWeight(p.name,ctx);
-
-    // --- Global stats (window 150) ---
-    if(!pw[p.name])pw[p.name]={wins:Math.round(prior*20),total:20};
+    if(!pw[p.name])pw[p.name]={wins:1,total:2};
     pw[p.name].total++;
-    if(hit)pw[p.name].wins++;
-    // EMA decay เมื่อเกิน window: ลด 1% ต่อรอบ → ข้อมูลเก่าค่อยๆ จางแต่ไม่หาย
-    if(pw[p.name].total>150){
-      pw[p.name].wins*=0.99;
-      pw[p.name].total*=0.99;
+    if(p.bet===actualResult)pw[p.name].wins++;
+    if(pw[p.name].total>40){
+      pw[p.name].total=40;
+      if(pw[p.name].wins>pw[p.name].total)pw[p.name].wins=pw[p.name].total;
     }
-
-    // --- Context stats (window 80, แยกต่างหากต่อ context) ---
     const key=p.name+':'+ctx;
-    if(!pw[key]){
-      // Seed context ด้วย prior ของ context นั้น (ไม่ใช่ 50/50)
-      const ctxPrior=getPriorWeight(p.name,ctx);
-      pw[key]={wins:Math.round(ctxPrior*10),total:10};
-    }
+    if(!pw[key])pw[key]={wins:1,total:2};
     pw[key].total++;
-    if(hit)pw[key].wins++;
-    // EMA decay เมื่อเกิน window
-    if(pw[key].total>80){
-      pw[key].wins*=0.985;
-      pw[key].total*=0.985;
+    if(p.bet===actualResult)pw[key].wins++;
+    if(pw[key].total>25){
+      pw[key].total=25;
+      if(pw[key].wins>pw[key].total)pw[key].wins=pw[key].total;
     }
-
-    // --- Cross-context learning: อัปเดต context อื่นแบบ soft (10%) ---
-    // ทำให้ pattern รู้ว่า dragon มันได้ผลแค่ไหน แม้แต่ตอนที่ห้องเป็น chop
-    ['dragon','trend','chop','banker_bias','neutral'].forEach(otherCtx=>{
-      if(otherCtx===ctx)return;
-      const otherKey=p.name+':'+otherCtx;
-      if(pw[otherKey]&&pw[otherKey].total>=6){
-        // ดึงข้อมูลจาก context อื่นมาเรียนรู้แบบอ่อน (1% ของ event)
-        pw[otherKey].total+=0.05;
-        if(hit)pw[otherKey].wins+=0.05;
-      }
-    });
   });
   savePatternWeights(pw);
 }
@@ -2535,19 +2382,32 @@ function showSuggest(){
   const el=document.getElementById('sugBet');
   const txtEl=document.getElementById('sugTxt');
   box.classList.remove('nobet','hedge-tie');
-  const mainBet=result.bet==='P'||result.bet==='B'?result.bet:'B';
-  el.textContent=mainBet==='P'?'PLAYER':'BANKER';
-  el.className='sug-bet '+mainBet;
+  // ── Skip Signal from TF ─────────────────────────────────────────
+  const tfSkip = result.tfResult && result.tfResult.winner === 'SKIP';
+  const voteMarginLow = result.votes &&
+    Math.abs((result.votes.P||0)-(result.votes.B||0)) /
+    Math.max(1,(result.votes.P||0)+(result.votes.B||0)) < 0.08;
+  const shouldSkip = tfSkip || (voteMarginLow && result.conf <= 2);
+
+  const mainBet = shouldSkip ? 'SKIP' :
+                  (result.bet==='P'||result.bet==='B'?result.bet:'B');
+
+  if (mainBet === 'SKIP') {
+    el.textContent = 'SKIP';
+    el.className = 'sug-bet skip';
+    box.classList.add('nobet');
+  } else {
+    el.textContent = mainBet==='P'?'PLAYER':'BANKER';
+    el.className='sug-bet '+mainBet;
+    box.classList.remove('nobet');
+  }
   const mirrorBreak=isMirrorSafetyBreak();
   if(mirrorBreak){
     txtEl.className='sug-txt mirror-safety';
     txtEl.textContent='🤖 จบลูปสมมาตรกระจกเงา -> บอทปรับลดเงินเดิมพันขั้นต่ำเพื่อรอดูทรงไพ่ใหม่ · '+result.reason;
   }else{
     txtEl.className='sug-txt';
-    // แสดง transition warning ถ้ามี
-    const trLbl=result.transition&&result.transition.hasTransition?transitionLabel(result.transition):null;
-    const baseReason=result.reason+(result.gate&&result.gate.conflict?' · มีสัญญาณขัด (ลดขนาดเดิมพัน)':'');
-    txtEl.textContent=trLbl?trLbl+' · '+baseReason:baseReason;
+    txtEl.textContent=result.reason+(result.gate&&result.gate.conflict?' · มีสัญญาณขัด (ลดขนาดเดิมพัน)':'');
   }
   result.bet=mainBet;
 
@@ -2821,12 +2681,23 @@ let _td = {
 
 function _tdMakeModel() {
   const m = tf.sequential();
-  m.add(tf.layers.dense({ inputShape: [16], units: 128, activation: 'relu' }));
+  // 32-feature input → deeper network
+  m.add(tf.layers.dense({ inputShape: [ENCODE_SIZE], units: 256, activation: 'relu',
+    kernelInitializer: 'glorotUniform' }));
+  m.add(tf.layers.batchNormalization());
+  m.add(tf.layers.dropout({ rate: 0.2 }));
+  m.add(tf.layers.dense({ units: 128, activation: 'relu' }));
   m.add(tf.layers.dropout({ rate: 0.15 }));
   m.add(tf.layers.dense({ units: 64, activation: 'relu' }));
+  m.add(tf.layers.dropout({ rate: 0.10 }));
   m.add(tf.layers.dense({ units: 32, activation: 'relu' }));
-  m.add(tf.layers.dense({ units: 2, activation: 'linear' })); // B=0, P=1
-  m.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' });
+  // Output: 3 actions — B=0, P=1, SKIP=2
+  m.add(tf.layers.dense({ units: 3, activation: 'linear' }));
+  m.compile({
+    optimizer: tf.train.adam(0.0008),
+    loss: 'meanSquaredError',
+    metrics: ['mae']
+  });
   return m;
 }
 
@@ -2871,6 +2742,16 @@ async function _tdLoadModel(model) {
     const weightsData = JSON.parse(weightsJson);
     const meta = JSON.parse(metaJson);
     if (!weightsData.length) return false;
+
+    // ── Version check: ถ้าโมเดลเก่าใช้ 16 features → clear ทิ้ง ──────
+    // Shape[0] ของ layer แรก = [inputSize, units] → shapes[0][0] คือ inputSize
+    const savedInputSize = meta.shapes && meta.shapes[0] ? meta.shapes[0][0] : 0;
+    if (savedInputSize !== ENCODE_SIZE) {
+      console.warn(`[TF Model] Input size mismatch: saved=${savedInputSize} expected=${ENCODE_SIZE} — clearing old model`);
+      localStorage.removeItem('tf_model_weights');
+      localStorage.removeItem('tf_model_meta');
+      return false;
+    }
     const tensors = weightsData.map((data, i) => {
       // FIX: force Float32Array เพื่อให้ tf.tensor() รับได้เสมอ
       const typedData = data instanceof Float32Array ? data : new Float32Array(data);
@@ -2951,22 +2832,48 @@ function encodeStateForTF(hist) {
 }
 
 /** Sync TF prediction for in-game use — returns {bet, conf, qP, qB} or null */
+// ── Skip threshold: ถ้า best Q - second Q < SKIP_THRESHOLD → SKIP ──────
+const SKIP_THRESHOLD = 0.18; // ตัวเลขนี้ต้องปรับตาม training จริง
+
 function getTFDecision(hist) {
   if (!window._tfModel) return null;
   const vec = encodeStateForTF(hist);
   if (!vec) return null;
   try {
     const qVals = window._tfModel.predict(tf.tensor2d([vec])).arraySync()[0];
-    // qVals: [0]=B, [1]=P
-    const qB = qVals[0], qP = qVals[1];
-    const gap = Math.abs(qP - qB);
+
+    // qVals: [0]=B, [1]=P, [2]=SKIP (3-output model)
+    const qB    = qVals[0];
+    const qP    = qVals[1];
+    const qSkip = qVals.length >= 3 ? qVals[2] : -Infinity;
+
+    // ── Confidence Margin ───────────────────────────
+    // max - second = margin (สาย Quant)
+    const sorted = [qB, qP, qSkip].sort((a, b) => b - a);
+    const margin = sorted[0] - sorted[1]; // margin between top-2
+
+    // ── Skip Signal ─────────────────────────────────
+    // 1. SKIP action wins outright
+    // 2. margin ต่ำ → ไม่ชัดเจน → SKIP
+    if (qSkip >= qB && qSkip >= qP) {
+      return { winner: 'SKIP', conf: 1, qP, qB, qSkip, margin, source: 'tf_skip' };
+    }
+    if (margin < SKIP_THRESHOLD) {
+      return { winner: 'SKIP', conf: 1, qP, qB, qSkip, margin, source: 'tf_lowconf' };
+    }
+
+    // ── Winner ──────────────────────────────────────
     const winner = qP >= qB ? 'P' : 'B';
+
+    // ── Proper Confidence from margin ───────────────
+    // ใช้ margin จริง ไม่ใช่ threshold เดิม
     let conf = 1;
-    if (gap >= 1.5) conf = 5;
-    else if (gap >= 1.0) conf = 4;
-    else if (gap >= 0.5) conf = 3;
-    else if (gap >= 0.2) conf = 2;
-    return { winner, conf, qP, qB, source: 'tf' };
+    if (margin >= 1.5) conf = 5;
+    else if (margin >= 0.9) conf = 4;
+    else if (margin >= 0.5) conf = 3;
+    else if (margin >= 0.25) conf = 2;
+
+    return { winner, conf, qP, qB, qSkip, margin, source: 'tf' };
   } catch (e) {
     return null;
   }
@@ -3248,49 +3155,142 @@ function generateSequence(rounds, seed) {
   return history;
 }
 
+// =====================================================
+// encodeState v3.0 — 32 Features
+// Quant-grade feature engineering for Baccarat
+// =====================================================
+const ENCODE_VERSION = 3;
+const ENCODE_SIZE    = 32;
+
 function encodeState(history) {
   const h = history.filter(x => x !== 'T');
-  if (h.length < 2) return Array(16).fill(0);
-  const total = h.length;
-  const bc = h.filter(x => x === 'B').length;
-  const pc = total - bc;
-  const last = h[total - 1];
-  let sl = 1;
-  for (let i = total - 2; i >= 0; i--) { if (h[i] === last) sl++; else break; }
+  if (h.length < 2) return Array(ENCODE_SIZE).fill(0);
+
+  const n = h.length;
+
+  // ── 1. Last winner ──────────────────────────────
+  const last    = h[n - 1];
+  const lastIsB = last === 'B' ? 1 : 0;
+
+  // ── 2. Dragon / Streak Detection ───────────────
+  let streakLen = 1;
+  for (let i = n - 2; i >= 0; i--) {
+    if (h[i] === last) streakLen++; else break;
+  }
+  const streakNorm  = Math.min(1, streakLen / 12);
+  const isDragon4   = streakLen >= 4 ? 1 : 0;
+  const isDragon6   = streakLen >= 6 ? 1 : 0;
+  const isDragon10  = streakLen >= 10 ? 1 : 0;
+  const streakSideB = last === 'B' ? 1 : 0;
+
+  // ── 3. Ping-Pong / Alternation Detection ────────
+  // alternScore: สัดส่วนการสลับใน window (PBPBPB = 1.0, PPPPPP = 0.0)
   const w10 = h.slice(-10);
-  let alt10 = 0;
-  for (let i = 1; i < w10.length; i++) if (w10[i] !== w10[i-1]) alt10++;
-  const chop10 = alt10 / Math.max(1, w10.length - 1);
-  const w5 = h.slice(-5);
-  let alt5 = 0;
-  for (let i = 1; i < w5.length; i++) if (w5[i] !== w5[i-1]) alt5++;
-  const chop5 = alt5 / Math.max(1, w5.length - 1);
-  const trans = {PP:0,PB:0,BP:0,BB:0};
-  for (let i = 0; i < total - 1; i++) {
+  const w6  = h.slice(-6);
+  const w5  = h.slice(-5);
+
+  const altScore = (win) => {
+    let a = 0;
+    for (let i = 1; i < win.length; i++) if (win[i] !== win[i-1]) a++;
+    return a / Math.max(1, win.length - 1);
+  };
+  const altScore10 = altScore(w10);
+  const altScore6  = altScore(w6);
+  const altScore5  = altScore(w5);
+
+  // Perfect ping-pong: last 4 เป็น PBPB หรือ BPBP
+  const last4 = h.slice(-4);
+  const isPingPong = (last4.length === 4 &&
+    last4[0] !== last4[1] && last4[1] !== last4[2] && last4[2] !== last4[3]) ? 1 : 0;
+
+  // ── 4. Transition Matrix (full history) ─────────
+  const trans = { PP: 0, PB: 0, BP: 0, BB: 0 };
+  for (let i = 0; i < n - 1; i++) {
     const k = h[i] + h[i+1];
     if (trans[k] !== undefined) trans[k]++;
   }
-  const toB = last === 'P' ? trans.PB : trans.BB;
-  const toP = last === 'P' ? trans.PP : trans.BP;
-  const mTotal = toB + toP;
-  const markovB = mTotal > 0 ? toB / mTotal : 0.5;
-  const br = bc / total;
-  const l4 = h.slice(-4).map(x => x === 'B' ? 1 : 0);
-  while (l4.length < 4) l4.unshift(0.5);
+  const pTotal = trans.PP + trans.PB;
+  const bTotal = trans.BP + trans.BB;
+  const tpp = pTotal > 0 ? trans.PP / pTotal : 0.5;  // P(P|P)
+  const tpb = pTotal > 0 ? trans.PB / pTotal : 0.5;  // P(B|P)
+  const tbp = bTotal > 0 ? trans.BP / bTotal : 0.5;  // P(P|B)
+  const tbb = bTotal > 0 ? trans.BB / bTotal : 0.5;  // P(B|B)
+  // Markov next-step probability given last
+  const markovNextB = last === 'P' ? tpb : tbb;
+  const markovConf  = Math.abs(markovNextB - 0.5) * 2; // 0=uncertain, 1=certain
+
+  // ── 5. Multi-Window Frequency Features ──────────
+  const cnt = (win, side) => win.filter(x => x === side).length / Math.max(1, win.length);
+  const last5P  = cnt(h.slice(-5), 'P');
+  const last5B  = cnt(h.slice(-5), 'B');
+  const last10P = cnt(h.slice(-10), 'P');
+  const last10B = cnt(h.slice(-10), 'B');
+  const last20P = cnt(h.slice(-20), 'P');
+  const last20B = cnt(h.slice(-20), 'B');
+
+  // Overall banker ratio
+  const bankerRatio = cnt(h, 'B');
+
+  // ── 6. Shannon Entropy ───────────────────────────
+  // H = -sum(p * log2(p)) — normalized to [0,1]
+  const shannonEntropy = (win) => {
+    if (win.length < 2) return 0;
+    const p = cnt(win, 'P');
+    const b = 1 - p;
+    if (p <= 0 || b <= 0) return 0;
+    return -(p * Math.log2(p) + b * Math.log2(b)); // max=1.0 when p=0.5
+  };
+  const entropy10   = shannonEntropy(h.slice(-10));
+  const entropy20   = shannonEntropy(h.slice(-20));
+  const isHighChaos = entropy10 > 0.92 ? 1 : 0;  // near-perfect 50/50
+
+  // ── 7. Raw last-8 encoding ───────────────────────
+  const last8 = h.slice(-8).map(x => x === 'B' ? 1 : 0);
+  while (last8.length < 8) last8.unshift(0.5);
+
+  // ── 8. Meta features ────────────────────────────
+  const totalNorm   = Math.min(1, n / 100);
+  const dataMature  = n >= 15 ? 1 : 0;
+
+  // ── Confidence Margin (for skip logic in training) ─
+  // ตัวนี้ใช้ใน skip signal: ถ้า margin < threshold → ไม่แน่ใจ
+  const confMargin  = Math.abs(markovNextB - 0.5) * 2 *
+                      (isDragon4 ? 1.3 : isPingPong ? 1.2 : 1.0);
+
+  // ── Assemble 32-feature vector ───────────────────
   return [
-    last === 'B' ? 1 : 0,
-    Math.min(1, sl / 8),
-    sl >= 3 ? 1 : 0,
-    chop10,
-    chop5,
-    Math.min(1, br),
-    markovB,
-    Math.min(1, total / 70),
-    l4[0], l4[1], l4[2], l4[3],
-    chop10 > 0.6 ? 1 : 0,
-    sl >= 5 ? 1 : 0,
-    Math.min(1, Math.abs(br - 0.5) * 4),
-    total >= 10 ? 1 : 0
+    /* [0]  */ lastIsB,                              // last winner = Banker
+    /* [1]  */ streakNorm,                           // streak length / 12
+    /* [2]  */ isDragon4,                            // streak ≥ 4
+    /* [3]  */ isDragon6,                            // streak ≥ 6
+    /* [4]  */ isDragon10,                           // streak ≥ 10
+    /* [5]  */ streakSideB,                          // streak side = Banker
+    /* [6]  */ altScore10,                           // ping-pong score last 10
+    /* [7]  */ altScore6,                            // ping-pong score last 6
+    /* [8]  */ altScore5,                            // ping-pong score last 5
+    /* [9]  */ isPingPong,                           // perfect ping-pong flag
+    /* [10] */ tpp,                                  // P(P|P) transition
+    /* [11] */ tpb,                                  // P(B|P) transition
+    /* [12] */ tbp,                                  // P(P|B) transition
+    /* [13] */ tbb,                                  // P(B|B) transition
+    /* [14] */ markovNextB,                          // P(B|last) Markov
+    /* [15] */ markovConf,                           // Markov confidence margin
+    /* [16] */ last5P,                               // % Player last 5
+    /* [17] */ last5B,                               // % Banker last 5
+    /* [18] */ last10P,                              // % Player last 10
+    /* [19] */ last10B,                              // % Banker last 10
+    /* [20] */ last20P,                              // % Player last 20
+    /* [21] */ last20B,                              // % Banker last 20
+    /* [22] */ bankerRatio,                          // overall Banker ratio
+    /* [23] */ entropy10,                            // Shannon entropy last 10
+    /* [24] */ entropy20,                            // Shannon entropy last 20
+    /* [25] */ isHighChaos,                          // chaos flag
+    /* [26] */ last8[0],                             // raw last-8 encoded
+    /* [27] */ last8[1],
+    /* [28] */ last8[2],
+    /* [29] */ last8[3],
+    /* [30] */ last8[4],
+    /* [31] */ totalNorm,                            // game maturity
   ];
 }
 
@@ -3377,7 +3377,9 @@ async function startTraining() {
 
   // === TRAINING HYPERPARAMETERS ===
   const memory = [];
-  const ACTIONS = ['B', 'P'];            // no Tie — Tie never profits long-term
+  // 3 actions: B=0, P=1, SKIP=2
+  // SKIP reward: ถ้าห้อง chaos สูง → skip ดีกว่าแทงผิด
+  const ACTIONS = ['B', 'P', 'SKIP'];
   let epsilon = 1.0;
   const epsilonMin = 0.05;
   const gamma = 0.95;
@@ -3440,12 +3442,26 @@ async function startTraining() {
   /** Epsilon decay: reaches epsilonMin exactly when actual training rounds end */
   const epsilonDecay = Math.pow(epsilonMin / 1.0, 1 / Math.max(1, trainEnd - trainStart));
 
-  /** Payout — same as real Baccarat odds */
+  /** Payout with Skip reward — skip is better than a wrong bet in chaos */
   const stake = 10;
   function pnlFor(bet, actual) {
-    if (actual === 'T') return 0;        // tie = push, no loss
+    if (actual === 'T') return 0;
+    if (bet === 'SKIP') return 0;     // no gain no loss on skip
     if (bet === actual) return bet === 'B' ? Math.floor(stake * 0.95) : stake;
     return -stake;
+  }
+
+  /** Skip reward: depends on how "guessable" this round was
+   *  If it was a wrong bet → skip would have been better → +0.5 reward
+   *  If it was a correct bet → skip cost us a win → -0.2 reward
+   *  Chaos amplifies skip reward (ห้องเละ = skip ดีกว่า)
+   */
+  function skipReward(actual, hSlice) {
+    const feat = encodeState(hSlice);
+    const entropy = feat[23]; // entropy10 from encodeState
+    const chaos = entropy > 0.9 ? 1.0 : entropy > 0.8 ? 0.7 : entropy > 0.7 ? 0.4 : 0.1;
+    // Skip reward = -(expected win) = small negative in easy rooms, positive in chaos
+    return -0.5 + chaos * 1.0; // ranges from -0.5 (clear room) to +0.5 (full chaos)
   }
 
   try {
@@ -3453,23 +3469,29 @@ async function startTraining() {
     for (let i = trainStart; epsilon > epsilonMin && i < trainEnd; i++) {
       if (_td.stop) break;
 
-      const state = encodeState(history.slice(0, i));
+      const hSlice = history.slice(0, i);
+      const state = encodeState(hSlice);
       const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
 
-      // Epsilon-greedy — only B or P
+      // Epsilon-greedy — 3 actions: B / P / SKIP
       let action;
       if (Math.random() < epsilon) {
-        action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+        // During exploration: bias toward B/P 80%, SKIP 20% (don't over-learn skip)
+        const r = Math.random();
+        action = r < 0.4 ? 'B' : r < 0.8 ? 'P' : 'SKIP';
       } else {
-        action = qVals[0] >= qVals[1] ? 'B' : 'P';
+        // Exploit: pick best Q value across all 3 actions
+        const maxQ = Math.max(qVals[0], qVals[1], qVals[2] || -Infinity);
+        if (qVals[2] >= maxQ - 0.05) action = 'SKIP'; // slight bonus to skip on tie
+        else action = qVals[0] >= qVals[1] ? 'B' : 'P';
       }
 
       const actual = history[i];
       const pnl = pnlFor(action, actual);
       cumulativePnl += pnl;
 
-      // Reward = actual payout (positive = win, negative = loss)
-      const reward = pnl;
+      // Reward — use skip reward for SKIP action
+      const reward = action === 'SKIP' ? skipReward(actual, hSlice) : pnl;
       const nextState = encodeState(history.slice(0, i + 1));
       memory.push({ state, nextState, action, reward, done: i === trainEnd });
 
@@ -3532,11 +3554,20 @@ async function startTraining() {
     let alwaysBPnl = 0, alwaysPPnl = 0;
     let alwaysBWins = 0, alwaysPWins = 0;
 
+
+  // Helper: pick action from 3-output qVals with skip signal
+  const _pickAction = (qv) => {
+    const qB = qv[0], qP = qv[1], qS = qv.length >= 3 ? qv[2] : -Infinity;
+    const margin = Math.abs(qP - qB);
+    if (qS >= qB && qS >= qP) return 'SKIP';
+    if (margin < SKIP_THRESHOLD) return 'SKIP';
+    return qP >= qB ? 'P' : 'B';
+  };
     msgEl.textContent = 'ทดสอบผลบนข้อมูลจริง...';
     for (let i = testStart; i <= testEnd; i++) {
       const state = encodeState(history.slice(0, i));
       const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
-      const action = qVals[0] >= qVals[1] ? 'B' : 'P';
+      const action = _pickAction(qVals);
       const actual = history[i];
 
       const pnl = pnlFor(action, actual);
@@ -3562,7 +3593,7 @@ async function startTraining() {
     for (let i = trainStart; i < trainEnd; i++) {
       const state = encodeState(history.slice(0, i));
       const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
-      const action = qVals[0] >= qVals[1] ? 'B' : 'P';
+      const action = _pickAction(qVals);
       const actual = history[i];
       const pnl = pnlFor(action, actual);
       fullPnl += pnl;
