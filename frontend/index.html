@@ -385,13 +385,8 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 <body>
 
 <div class="hdr">
-<<<<<<< HEAD
   <div class="logo">BACCARAT PRO 2.7.2</div>  <!-- แก้ไข Version ด้วย ทุกครั้งที่อัพเดท -->
   <div class="logo-sub">CALCULATOR · TRACKER · SYSTEM</div>
-=======
-  <div class="logo">BACCARAT PRO 2.7.1</div>
-  <div class="logo-sub">CALCULATOR ยท TRACKER ยท SYSTEM</div>
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 </div>
 
 <!-- SHOE STATS -->
@@ -1063,17 +1058,10 @@ function resolveRound(w,p,b,nat){
   S.pendingSug=null;
   S.pendingSugResult=null;
   }
-<<<<<<< HEAD
   const _histBeforeResolve = S.hist.slice(); // snapshot ก่อน push
   S.hist.push(w);
   if(w==='P')S.pC++;else if(w==='B')S.bC++;else S.tC++;
   // Online learning — อัปเดต model จาก round จริง (async, ไม่บล็อก UI)
-=======
-  const _histBeforeResolve = S.hist.slice(); // snapshot เธเนเธญเธ push
-  S.hist.push(w);
-  if(w==='P')S.pC++;else if(w==='B')S.bC++;else S.tC++;
-  // Online learning โ€” เธญเธฑเธเน€เธ”เธ• model เธเธฒเธ round เธเธฃเธดเธ (async, เนเธกเนเธเธฅเนเธญเธ UI)
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
   if(window._tfModel) setTimeout(()=>autoOnlineUpdate(_histBeforeResolve,w),0);
   ['stRounds','stP','stB','stT'].forEach((id,i)=>
     document.getElementById(id).textContent=[S.hist.length,S.pC,S.bC,S.tC][i]);
@@ -2335,7 +2323,6 @@ function runPredictionEngine(h,streak,streakSide){
     const _isChop=_chopStr>=0.75||_chopFire;
     const _isPerfect=_chopStr>=0.875; // 7/8 เธ•เธฒเธชเธฅเธฑเธ = perfect ping-pong
 
-<<<<<<< HEAD
     // คำนวณ effective weight
     const _strongPat=preds.filter(p=>
       ['cycle_streak','cycle','streak','dragon','pingpong'].includes(p.name)&&p.conf>=4
@@ -2344,12 +2331,6 @@ function runPredictionEngine(h,streak,streakSide){
     if(_isPerfect){_effWt=0.1;}       // suppress เกือบสมบูรณ์
     else if(_isChop){_effWt=tfWt*0.2;} // ลด 80%
     else if(_strongPat){_effWt=tfWt*0.15;} // pattern ชัด → suppress TF
-=======
-    // เธเธณเธเธงเธ“ effective weight
-    let _effWt=tfWt;
-    if(_isPerfect){_effWt=0.1;}       // suppress เน€เธเธทเธญเธเธชเธกเธเธนเธฃเธ“เน
-    else if(_isChop){_effWt=tfWt*0.2;} // เธฅเธ” 80%
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 
     tfCandidate={
       name:'tf_model',
@@ -2740,11 +2721,7 @@ function loadCurrent(){
 // Init
 loadQTable();
 buildGrid();renderHands();loadCurrent();
-<<<<<<< HEAD
 // Auto-train on startup (ไม่รบกวน UI)
-=======
-// Auto-train on startup (เนเธกเนเธฃเธเธเธงเธ UI)
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 setTimeout(()=>autoTrainOnStartup(),800);
 
 // Load persisted TF model on startup so it's available for in-game use
@@ -2991,17 +2968,10 @@ function updateTrainDashToggleHint() {
     const meta = (() => { try { return JSON.parse(localStorage.getItem('tf_model_meta')||'{}'); } catch(e){return{};} })();
     const r = meta.stats && meta.stats.trainedRounds ? meta.stats.trainedRounds : '?';
     const wr = meta.stats && meta.stats.winRate ? Math.round(meta.stats.winRate*100)+'%' : '?';
-<<<<<<< HEAD
     hint.textContent = '✓ AI Active — '+r+'r, '+wr;
     hint.style.color = 'var(--green-pos)';
   } else {
     hint.textContent = '⏳ กำลังโหลด AI...';
-=======
-    hint.textContent = 'โ“ AI Active โ€” '+r+'r, '+wr;
-    hint.style.color = 'var(--green-pos)';
-  } else {
-    hint.textContent = 'โณ เธเธณเธฅเธฑเธเนเธซเธฅเธ” AI...';
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     hint.style.color = 'var(--gold)';
   }
 }
@@ -3627,15 +3597,9 @@ async function startTraining() {
       const pnl = pnlFor(action, actual);
       cumulativePnl += pnl;
 
-<<<<<<< HEAD
       // Reward — use skip reward for SKIP action
       const rawSkip = action === 'SKIP' ? skipReward(actual, hSlice) : pnl;
       const reward = Math.max(-1.5, Math.min(1.5, rawSkip)); // clip rewards ป้องกัน explosion
-=======
-      // Reward โ€” use skip reward for SKIP action
-      const rawSkip = action === 'SKIP' ? skipReward(actual, hSlice) : pnl;
-      const reward = Math.max(-1.5, Math.min(1.5, rawSkip)); // clip rewards เธเนเธญเธเธเธฑเธ explosion
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
       const nextState = encodeState(history.slice(0, i + 1));
       memory.push({ state, nextState, action, reward, done: i === trainEnd });
 
@@ -3655,11 +3619,7 @@ async function startTraining() {
           const tr = [...row];
           const bestNext = Math.max(...nextVals[j]);
           const rawTarget = s.reward + (s.done ? 0 : gamma * bestNext);
-<<<<<<< HEAD
           // ── Clip target to [-3, +3] ป้องกัน Q explosion ──
-=======
-          // โ”€โ”€ Clip target to [-3, +3] เธเนเธญเธเธเธฑเธ Q explosion โ”€โ”€
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
           const aIdx = ACTIONS.indexOf(s.action);
           tr[aIdx] = Math.max(-3, Math.min(3, rawTarget));
           return tr;
@@ -3686,7 +3646,6 @@ async function startTraining() {
           ? rollingWindow.reduce((a, b) => a + b, 0) / rollingWindow.length
           : 0;
         updateTrainDashUI({
-<<<<<<< HEAD
           winRate: wr,
           pnl: cumulativePnl,
           rounds: i - trainStart,
@@ -3694,15 +3653,6 @@ async function startTraining() {
           converged: false
         });
         msgEl.textContent = `กำลังเทรน รอบ ${i} กำไร=${cumulativePnl > 0 ? '+' : ''}${cumulativePnl}`;
-=======
-      winRate: wr,
-      pnl: cumulativePnl,
-      rounds: i - trainStart,
-      epsilon,
-      converged: false
-    });
-        msgEl.textContent = `เธเธณเธฅเธฑเธเน€เธ—เธฃเธ เธฃเธญเธ ${i} เธเธณเนเธฃ=${cumulativePnl > 0 ? '+' : ''}${cumulativePnl}${epsilon <= epsilonMin ? ' [เธเธเนเธฅเนเธง]' : ''}`;
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
       }
     }
     const trainedRounds = Math.max(0, trainEnd - trainStart); // actual rounds the model learned on
@@ -3715,7 +3665,6 @@ async function startTraining() {
     let alwaysBPnl = 0, alwaysPPnl = 0;
     let alwaysBWins = 0, alwaysPWins = 0;
 
-<<<<<<< HEAD
     // Helper: pick action from 3-output qVals with skip signal
     const _pickAction = (qv) => {
       const qB = qv[0], qP = qv[1], qS = qv.length >= 3 ? qv[2] : -Infinity;
@@ -3725,18 +3674,6 @@ async function startTraining() {
       return qP >= qB ? 'P' : 'B';
     };
     msgEl.textContent = 'ทดสอบผลบนข้อมูลจริง...';
-=======
-
-  // Helper: pick action from 3-output qVals with skip signal
-  const _pickAction = (qv) => {
-    const qB = qv[0], qP = qv[1], qS = qv.length >= 3 ? qv[2] : -Infinity;
-    const margin = Math.abs(qP - qB);
-    if (qS >= qB && qS >= qP) return 'SKIP';
-    if (margin < SKIP_THRESHOLD) return 'SKIP';
-    return qP >= qB ? 'P' : 'B';
-  };
-    msgEl.textContent = 'เธ—เธ”เธชเธญเธเธเธฅเธเธเธเนเธญเธกเธนเธฅเธเธฃเธดเธ...';
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     for (let i = testStart; i <= testEnd; i++) {
       const state = encodeState(history.slice(0, i));
       const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
@@ -4077,7 +4014,6 @@ function runBacktest() {
 
 
 // =====================================================
-<<<<<<< HEAD
 //  AUTO-TRAIN SYSTEM — ไม่ต้องกดเทรนเอง
 //  - โหลด model จาก localStorage ทุก startup
 //  - ถ้าไม่มีหรือ model เก่า (<300 rounds) → train background ทันที
@@ -4089,19 +4025,6 @@ const AUTO_TRAIN_ROUNDS   = 2000;  // rounds สำหรับ initial training
 const AUTO_RETRAIN_EVERY  = 30;    // กี่ round จึง trigger mini re-train
 const AUTO_MINI_ROUNDS    = 400;   // rounds ของ mini re-train
 const AUTO_ONLINE_LR      = 0.003; // learning rate สำหรับ online update ทีละ round
-=======
-//  AUTO-TRAIN SYSTEM โ€” เนเธกเนเธ•เนเธญเธเธเธ”เน€เธ—เธฃเธเน€เธญเธ
-//  - เนเธซเธฅเธ” model เธเธฒเธ localStorage เธ—เธธเธ startup
-//  - เธ–เนเธฒเนเธกเนเธกเธตเธซเธฃเธทเธญ model เน€เธเนเธฒ (<300 rounds) โ’ train background เธ—เธฑเธเธ—เธต
-//  - Online learning: เธ—เธธเธ quickAdd() โ’ update weights เธเธฒเธ round เธเธฑเนเธ
-//  - Mini re-train: เธ—เธธเธ AUTO_RETRAIN_EVERY rounds โ’ background re-train เน€เธเธดเนเธก
-// =====================================================
-
-const AUTO_TRAIN_ROUNDS   = 2000;  // rounds เธชเธณเธซเธฃเธฑเธ initial training
-const AUTO_RETRAIN_EVERY  = 30;    // เธเธตเน round เธเธถเธ trigger mini re-train
-const AUTO_MINI_ROUNDS    = 400;   // rounds เธเธญเธ mini re-train
-const AUTO_ONLINE_LR      = 0.003; // learning rate เธชเธณเธซเธฃเธฑเธ online update เธ—เธตเธฅเธฐ round
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 
 let _autoTrainState = {
   roundsSinceRetrain: 0,
@@ -4109,11 +4032,7 @@ let _autoTrainState = {
   onlineUpdateQueue: [],
 };
 
-<<<<<<< HEAD
 // ─── Status badge (top-left mini indicator) ──────────
-=======
-// โ”€โ”€โ”€ Status badge (top-left mini indicator) โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 function _showAutoTrainStatus(msg, color) {
   let el = document.getElementById('autoTrainBadge');
   if (!el) {
@@ -4138,19 +4057,11 @@ function _hideAutoTrainBadge() {
   if (el) { el.style.opacity = '0'; }
 }
 
-<<<<<<< HEAD
 // ─── Startup: โหลด/เทรน model อัตโนมัติ ─────────────
 async function autoTrainOnStartup() {
   await tf.ready();
 
   // โหลด model จาก localStorage
-=======
-// โ”€โ”€โ”€ Startup: เนเธซเธฅเธ”/เน€เธ—เธฃเธ model เธญเธฑเธ•เนเธเธกเธฑเธ•เธด โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
-async function autoTrainOnStartup() {
-  await tf.ready();
-
-  // เนเธซเธฅเธ” model เธเธฒเธ localStorage
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
   const model = _tdMakeModel();
   const loaded = await _tdLoadModel(model);
 
@@ -4158,22 +4069,14 @@ async function autoTrainOnStartup() {
     const meta = JSON.parse(localStorage.getItem('tf_model_meta') || '{}');
     const rounds = meta.stats && meta.stats.trainedRounds ? meta.stats.trainedRounds : 0;
 
-<<<<<<< HEAD
     // ── Sanity check: ถ้า Q values สูงผิดปกติ (exploded) → clear แล้ว retrain ──
-=======
-    // โ”€โ”€ Sanity check: เธ–เนเธฒ Q values เธชเธนเธเธเธดเธ”เธเธเธ•เธด (exploded) โ’ clear เนเธฅเนเธง retrain โ”€โ”€
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     let qExploded = false;
     try {
       const testVec = encodeState(['B','P','B','P','B']);
       const testQ = model.predict(tf.tensor2d([testVec])).arraySync()[0];
       const maxQ = Math.max(...testQ.map(Math.abs));
       if (maxQ > 50) {
-<<<<<<< HEAD
         console.warn('[AutoTrain] Q-exploded model detected (maxQ=' + maxQ.toFixed(1) + ') — clearing');
-=======
-        console.warn('[AutoTrain] Q-exploded model detected (maxQ=' + maxQ.toFixed(1) + ') โ€” clearing');
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
         localStorage.removeItem('tf_model_weights');
         localStorage.removeItem('tf_model_meta');
         qExploded = true;
@@ -4181,11 +4084,7 @@ async function autoTrainOnStartup() {
     } catch(e) {}
 
     if (qExploded) {
-<<<<<<< HEAD
       _showAutoTrainStatus('🔄 AI reset & retrain...', 'var(--gold)');
-=======
-      _showAutoTrainStatus('๐” AI reset & retrain...', 'var(--gold)');
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
       const freshModel = _tdMakeModel();
       await _runAutoTrain(AUTO_TRAIN_ROUNDS, freshModel);
     } else {
@@ -4193,38 +4092,22 @@ async function autoTrainOnStartup() {
       _tdExportKnowledgeToQTable(model);
       updateTrainDashToggleHint();
       if (rounds < 300) {
-<<<<<<< HEAD
         _showAutoTrainStatus('🔄 AI ปรับปรุงโมเดล...', 'var(--gold)');
         await _runAutoTrain(AUTO_TRAIN_ROUNDS, model);
       } else {
         _showAutoTrainStatus('✓ AI พร้อมแล้ว (' + rounds + 'r)', 'var(--green-pos)');
-=======
-        _showAutoTrainStatus('๐” AI เธเธฃเธฑเธเธเธฃเธธเธเนเธกเน€เธ”เธฅ...', 'var(--gold)');
-        await _runAutoTrain(AUTO_TRAIN_ROUNDS, model);
-      } else {
-        _showAutoTrainStatus('โ“ AI เธเธฃเนเธญเธกเนเธฅเนเธง (' + rounds + 'r)', 'var(--green-pos)');
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
         setTimeout(_hideAutoTrainBadge, 3000);
       }
     }
   } else {
-<<<<<<< HEAD
     // ไม่มี model → train ใหม่ทันที
     _showAutoTrainStatus('🧠 AI กำลังเรียนรู้...', 'var(--gold)');
-=======
-    // เนเธกเนเธกเธต model โ’ train เนเธซเธกเนเธ—เธฑเธเธ—เธต
-    _showAutoTrainStatus('๐ง  AI เธเธณเธฅเธฑเธเน€เธฃเธตเธขเธเธฃเธนเน...', 'var(--gold)');
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     const newModel = _tdMakeModel();
     await _runAutoTrain(AUTO_TRAIN_ROUNDS, newModel);
   }
 }
 
-<<<<<<< HEAD
 // ─── Core auto-train loop (silent, background) ───────
-=======
-// โ”€โ”€โ”€ Core auto-train loop (silent, background) โ”€โ”€โ”€โ”€โ”€โ”€โ”€
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 async function _runAutoTrain(targetRounds, existingModel) {
   if (_autoTrainState.isAutoTraining) return;
   _autoTrainState.isAutoTraining = true;
@@ -4236,11 +4119,7 @@ async function _runAutoTrain(targetRounds, existingModel) {
       targetModel.setWeights(model.getWeights().map(w => w.clone()));
     }
 
-<<<<<<< HEAD
     // ใช้ history จริง + extend ถ้าสั้น
-=======
-    // เนเธเน history เธเธฃเธดเธ + extend เธ–เนเธฒเธชเธฑเนเธ
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     let history = [];
     try {
       const d = localStorage.getItem('bac_cur');
@@ -4250,11 +4129,7 @@ async function _runAutoTrain(targetRounds, existingModel) {
       }
     } catch(e) {}
 
-<<<<<<< HEAD
     // extend ด้วย simulated rounds (real baccarat probability)
-=======
-    // extend เธ”เนเธงเธข simulated rounds (real baccarat probability)
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     const needed = Math.max(targetRounds + 200, history.length + 200);
     const rng = (() => { let s = Date.now() >>> 0; return () => { s = (1664525*s+1013904223)>>>0; return s/2**32; }; })();
     while (history.length < needed) {
@@ -4273,19 +4148,11 @@ async function _runAutoTrain(targetRounds, existingModel) {
     const epsilonMin = 0.05;
     const epsilonDecay = Math.pow(epsilonMin / 1.0, 1 / Math.max(1, trainEnd - trainStart));
 
-<<<<<<< HEAD
     // Normalized reward: ±1 เท่านั้น → ไม่ explode ไม่ว่า gamma จะเป็นเท่าไหร่
     const pnlFor = (bet, actual) => {
       if (actual === 'T') return 0;
       if (bet === 'SKIP') return 0;
       if (bet === actual) return bet === 'B' ? 0.95 : 1.0;  // normalized ±1
-=======
-    // Normalized reward: ยฑ1 เน€เธ—เนเธฒเธเธฑเนเธ โ’ เนเธกเน explode เนเธกเนเธงเนเธฒ gamma เธเธฐเน€เธเนเธเน€เธ—เนเธฒเนเธซเธฃเน
-    const pnlFor = (bet, actual) => {
-      if (actual === 'T') return 0;
-      if (bet === 'SKIP') return 0;
-      if (bet === actual) return bet === 'B' ? 0.95 : 1.0;  // normalized ยฑ1
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
       return -1.0;
     };
 
@@ -4334,11 +4201,7 @@ async function _runAutoTrain(targetRounds, existingModel) {
           const tr = [...row];
           const bestNext = Math.max(...nextVals[j]);
           const rawTarget = s.reward + (s.done ? 0 : gamma * bestNext);
-<<<<<<< HEAD
           // ── Clip target to [-3, +3] ป้องกัน Q explosion ──
-=======
-          // โ”€โ”€ Clip target to [-3, +3] เธเนเธญเธเธเธฑเธ Q explosion โ”€โ”€
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
           const aIdx = ACTIONS.indexOf(s.action);
           tr[aIdx] = Math.max(-3, Math.min(3, rawTarget));
           return tr;
@@ -4357,11 +4220,7 @@ async function _runAutoTrain(targetRounds, existingModel) {
       if (i - lastUIUpdate >= 8) {
         lastUIUpdate = i;
         const pct = Math.round(((1.0 - epsilon) / (1.0 - epsilonMin)) * 100);
-<<<<<<< HEAD
         _showAutoTrainStatus(`🧠 AI เรียนรู้ ${pct}%`, 'var(--gold)');
-=======
-        _showAutoTrainStatus(`๐ง  AI เน€เธฃเธตเธขเธเธฃเธนเน ${pct}%`, 'var(--gold)');
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
         await new Promise(r => setTimeout(r, 0)); // yield to UI thread
       }
     }
@@ -4394,11 +4253,7 @@ async function _runAutoTrain(targetRounds, existingModel) {
       testPnl: 0
     });
 
-<<<<<<< HEAD
     _showAutoTrainStatus(`✓ AI พร้อม — WR ${wr}%`, wr >= 50 ? 'var(--green-pos)' : 'var(--gold)');
-=======
-    _showAutoTrainStatus(`โ“ AI เธเธฃเนเธญเธก โ€” WR ${wr}%`, wr >= 50 ? 'var(--green-pos)' : 'var(--gold)');
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     setTimeout(_hideAutoTrainBadge, 4000);
 
     // Refresh suggest if we're on deal tab
@@ -4406,18 +4261,13 @@ async function _runAutoTrain(targetRounds, existingModel) {
 
   } catch(e) {
     console.warn('[AutoTrain] Error:', e.message);
-<<<<<<< HEAD
     _showAutoTrainStatus('⚠️ AI error', 'var(--red-neg)');
-=======
-    _showAutoTrainStatus('โ ๏ธ AI error', 'var(--red-neg)');
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     setTimeout(_hideAutoTrainBadge, 3000);
   }
 
   _autoTrainState.isAutoTraining = false;
 }
 
-<<<<<<< HEAD
 // ─── Online Learning: buffer real rounds → batch replay ─
 // ใช้ experience buffer แทน single-step fit
 // ไม่มี gamma compounding → ไม่ Q-explode
@@ -4425,45 +4275,23 @@ const _onlineBuffer = [];
 const ONLINE_BUF_MAX  = 200;   // เก็บ experience ล่าสุด
 const ONLINE_BATCH    = 16;    // batch size สำหรับ replay
 const ONLINE_REPLAY_EVERY = 8; // replay ทุก N rounds
-=======
-// โ”€โ”€โ”€ Online Learning: buffer real rounds โ’ batch replay โ”€
-// เนเธเน experience buffer เนเธ—เธ single-step fit
-// เนเธกเนเธกเธต gamma compounding โ’ เนเธกเน Q-explode
-const _onlineBuffer = [];
-const ONLINE_BUF_MAX  = 200;   // เน€เธเนเธ experience เธฅเนเธฒเธชเธธเธ”
-const ONLINE_BATCH    = 16;    // batch size เธชเธณเธซเธฃเธฑเธ replay
-const ONLINE_REPLAY_EVERY = 8; // replay เธ—เธธเธ N rounds
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 const ONLINE_LR       = 0.001; // conservative LR
 
 function autoOnlineUpdate(histBefore, actual) {
   if (!window._tfModel) return;
   if (actual === 'T') return;
 
-<<<<<<< HEAD
   // reward แบบ normalized ±1 ไม่ใช่ cumulative
   const REWARD_WIN  =  1.0;
   const REWARD_LOSE = -1.0;
 
   // state = features ณ ตอนนั้น
-=======
-  // reward เนเธเธ normalized ยฑ1 เนเธกเนเนเธเน cumulative
-  const REWARD_WIN  =  1.0;
-  const REWARD_LOSE = -1.0;
-
-  // state = features เธ“ เธ•เธญเธเธเธฑเนเธ
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
   const state = encodeState(histBefore);
   const nextState = encodeState([...histBefore, actual]);
 
   // Determine what the "correct" action was
-<<<<<<< HEAD
   // B won → reward=+1 for action B, -1 for action P, 0 for SKIP
   // P won → reward=+1 for action P, -1 for action B, 0 for SKIP
-=======
-  // B won โ’ reward=+1 for action B, -1 for action P, 0 for SKIP
-  // P won โ’ reward=+1 for action P, -1 for action B, 0 for SKIP
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
   const rB = actual === 'B' ? REWARD_WIN  : REWARD_LOSE;
   const rP = actual === 'P' ? REWARD_WIN  : REWARD_LOSE;
   const rS = 0; // skip = neutral
@@ -4482,11 +4310,7 @@ function autoOnlineUpdate(histBefore, actual) {
   // Mini re-train every AUTO_RETRAIN_EVERY rounds
   if (_autoTrainState.roundsSinceRetrain >= AUTO_RETRAIN_EVERY && !_autoTrainState.isAutoTraining) {
     _autoTrainState.roundsSinceRetrain = 0;
-<<<<<<< HEAD
     _showAutoTrainStatus('🔄 AI ปรับปรุง...', 'var(--gold)');
-=======
-    _showAutoTrainStatus('๐” AI เธเธฃเธฑเธเธเธฃเธธเธ...', 'var(--gold)');
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     setTimeout(() => _runAutoTrain(AUTO_MINI_ROUNDS, window._tfModel), 300);
   }
 }
@@ -4502,21 +4326,13 @@ async function _onlineReplay() {
     batch.push(_onlineBuffer[idx]);
   }
 
-<<<<<<< HEAD
   // Build supervised targets — NO gamma, NO bootstrapping
-=======
-  // Build supervised targets โ€” NO gamma, NO bootstrapping
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
   // Target[action] = reward_for_that_action (bounded to [-1, +1])
   const states  = batch.map(x => x.state);
   const targets = batch.map(x => {
     // Get current Q prediction to use as base (preserve other action values)
     // We'll overwrite only the relevant action slots
-<<<<<<< HEAD
     // Simple: just set targets directly — avoids Q propagation entirely
-=======
-    // Simple: just set targets directly โ€” avoids Q propagation entirely
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     const t = [0, 0, 0]; // [B, P, SKIP]
     t[0] = Math.max(-1, Math.min(1, x.rB)); // clip to [-1,1]
     t[1] = Math.max(-1, Math.min(1, x.rP));
@@ -4539,11 +4355,7 @@ async function _onlineReplay() {
   }
 }
 
-<<<<<<< HEAD
 // Helpers shared with TF training — MUST match encodeState() used in TF training
-=======
-// Helpers shared with TF training โ€” MUST match encodeState() used in TF training
->>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 function _encodeStateForModel(history) {
   return encodeState(history);
 }
