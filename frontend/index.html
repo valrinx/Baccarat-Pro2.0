@@ -554,9 +554,9 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
     <div class="tf-wt-row" id="tfWtRow">
       <span class="tf-wt-lbl">🤖 TF AI:</span>
       <input type="range" id="tfWtSlider" class="tf-wt-slider"
-        min="0" max="5" step="0.5" value="3"
+        min="0" max="5" step="0.5" value="1.5"
         oninput="onTfWeightChange(this.value)">
-      <span class="tf-wt-val" id="tfWtVal">3.0×</span>
+      <span class="tf-wt-val" id="tfWtVal">1.5×</span>
     </div>
     <div class="auto-row" style="border-bottom:none;padding-bottom:0;margin-bottom:8px">
       <div class="auto-toggle" onclick="toggleTrainingMode()">
@@ -777,7 +777,7 @@ let S={
   vstForceSkip:false,vstSkipCount:0,
   vstRecoveryLeft:0,
   mirrorWinStreak:0,lastBetPatternName:null,
-  tfWeight:3.0, // TF model influence multiplier (0–5)
+  tfWeight:1.5, // TF model influence multiplier (0–5)
   qTable:{},qCount:{},learningRate:0.2,discountFactor:0.8,
   lastQLearningState:null,lastQLearningAction:null
 };
@@ -2707,7 +2707,7 @@ function loadCurrent(){
     mirrorWinStreak:o.mirrorWinStreak||0,lastBetPatternName:null,
     qTable:o.qTable&&Object.keys(o.qTable).length?o.qTable:(S.qTable||{}),
     qCount:o.qCount&&Object.keys(o.qCount).length?o.qCount:(S.qCount||{}),
-    tfWeight:typeof o.tfWeight==='number'?o.tfWeight:3.0
+    tfWeight:typeof o.tfWeight==='number'?o.tfWeight:1.5
   });
   if(typeof o.isTrainingMode!=='undefined')isTrainingMode=!!o.isTrainingMode;
   ['stRounds','stP','stB','stT'].forEach((id,i)=>
@@ -2766,21 +2766,27 @@ let _td = {
 
 function _tdMakeModel() {
   const m = tf.sequential();
-  // 32-feature input → deeper network
-  m.add(tf.layers.dense({ inputShape: [ENCODE_SIZE], units: 256, activation: 'relu',
-    kernelInitializer: 'glorotUniform' }));
-  m.add(tf.layers.batchNormalization());
-  m.add(tf.layers.dropout({ rate: 0.2 }));
-  m.add(tf.layers.dense({ units: 128, activation: 'relu' }));
-  m.add(tf.layers.dropout({ rate: 0.15 }));
-  m.add(tf.layers.dense({ units: 64, activation: 'relu' }));
-  m.add(tf.layers.dropout({ rate: 0.10 }));
-  m.add(tf.layers.dense({ units: 32, activation: 'relu' }));
+  // 32-feature normalized input → smaller, stabler network
+  m.add(tf.layers.dense({
+    inputShape: [ENCODE_SIZE],
+    units: 64,
+    activation: 'relu',
+    kernelInitializer: 'heNormal'
+  }));
+  m.add(tf.layers.dense({
+    units: 32,
+    activation: 'relu',
+    kernelInitializer: 'heNormal'
+  }));
   // Output: 3 actions — B=0, P=1, SKIP=2
-  m.add(tf.layers.dense({ units: 3, activation: 'linear' }));
+  m.add(tf.layers.dense({
+    units: 3,
+    activation: 'linear',
+    kernelInitializer: 'glorotNormal'
+  }));
   m.compile({
-    optimizer: tf.train.adam(0.0008),
-    loss: 'meanSquaredError',
+    optimizer: tf.train.adam(0.0005),
+    loss: tf.losses.huberLoss,
     metrics: ['mae']
   });
   return m;
@@ -2919,7 +2925,7 @@ function encodeStateForTF(hist) {
 
 /** Sync TF prediction for in-game use — returns {bet, conf, qP, qB} or null */
 // ── Skip threshold: ถ้า best Q - second Q < SKIP_THRESHOLD → SKIP ──────
-const SKIP_THRESHOLD = 0.18; // ตัวเลขนี้ต้องปรับตาม training จริง
+const SKIP_THRESHOLD = 0.30; // เพิ่ม threshold → skip รอบที่ไม่ชัดเจนมากขึ้น
 
 function getTFDecision(hist) {
   if (!window._tfModel) return null;
@@ -3141,12 +3147,17 @@ function drawTrainChart() {
 
 function updateTrainDashUI(stats) {
   if (!stats) return;
+  const num = (v, fallback = 0) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  };
+  const pctText = (v) => Number.isFinite(Number(v)) ? _pct(Number(v)) : '—';
   const { winRate, pnl, rounds, epsilon: eps, converged, baselines, testWinRate, testPnl, youPnl, casinoPnl } = stats;
 
-  document.getElementById('trainWinRate').textContent = winRate != null ? _pct(winRate) : '—';
-  document.getElementById('trainPnl').textContent = pnl != null ? _fmtN(pnl) : '—';
-  document.getElementById('trainRounds').textContent = rounds != null ? rounds : '0';
-  document.getElementById('trainEpsilon').textContent = eps != null ? eps.toFixed(3) : '—';
+  document.getElementById('trainWinRate').textContent = pctText(winRate);
+  document.getElementById('trainPnl').textContent = pnl != null ? _fmtN(num(pnl)) : '—';
+  document.getElementById('trainRounds').textContent = rounds != null ? String(rounds) : '0';
+  document.getElementById('trainEpsilon').textContent = eps != null ? num(eps).toFixed(3) : '—';
 
   const oosRow = document.getElementById('trainOosRow');
   if (oosRow) {
@@ -3195,35 +3206,37 @@ function updateTrainDashUI(stats) {
       // Use OOS stats consistently for training dashboard comparison
       const source = cached && cached.oos && cached.oos.ai && cached.oos.ai.total > 0
         ? cached.oos
-        : { ai: { pnl, wins: Math.round((winRate || 0) * (baselines['always-bank']?.total || 1)), total: baselines['always-bank']?.total || 1 }, bank: baselines['always-bank'], play: baselines['always-play'] };
-      const bankPnl = Number(source.bank?.pnl ?? baselines['always-bank']?.pnl ?? 0);
-      const playPnl = Number(source.play?.pnl ?? baselines['always-play']?.pnl ?? 0);
-      const bankWins = Number(source.bank?.wins ?? baselines['always-bank']?.wins ?? 0);
-      const bankTotal = Number(source.bank?.total ?? baselines['always-bank']?.total ?? 1);
-      const playWins = Number(source.play?.wins ?? baselines['always-play']?.wins ?? 0);
-      const playTotal = Number(source.play?.total ?? baselines['always-play']?.total ?? 1);
+        : null;
+      const fallbackSource = { ai: { pnl, wins: Math.round((winRate || 0) * (baselines['always-bank']?.total || 1)), total: baselines['always-bank']?.total || 1 }, bank: baselines['always-bank'], play: baselines['always-play'] };
+      const evalSource = source || fallbackSource;
+      const bankPnl = num(evalSource.bank?.pnl ?? baselines['always-bank']?.pnl ?? 0);
+      const playPnl = num(evalSource.play?.pnl ?? baselines['always-play']?.pnl ?? 0);
+      const bankWins = num(evalSource.bank?.wins ?? baselines['always-bank']?.wins ?? 0);
+      const bankTotal = num(evalSource.bank?.total ?? baselines['always-bank']?.total ?? 1, 1);
+      const playWins = num(evalSource.play?.wins ?? baselines['always-play']?.wins ?? 0);
+      const playTotal = num(evalSource.play?.total ?? baselines['always-play']?.total ?? 1, 1);
 
       // AI row — use same OOS basis as backtest when available
       const aiPct = document.getElementById('trainAiPct');
       const aiPnl = document.getElementById('trainAiPnl');
       const aiDiff = document.getElementById('trainAiDiff');
-      const aiWinRate = source.ai?.total ? (source.ai.wins / source.ai.total) : winRate;
-      const aiPnlValue = source.ai?.pnl != null ? source.ai.pnl : pnl;
-      if (aiPct) { aiPct.textContent = aiWinRate != null ? _pct(aiWinRate) : '—'; aiPct.style.color = aiWinRate != null && aiWinRate >= 0.5 ? 'var(--green-pos)' : 'var(--red-neg)'; }
-      if (aiPnl) { aiPnl.textContent = Math.round(aiPnlValue) > 0 ? '+' + Math.round(aiPnlValue) : Math.round(aiPnlValue); aiPnl.style.color = aiPnlValue > 0 ? 'var(--green-pos)' : aiPnlValue < 0 ? 'var(--red-neg)' : 'var(--dim)'; }
-      if (aiDiff) { const diff = Math.round(aiPnlValue - bankPnl); aiDiff.textContent = diff > 0 ? '+' + diff : diff; aiDiff.style.color = diff > 0 ? 'var(--green-pos)' : diff < 0 ? 'var(--red-neg)' : 'var(--dim)'; }
+      const aiWinRate = evalSource.ai?.total ? (num(evalSource.ai.wins) / num(evalSource.ai.total, 1)) : num(winRate, 0);
+      const aiPnlValue = evalSource.ai?.pnl != null ? num(evalSource.ai.pnl) : num(pnl);
+      if (aiPct) { aiPct.textContent = pctText(aiWinRate); aiPct.style.color = aiWinRate >= 0.5 ? 'var(--green-pos)' : 'var(--red-neg)'; }
+      if (aiPnl) { aiPnl.textContent = Math.round(aiPnlValue) > 0 ? '+' + Math.round(aiPnlValue) : String(Math.round(aiPnlValue)); aiPnl.style.color = aiPnlValue > 0 ? 'var(--green-pos)' : aiPnlValue < 0 ? 'var(--red-neg)' : 'var(--dim)'; }
+      if (aiDiff) { const diff = Math.round(aiPnlValue - bankPnl); aiDiff.textContent = diff > 0 ? '+' + diff : String(diff); aiDiff.style.color = diff > 0 ? 'var(--green-pos)' : diff < 0 ? 'var(--red-neg)' : 'var(--dim)'; }
 
       // Banker baseline row
       const bankPctEl = document.getElementById('trainBankPct');
       const bankPnlEl = document.getElementById('trainBankPnl');
-      if (bankPctEl) { bankPctEl.textContent = Math.round(bankWins / bankTotal * 100) + '%'; }
-      if (bankPnlEl) { bankPnlEl.textContent = Math.round(bankPnl) > 0 ? '+' + Math.round(bankPnl) : Math.round(bankPnl); bankPnlEl.style.color = bankPnl > 0 ? 'var(--green-pos)' : bankPnl < 0 ? 'var(--red-neg)' : 'var(--dim)'; }
+      if (bankPctEl) { bankPctEl.textContent = pctText(bankWins / bankTotal); }
+      if (bankPnlEl) { bankPnlEl.textContent = Math.round(bankPnl) > 0 ? '+' + Math.round(bankPnl) : String(Math.round(bankPnl)); bankPnlEl.style.color = bankPnl > 0 ? 'var(--green-pos)' : bankPnl < 0 ? 'var(--red-neg)' : 'var(--dim)'; }
 
       // Player baseline row
       const playPctEl = document.getElementById('trainPlayPct');
       const playPnlEl = document.getElementById('trainPlayPnl');
-      if (playPctEl) { playPctEl.textContent = Math.round(playWins / playTotal * 100) + '%'; }
-      if (playPnlEl) { playPnlEl.textContent = Math.round(playPnl) > 0 ? '+' + Math.round(playPnl) : Math.round(playPnl); playPnlEl.style.color = playPnl > 0 ? 'var(--green-pos)' : playPnl < 0 ? 'var(--red-neg)' : 'var(--dim)'; }
+      if (playPctEl) { playPctEl.textContent = pctText(playWins / playTotal); }
+      if (playPnlEl) { playPnlEl.textContent = Math.round(playPnl) > 0 ? '+' + Math.round(playPnl) : String(Math.round(playPnl)); playPnlEl.style.color = playPnl > 0 ? 'var(--green-pos)' : playPnl < 0 ? 'var(--red-neg)' : 'var(--dim)'; }
     }
   }
 
@@ -3915,10 +3928,7 @@ function runBacktest() {
             const qB = qVals[0], qP = qVals[1], qS = qVals.length >= 3 ? qVals[2] : -Infinity;
             const sorted = [qB, qP, qS].sort((a, b) => b - a);
             const margin = sorted[0] - sorted[1];
-            let aiBet = 'SKIP';
-            if (!(qS >= qB && qS >= qP) && margin >= SKIP_THRESHOLD) {
-              aiBet = qP >= qB ? 'P' : 'B';
-            }
+            const aiBet = (qS >= qB && qS >= qP) ? 'SKIP' : (margin < SKIP_THRESHOLD ? 'SKIP' : (qP >= qB ? 'P' : 'B'));
             const aiPnl = aiBet === 'SKIP' ? 0 : _pnlFor(aiBet, actual);
             results.ai.pnl += aiPnl;
             results.ai.total++;
@@ -4015,17 +4025,14 @@ function runBacktest() {
       if (bankPnlEl) { bankPnlEl.textContent = Math.round(results.bank.pnl) > 0 ? '+' + Math.round(results.bank.pnl) : Math.round(results.bank.pnl); bankPnlEl.style.color = _c(Math.round(results.bank.pnl)); }
 
       // Summary note — เลือก AI source เดียวกับตาราง
-      const _aiSum = results.ai.total > 0 ? results.ai
-        : (hasOos ? cached.oos.ai
-        : (cached ? cached.ai : null));
-      const totalRounds = Number(results.bank.total || (hasOos ? cached.oos.ai.total : (cached ? cached.ai.rounds : 0)) || 0);
-      const aiPnl   = Number(_aiSum ? _aiSum.pnl : -Infinity);
-      const qlPnl   = Number(results.ql.pnl);
-      const bankPnl = Number(results.bank.total > 0 ? results.bank.pnl : (hasOos ? cached.oos.bank.pnl : (cached ? cached.bank.pnl : 0)));
+      const totalRounds = Number(hasOos ? cached.oos.ai.total : results.bank.total || 0);
+      const aiPnl   = Number(hasOos ? cached.oos.ai.pnl : results.ai.pnl || -Infinity);
+      const qlPnl   = Number(hasOos ? results.ql.pnl : -Infinity);
+      const bankPnl = Number(hasOos ? cached.oos.bank.pnl : results.bank.pnl || -Infinity);
       const bestPnl = Math.max(aiPnl, qlPnl, bankPnl);
       const aiLbl = '🤖 AI (TF Model)';
       const bestName = aiPnl === bestPnl ? aiLbl : qlPnl === bestPnl ? 'Q-Learning+3เกลอ' : 'แทง Banker เสมอ';
-      note.innerHTML = '✅ Backtest ' + totalRounds + ' รอบ OOS · อันดับ 1: <b style="color:var(--gold)">' + bestName + '</b> (' + (bestPnl > 0 ? '+' : '') + Math.round(bestPnl) + ')';
+      note.innerHTML = '✅ Backtest ' + totalRounds + ' รอบ OOS · อันดับ 1: <b style="color:var(--gold)">' + String(bestName) + '</b> (' + (bestPnl > 0 ? '+' : '') + Math.round(bestPnl) + ')';
 
     } catch(e) {
       note.textContent = '❌ Error: ' + e.message;
@@ -4169,23 +4176,24 @@ async function _runAutoTrain(targetRounds, existingModel) {
       history.push(r < 0.0951 ? 'T' : r < 0.0951 + 0.4587 ? 'P' : 'B');
     }
 
-    const ACTIONS = ['B','P','SKIP'];
+    const ACTIONS = ['B', 'P', 'SKIP'];
     const memory = [];
-    const batchSize = 32;
+    const batchSize = 64;
     const gamma = 0.95;
     const stake = 10;
-    const trainEnd = history.length - 200;
+    const warmupThreshold = 150;
+    const maxMemory = 5000;
+    const trainEnd = Math.max(1, history.length - 200);
     const trainStart = Math.min(15, Math.floor(targetRounds * 0.05));
     let epsilon = 1.0;
     const epsilonMin = 0.05;
     const epsilonDecay = Math.pow(epsilonMin / 1.0, 1 / Math.max(1, trainEnd - trainStart));
 
-    // Normalized reward: ±1 เท่านั้น → ไม่ explode ไม่ว่า gamma จะเป็นเท่าไหร่
-    const pnlFor = (bet, actual) => {
+    const normalizeReward = (bet, actual, isHighChaos) => {
       if (actual === 'T') return 0;
-      if (bet === 'SKIP') return 0;
-      if (bet === actual) return bet === 'B' ? 0.95 : 1.0;  // normalized ±1
-      return -1.0;
+      if (bet === 'SKIP') return isHighChaos ? 0.2 : -0.05;
+      const raw = bet === actual ? (bet === 'B' ? Math.floor(stake * 0.95) : stake) : -stake;
+      return Math.max(-1, Math.min(1, raw / stake));
     };
 
     let cumulativePnl = 0;
@@ -4204,24 +4212,27 @@ async function _runAutoTrain(targetRounds, existingModel) {
         const r = Math.random();
         action = r < 0.4 ? 'B' : r < 0.8 ? 'P' : 'SKIP';
       } else {
-        const maxQ = Math.max(qVals[0], qVals[1], qVals[2] || -Infinity);
-        action = (qVals[2] >= maxQ - 0.05) ? 'SKIP' : qVals[0] >= qVals[1] ? 'B' : 'P';
+        const qB = qVals[0], qP = qVals[1], qS = qVals.length >= 3 ? qVals[2] : -Infinity;
+        const sorted = [qB, qP, qS].sort((a, b) => b - a);
+        const margin = sorted[0] - sorted[1];
+        action = (qS >= qB && qS >= qP) ? 'SKIP' : (margin < SKIP_THRESHOLD ? 'SKIP' : (qP >= qB ? 'P' : 'B'));
       }
 
       const actual = history[i];
-      const pnl = pnlFor(action, actual);
+      const pnl = action === 'SKIP' ? 0 : (action === actual ? (action === 'B' ? Math.floor(stake * 0.95) : stake) : -stake);
       cumulativePnl += pnl;
 
-      const entropy = encodeState(hSlice)[23] || 0;
-      const chaos = entropy > 0.9 ? 1.0 : entropy > 0.8 ? 0.7 : entropy > 0.7 ? 0.4 : 0.1;
-      const reward = action === 'SKIP' ? (-0.5 + chaos * 1.0) : pnl;
+      const entropy = state[29] || 0;
+      const isHighChaos = entropy > 0.9 || state[25] > 0;
+      const reward = normalizeReward(action, actual, isHighChaos);
       const nextState = encodeState(history.slice(0, i + 1));
-      memory.push({ state, nextState, action, reward, done: i === trainEnd - 1 });
+      memory.push({ state, nextState, action, reward, done: i >= trainEnd - 1 });
+      if (memory.length > maxMemory) memory.shift();
 
-      if (memory.length >= batchSize) {
+      if (memory.length >= warmupThreshold) {
         const pool = memory.length > 1500 ? memory.slice(-1500) : memory;
         const batch = pool.length <= batchSize ? pool :
-          Array.from({length: batchSize}, () => pool[Math.floor(Math.random() * pool.length)]);
+          Array.from({ length: batchSize }, () => pool[Math.floor(Math.random() * pool.length)]);
         const states = tf.tensor2d(batch.map(x => x.state));
         const nextStates = tf.tensor2d(batch.map(x => x.nextState));
         const qPred = model.predict(states);
@@ -4233,9 +4244,8 @@ async function _runAutoTrain(targetRounds, existingModel) {
           const tr = [...row];
           const bestNext = Math.max(...nextVals[j]);
           const rawTarget = s.reward + (s.done ? 0 : gamma * bestNext);
-          // ── Clip target to [-3, +3] ป้องกัน Q explosion ──
           const aIdx = ACTIONS.indexOf(s.action);
-          tr[aIdx] = Math.max(-3, Math.min(3, rawTarget));
+          tr[aIdx] = Math.max(-1.5, Math.min(1.5, rawTarget));
           return tr;
         });
         await model.fit(states, tf.tensor2d(targets), { epochs: 1, verbose: 0 });
@@ -4248,12 +4258,11 @@ async function _runAutoTrain(targetRounds, existingModel) {
       epsilon = Math.max(epsilonMin, epsilon * epsilonDecay);
       trainedCount++;
 
-      // Update badge every 8 rounds (lightweight)
       if (i - lastUIUpdate >= 8) {
         lastUIUpdate = i;
         const pct = Math.round(((1.0 - epsilon) / (1.0 - epsilonMin)) * 100);
         _showAutoTrainStatus(`🧠 AI เรียนรู้ ${pct}%`, 'var(--gold)');
-        await new Promise(r => setTimeout(r, 0)); // yield to UI thread
+        await new Promise(r => setTimeout(r, 0));
       }
     }
 
@@ -4263,15 +4272,22 @@ async function _runAutoTrain(targetRounds, existingModel) {
     updateTrainDashToggleHint();
 
     // Evaluate win rate on test set (last 200)
-    const testStart = history.length - 200;
-    let testWins = 0, testTotal = 0;
+    const testStart = Math.max(0, history.length - 200);
+    let testWins = 0, testTotal = 0, testPnl = 0, skipCount = 0;
     for (let i = testStart; i < history.length - 1; i++) {
       const actual = history[i + 1];
       if (actual === 'T') continue;
       const qv = model.predict(tf.tensor2d([encodeState(history.slice(0, i))])).arraySync()[0];
-      const margin = Math.abs(qv[0] - qv[1]);
-      if (margin < SKIP_THRESHOLD) continue;
-      const bet = qv[0] >= qv[1] ? 'B' : 'P';
+      const qB = qv[0], qP = qv[1], qS = qv.length >= 3 ? qv[2] : -Infinity;
+      const sorted = [qB, qP, qS].sort((a, b) => b - a);
+      const margin = sorted[0] - sorted[1];
+      const bet = (qS >= qB && qS >= qP) ? 'SKIP' : (margin < SKIP_THRESHOLD ? 'SKIP' : (qP >= qB ? 'P' : 'B'));
+      if (bet === 'SKIP') {
+        skipCount++;
+        continue;
+      }
+      const payout = bet === actual ? (bet === 'B' ? Math.floor(stake * 0.95) : stake) : -stake;
+      testPnl += payout;
       testTotal++;
       if (bet === actual) testWins++;
     }
@@ -4282,7 +4298,8 @@ async function _runAutoTrain(targetRounds, existingModel) {
       pnl: cumulativePnl,
       trainedRounds: trainedCount,
       testWinRate: wr / 100,
-      testPnl: 0
+      testPnl,
+      skipRate: (history.length > testStart) ? (skipCount / Math.max(1, (history.length - 1 - testStart))) : 0
     });
 
     _showAutoTrainStatus(`✓ AI พร้อม — WR ${wr}%`, wr >= 50 ? 'var(--green-pos)' : 'var(--gold)');
