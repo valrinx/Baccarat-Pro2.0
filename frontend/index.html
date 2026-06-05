@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Baccarat Pro — Q-Learning AI</title>
+<title>Baccarat Pro โ€” Q-Learning AI</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Sarabun:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <style>
@@ -385,8 +385,13 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 <body>
 
 <div class="hdr">
+<<<<<<< HEAD
   <div class="logo">BACCARAT PRO 2.7.2</div>  <!-- แก้ไข Version ด้วย ทุกครั้งที่อัพเดท -->
   <div class="logo-sub">CALCULATOR · TRACKER · SYSTEM</div>
+=======
+  <div class="logo">BACCARAT PRO 2.7.1</div>
+  <div class="logo-sub">CALCULATOR ยท TRACKER ยท SYSTEM</div>
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 </div>
 
 <!-- SHOE STATS -->
@@ -395,7 +400,7 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   <div class="sstat"><div class="v" id="stP">0</div><div class="l">PLAYER</div></div>
   <div class="sstat"><div class="v" id="stB">0</div><div class="l">BANKER</div></div>
   <div class="sstat"><div class="v" id="stT">0</div><div class="l">TIE</div></div>
-  <div class="sstat"><button class="btn-rst" onclick="openModal()" title="ล้างทั้งหมด">↺</button><div class="l">RESET</div></div>
+  <div class="sstat"><button class="btn-rst" onclick="openModal()" title="เธฅเนเธฒเธเธ—เธฑเนเธเธซเธกเธ”">โบ</button><div class="l">RESET</div></div>
 </div>
 
 <!-- P&L BAR -->
@@ -403,7 +408,7 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   <div class="pnl-item"><div class="pv neu" id="pnlBalance">0</div><div class="pl">BALANCE</div></div>
   <div class="pnl-item"><div class="pv pos" id="pnlWinAmt">0</div><div class="pl">WIN TOTAL</div></div>
   <div class="pnl-item"><div class="pv neg" id="pnlLoseAmt">0</div><div class="pl">LOSE TOTAL</div></div>
-  <div class="pnl-item"><div class="pv neu" id="pnlWinRate">—</div><div class="pl">WIN RATE</div></div>
+  <div class="pnl-item"><div class="pv neu" id="pnlWinRate">โ€”</div><div class="pl">WIN RATE</div></div>
   <div class="pnl-item"><div class="pv neu" id="pnlAuto">OFF</div><div class="pl">AUTO</div></div>
 </div>
 
@@ -419,76 +424,76 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   <!-- TRAINING DASHBOARD -->
   <div class="train-dash" id="trainDash">
     <div class="train-dash-header">
-      <div class="train-dash-title">◆ AI เรียนรู้เกม</div>
-      <div class="train-dash-status idle" id="trainStatus">รอ</div>
+      <div class="train-dash-title">โ— AI เน€เธฃเธตเธขเธเธฃเธนเนเน€เธเธก</div>
+      <div class="train-dash-status idle" id="trainStatus">เธฃเธญ</div>
     </div>
     <div class="train-dash-progress" id="trainProgress"><div class="train-dash-progress-bar" id="trainProgressBar" style="width:0%"></div></div>
     <div class="train-dash-stats">
-      <div class="tstat-box"><div class="tv" id="trainWinRate">—</div><div class="tl">% ถูก</div></div>
-      <div class="tstat-box"><div class="tv" id="trainPnl">—</div><div class="tl">กำไร/ขาดทุน</div></div>
-      <div class="tstat-box"><div class="tv" id="trainRounds">0</div><div class="tl">รอบที่เทรน</div></div>
-      <div class="tstat-box"><div class="tv" id="trainEpsilon">—</div><div class="tl">สำรวจ (ε)</div></div>
+      <div class="tstat-box"><div class="tv" id="trainWinRate">โ€”</div><div class="tl">% เธ–เธนเธ</div></div>
+      <div class="tstat-box"><div class="tv" id="trainPnl">โ€”</div><div class="tl">เธเธณเนเธฃ/เธเธฒเธ”เธ—เธธเธ</div></div>
+      <div class="tstat-box"><div class="tv" id="trainRounds">0</div><div class="tl">เธฃเธญเธเธ—เธตเนเน€เธ—เธฃเธ</div></div>
+      <div class="tstat-box"><div class="tv" id="trainEpsilon">โ€”</div><div class="tl">เธชเธณเธฃเธงเธ (ฮต)</div></div>
     </div>
     <!-- EXPLANATION BOX -->
     <div style="font-size:7px;color:var(--dim);line-height:1.5;padding:6px 8px;background:rgba(201,168,76,.05);border:1px solid rgba(201,168,76,.15);border-radius:5px;margin-bottom:8px">
-      <span style="color:var(--gold)">📖 ตัวเลขหมายความว่า:</span><br>
-      <span style="color:var(--green-pos)">% ถูก</span> = AI ทายถูกกี่ % (Out-of-Sample)<br>
-      <span style="color:var(--green-pos)">กำไร/ขาดทุน</span> = รวม P&amp;L บนข้อมูล OOS (+ = ได้เงิน)<br>
-      <span style="color:var(--green-pos)">สำรวจ (ε)</span> = ยังสุ่มอยู่กี่% (0.05 = เรียนจบแล้ว)<br>
-      <span style="color:var(--gold)">เทรน/ทดสอบ</span> = แบ่งข้อมูล 80%/20% ล่วงหน้า
+      <span style="color:var(--gold)">๐“– เธ•เธฑเธงเน€เธฅเธเธซเธกเธฒเธขเธเธงเธฒเธกเธงเนเธฒ:</span><br>
+      <span style="color:var(--green-pos)">% เธ–เธนเธ</span> = AI เธ—เธฒเธขเธ–เธนเธเธเธตเน % (Out-of-Sample)<br>
+      <span style="color:var(--green-pos)">เธเธณเนเธฃ/เธเธฒเธ”เธ—เธธเธ</span> = เธฃเธงเธก P&amp;L เธเธเธเนเธญเธกเธนเธฅ OOS (+ = เนเธ”เนเน€เธเธดเธ)<br>
+      <span style="color:var(--green-pos)">เธชเธณเธฃเธงเธ (ฮต)</span> = เธขเธฑเธเธชเธธเนเธกเธญเธขเธนเนเธเธตเน% (0.05 = เน€เธฃเธตเธขเธเธเธเนเธฅเนเธง)<br>
+      <span style="color:var(--gold)">เน€เธ—เธฃเธ/เธ—เธ”เธชเธญเธ</span> = เนเธเนเธเธเนเธญเธกเธนเธฅ 80%/20% เธฅเนเธงเธเธซเธเนเธฒ
     </div>
     <div class="train-dash-mini-chart"><canvas class="train-dash-canvas" id="trainChart" width="380" height="90"></canvas></div>
     <!-- Unified comparison: AI vs Baselines (replaces trainVsRow + trainCasinoBox + trainBaselines) -->
     <div id="trainCompareBox" style="display:none;margin-bottom:8px;padding:8px;background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.2);border-radius:5px">
-      <div id="trainCompareHeader" style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:.1em;color:var(--gold);margin-bottom:6px">◆ เปรียบเทียบผล · Train/Test แบ่งล่วงหน้า</div>
+      <div id="trainCompareHeader" style="font-family:'Cinzel',serif;font-size:7px;letter-spacing:.1em;color:var(--gold);margin-bottom:6px">โ— เน€เธเธฃเธตเธขเธเน€เธ—เธตเธขเธเธเธฅ ยท Train/Test เนเธเนเธเธฅเนเธงเธเธซเธเนเธฒ</div>
       <!-- Header -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;margin-bottom:4px;text-align:center">
-        <div style="font-size:7px;color:var(--dim)">ระบบ</div>
-        <div style="font-size:7px;color:var(--dim)">% ถูก</div>
+        <div style="font-size:7px;color:var(--dim)">เธฃเธฐเธเธ</div>
+        <div style="font-size:7px;color:var(--dim)">% เธ–เธนเธ</div>
         <div style="font-size:7px;color:var(--dim)">P&L</div>
-        <div style="font-size:7px;color:var(--dim)">vs แทง Banker</div>
+        <div style="font-size:7px;color:var(--dim)">vs เนเธ—เธ Banker</div>
       </div>
       <!-- AI row -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;align-items:center;padding:5px 6px;background:rgba(201,168,76,.08);border-radius:4px;border:1px solid rgba(201,168,76,.2);margin-bottom:3px">
-        <div style="font-size:8px;color:var(--gold)">🤖 AI ของคุณ</div>
-        <div id="trainAiPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
-        <div id="trainAiPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
-        <div id="trainAiDiff" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+        <div style="font-size:8px;color:var(--gold)">๐ค– AI เธเธญเธเธเธธเธ“</div>
+        <div id="trainAiPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
+        <div id="trainAiPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
+        <div id="trainAiDiff" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
       </div>
       <!-- Banker baseline row -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;align-items:center;padding:5px 6px;background:rgba(0,0,0,.15);border-radius:4px;border:1px solid var(--border);margin-bottom:3px">
-        <div style="font-size:8px;color:var(--dim)">🎯 แทง Banker เสมอ</div>
-        <div id="trainBankPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
-        <div id="trainBankPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+        <div style="font-size:8px;color:var(--dim)">๐ฏ เนเธ—เธ Banker เน€เธชเธกเธญ</div>
+        <div id="trainBankPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
+        <div id="trainBankPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
         <div style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">baseline</div>
       </div>
       <!-- Player baseline row -->
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:4px;align-items:center;padding:5px 6px;background:rgba(0,0,0,.15);border-radius:4px;border:1px solid var(--border)">
-        <div style="font-size:8px;color:var(--dim)">🎯 แทง Player เสมอ</div>
-        <div id="trainPlayPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
-        <div id="trainPlayPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
-        <div style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+        <div style="font-size:8px;color:var(--dim)">๐ฏ เนเธ—เธ Player เน€เธชเธกเธญ</div>
+        <div id="trainPlayPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
+        <div id="trainPlayPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
+        <div style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
       </div>
     </div>
     <div class="train-dash-controls">
-      <label>รอบ<input type="number" id="trainRoundsInput" value="2000" min="500" max="50000" step="500"></label>
+      <label>เธฃเธญเธ<input type="number" id="trainRoundsInput" value="2000" min="500" max="50000" step="500"></label>
       <div style="flex:1;display:flex;flex-direction:column;gap:4px">
         <select id="trainModeSelect" onchange="onTrainModeChange()" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:9px;padding:5px 8px;width:100%">
-          <option value="random">Mode: สุ่ม (ไม่แนะนำ)</option>
-          <option value="history">Mode: ใช้ประวัติจริง ✓</option>
+          <option value="random">Mode: เธชเธธเนเธก (เนเธกเนเนเธเธฐเธเธณ)</option>
+          <option value="history">Mode: เนเธเนเธเธฃเธฐเธงเธฑเธ•เธดเธเธฃเธดเธ โ“</option>
         </select>
         <div id="trainSeedRow" style="display:flex;gap:4px;align-items:center">
           <input type="number" id="trainSeedInput" value="0" min="0" max="999999" style="width:60px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:9px;padding:4px 6px">
-          <button onclick="document.getElementById('trainSeedInput').value=Math.floor(Math.random()*99999)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-size:8px;padding:4px 6px;cursor:pointer">🎲</button>
+          <button onclick="document.getElementById('trainSeedInput').value=Math.floor(Math.random()*99999)" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-size:8px;padding:4px 6px;cursor:pointer">๐ฒ</button>
         </div>
       </div>
       <button class="bsbtn" id="trainStartBtn" onclick="startTraining()" style="flex:1;padding:6px 4px;border-color:var(--green-pos);color:var(--green-pos)">START</button>
       <button class="bsbtn" id="trainStopBtn" onclick="stopTraining()" style="flex:1;padding:6px 4px;border-color:var(--red-neg);color:var(--red-neg)" disabled>STOP</button>
     </div>
     <div id="trainModelActions" style="display:flex;gap:4px;margin-top:6px">
-      <button onclick="exportTFModel()" id="tfExportBtn" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-size:8px;padding:5px 6px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.05em">📥 Export</button>
+      <button onclick="exportTFModel()" id="tfExportBtn" style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-size:8px;padding:5px 6px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.05em">๐“ฅ Export</button>
       <label style="flex:1;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--dim);font-size:8px;padding:5px 6px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.05em">
-        📤 Import
+        ๐“ค Import
         <input type="file" accept=".json" onchange="importTFModel(this)" style="display:none">
       </label>
     </div>
@@ -498,76 +503,76 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   <!-- BACKTEST COMPARISON -->
   <div id="backtestPanel" style="display:none;margin:0 14px 0;padding:10px 12px;background:var(--surface);border:1px solid rgba(201,168,76,.3);border-radius:8px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <div style="font-family:'Cinzel',serif;font-size:8px;letter-spacing:.15em;color:var(--gold)">◆ เปรียบเทียบระบบ (Backtest)</div>
-      <button onclick="runBacktest()" id="backtestRunBtn" style="background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;color:var(--gold);font-size:8px;padding:3px 8px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.1em">▶ รัน Backtest</button>
+      <div style="font-family:'Cinzel',serif;font-size:8px;letter-spacing:.15em;color:var(--gold)">โ— เน€เธเธฃเธตเธขเธเน€เธ—เธตเธขเธเธฃเธฐเธเธ (Backtest)</div>
+      <button onclick="runBacktest()" id="backtestRunBtn" style="background:rgba(201,168,76,.15);border:1px solid rgba(201,168,76,.3);border-radius:4px;color:var(--gold);font-size:8px;padding:3px 8px;cursor:pointer;font-family:'Cinzel',serif;letter-spacing:.1em">โ–ถ เธฃเธฑเธ Backtest</button>
     </div>
     <!-- Header row -->
     <div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:4px;margin-bottom:4px">
-      <div style="font-size:7px;color:var(--dim);text-align:center">ระบบ</div>
-      <div style="font-size:7px;color:var(--dim);text-align:center">ทายถูก</div>
-      <div style="font-size:7px;color:var(--dim);text-align:center">% ถูก</div>
+      <div style="font-size:7px;color:var(--dim);text-align:center">เธฃเธฐเธเธ</div>
+      <div style="font-size:7px;color:var(--dim);text-align:center">เธ—เธฒเธขเธ–เธนเธ</div>
+      <div style="font-size:7px;color:var(--dim);text-align:center">% เธ–เธนเธ</div>
       <div style="font-size:7px;color:var(--dim);text-align:center">P&L</div>
-      <div style="font-size:7px;color:var(--dim);text-align:center">vs เสมอ</div>
+      <div style="font-size:7px;color:var(--dim);text-align:center">vs เน€เธชเธกเธญ</div>
     </div>
     <!-- AI Train row -->
     <div id="backtestAIRow" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:4px;align-items:center;padding:5px 6px;background:rgba(0,0,0,.2);border-radius:5px;border:1px solid rgba(201,168,76,.15);margin-bottom:4px">
-      <div style="font-size:8px;color:var(--gold)">🤖 AI (TF Model)</div>
-      <div id="btAiCorrect" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
-      <div id="btAiPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
-      <div id="btAiPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
-      <div id="btAiDiff" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+      <div style="font-size:8px;color:var(--gold)">๐ค– AI (TF Model)</div>
+      <div id="btAiCorrect" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
+      <div id="btAiPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
+      <div id="btAiPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
+      <div id="btAiDiff" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
     </div>
     <!-- Q-Learning+3Gelo row -->
     <div id="backtestQLRow" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:4px;align-items:center;padding:5px 6px;background:rgba(0,0,0,.2);border-radius:5px;border:1px solid rgba(201,168,76,.15);margin-bottom:4px">
-      <div style="font-size:8px;color:var(--gold)">📊 Q-Learning+3เกลอ</div>
-      <div id="btQLCorrect" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
-      <div id="btQLPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
-      <div id="btQLPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
-      <div id="btQLDiff" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+      <div style="font-size:8px;color:var(--gold)">๐“ Q-Learning+3เน€เธเธฅเธญ</div>
+      <div id="btQLCorrect" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
+      <div id="btQLPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
+      <div id="btQLPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
+      <div id="btQLDiff" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
     </div>
     <!-- Always-Bank row -->
     <div id="backtestBankRow" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:4px;align-items:center;padding:5px 6px;background:rgba(0,0,0,.15);border-radius:5px;border:1px solid var(--border);margin-bottom:4px">
-      <div style="font-size:8px;color:var(--dim)">🎯 แทง Banker เสมอ</div>
-      <div id="btBankCorrect" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
-      <div id="btBankPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
-      <div id="btBankPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
-      <div style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">—</div>
+      <div style="font-size:8px;color:var(--dim)">๐ฏ เนเธ—เธ Banker เน€เธชเธกเธญ</div>
+      <div id="btBankCorrect" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
+      <div id="btBankPct" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
+      <div id="btBankPnl" style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
+      <div style="font-family:'Cinzel',serif;font-size:10px;color:var(--dim);text-align:center">โ€”</div>
     </div>
-    <div style="font-size:7px;color:var(--dim);text-align:center;margin-top:4px" id="backtestNote">กด ▶ Backtest บนข้อมูล OOS (200 รอบที่ AI ไม่เคยเห็น)</div>
+    <div style="font-size:7px;color:var(--dim);text-align:center;margin-top:4px" id="backtestNote">เธเธ” โ–ถ Backtest เธเธเธเนเธญเธกเธนเธฅ OOS (200 เธฃเธญเธเธ—เธตเน AI เนเธกเนเน€เธเธขเน€เธซเนเธ)</div>
   </div>
 
   <!-- BET PLACEMENT -->
   <div class="bet-place" style="margin:10px 14px 0">
-    <div class="bptitle">◆ วางเดิมพัน</div>
+    <div class="bptitle">โ— เธงเธฒเธเน€เธ”เธดเธกเธเธฑเธ</div>
     <div class="auto-row" style="margin-bottom:0">
       <div class="auto-toggle" onclick="toggleAutoPlay()">
         <div class="auto-sw" id="autoSw"></div>
         <span class="auto-lbl" id="autoLbl">Auto Play</span>
       </div>
-      <span style="font-size:8px;color:var(--dim);font-family:'Cinzel',serif" id="autoAmtPreview">—</span>
+      <span style="font-size:8px;color:var(--dim);font-family:'Cinzel',serif" id="autoAmtPreview">โ€”</span>
     </div>
     <!-- TF Model weight control -->
     <div class="tf-wt-row" id="tfWtRow">
-      <span class="tf-wt-lbl">🤖 TF AI:</span>
+      <span class="tf-wt-lbl">๐ค– TF AI:</span>
       <input type="range" id="tfWtSlider" class="tf-wt-slider"
         min="0" max="5" step="0.5" value="3"
         oninput="onTfWeightChange(this.value)">
-      <span class="tf-wt-val" id="tfWtVal">3.0×</span>
+      <span class="tf-wt-val" id="tfWtVal">3.0ร—</span>
     </div>
     <div class="auto-row" style="border-bottom:none;padding-bottom:0;margin-bottom:8px">
       <div class="auto-toggle" onclick="toggleTrainingMode()">
         <div class="auto-sw" id="trainingSw"></div>
         <span class="auto-lbl" id="trainingLbl">TRAINING MODE: OFF</span>
       </div>
-      <span style="font-size:8px;color:var(--dim);font-family:'Cinzel',serif" id="trainingHint">เรียนรู้อย่างเดียว · ไม่นับกำไร</span>
+      <span style="font-size:8px;color:var(--dim);font-family:'Cinzel',serif" id="trainingHint">เน€เธฃเธตเธขเธเธฃเธนเนเธญเธขเนเธฒเธเน€เธ”เธตเธขเธง ยท เนเธกเนเธเธฑเธเธเธณเนเธฃ</span>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding-top:4px">
-      <button onclick="toggleTrainDash()" id="trainDashToggle" style="background:none;border:none;color:var(--dim);font-size:8px;font-family:'Cinzel',serif;letter-spacing:.1em;cursor:pointer;padding:2px 4px">▼ AI เรียนรู้</button>
+      <button onclick="toggleTrainDash()" id="trainDashToggle" style="background:none;border:none;color:var(--dim);font-size:8px;font-family:'Cinzel',serif;letter-spacing:.1em;cursor:pointer;padding:2px 4px">โ–ผ AI เน€เธฃเธตเธขเธเธฃเธนเน</button>
       <span style="font-size:8px;color:var(--dim)" id="trainDashToggleHint"></span>
     </div>
     <div class="mm-row" id="betControlsRow">
-      <div class="mmbtn on" id="mmFlat" onclick="setMoneyMgmt('flat')">แทงคงที่ (Flat)</div>
-      <div class="mmbtn" id="mmMart" onclick="setMoneyMgmt('martingale')">มาติงเกล</div>
+      <div class="mmbtn on" id="mmFlat" onclick="setMoneyMgmt('flat')">เนเธ—เธเธเธเธ—เธตเน (Flat)</div>
+      <div class="mmbtn" id="mmMart" onclick="setMoneyMgmt('martingale')">เธกเธฒเธ•เธดเธเน€เธเธฅ</div>
     </div>
     <div class="bet-side-row" id="betSideRow">
       <div class="bsbtn" id="bsP" onclick="setBetSide('P')">PLAYER</div>
@@ -575,7 +580,7 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
       <div class="bsbtn" id="bsT" onclick="setBetSide('T')">TIE</div>
     </div>
     <div class="bet-amount-row" id="betAmountRow">
-      <label>จำนวนเงิน</label>
+      <label>เธเธณเธเธงเธเน€เธเธดเธ</label>
       <input class="bet-input" type="number" id="betAmt" value="20" min="10" step="10" oninput="_syncBetDisplay()">
     </div>
     <div class="bet-quick-amts" id="betQuickAmts">
@@ -587,15 +592,15 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
       <div class="bqa" onclick="setBetAmt(MIN_BET)">MIN</div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border)" id="betSummaryRow">
-      <div class="bn-lbl" style="font-size:10px;color:var(--dim)">เดิมพัน: <span id="betSide" style="font-family:'Cinzel',serif;color:var(--gold)">—</span></div>
+      <div class="bn-lbl" style="font-size:10px;color:var(--dim)">เน€เธ”เธดเธกเธเธฑเธ: <span id="betSide" style="font-family:'Cinzel',serif;color:var(--gold)">โ€”</span></div>
       <div style="font-family:'Cinzel',serif;font-size:15px;font-weight:700;color:var(--gold)" id="betDisplayAmt">20</div>
     </div>
   </div>
 
-  <!-- QUICK BUTTONS — always visible, tap to deal -->
+  <!-- QUICK BUTTONS โ€” always visible, tap to deal -->
   <div id="quickSection">
     <div style="padding:10px 14px 0">
-      <div style="font-family:'Cinzel',serif;font-size:8px;letter-spacing:.18em;color:var(--gold-dim);margin-bottom:8px">◆ ผลรอบนี้</div>
+      <div style="font-family:'Cinzel',serif;font-size:8px;letter-spacing:.18em;color:var(--gold-dim);margin-bottom:8px">โ— เธเธฅเธฃเธญเธเธเธตเน</div>
       <div class="quick-btns" style="padding:0">
         <div class="qbtn qP" onclick="quickAdd('P')">P<span class="qs">PLAYER</span></div>
         <div class="qbtn qB" onclick="quickAdd('B')">B<span class="qs">BANKER</span></div>
@@ -603,7 +608,7 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
       </div>
     </div>
     <div class="undo-row">
-      <button class="undo-btn" onclick="undoLast()">↩ UNDO รอบล่าสุด</button>
+      <button class="undo-btn" onclick="undoLast()">โฉ UNDO เธฃเธญเธเธฅเนเธฒเธชเธธเธ”</button>
     </div>
   </div>
 
@@ -613,21 +618,21 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   <!-- BET RESULT (shows after each tap) -->
   <div class="bet-result" id="betResult">
     <div>
-      <div class="br-label" id="brLabel">—</div>
-      <div style="font-size:9px;color:var(--dim)" id="brDetail">—</div>
+      <div class="br-label" id="brLabel">โ€”</div>
+      <div style="font-size:9px;color:var(--dim)" id="brDetail">โ€”</div>
     </div>
-    <div class="br-amount" id="brAmount">—</div>
+    <div class="br-amount" id="brAmount">โ€”</div>
   </div>
 
   <!-- ROUND RESULT (card mode only) -->
   <div class="result" id="result">
     <div class="rwin" id="rwin">
-      <div class="rl">WINNER</div><div class="rn" id="rname">—</div>
+      <div class="rl">WINNER</div><div class="rn" id="rname">โ€”</div>
     </div>
     <div class="rdetail">
-      <div class="ri"><div class="rv" id="rdP">—</div><div class="rl2">PLAYER</div></div>
-      <div class="ri"><div class="rv" id="rdB">—</div><div class="rl2">BANKER</div></div>
-      <div class="ri"><div class="rv" id="rdNat">—</div><div class="rl2">NATURAL</div></div>
+      <div class="ri"><div class="rv" id="rdP">โ€”</div><div class="rl2">PLAYER</div></div>
+      <div class="ri"><div class="rv" id="rdB">โ€”</div><div class="rl2">BANKER</div></div>
+      <div class="ri"><div class="rv" id="rdNat">โ€”</div><div class="rl2">NATURAL</div></div>
     </div>
   </div>
 
@@ -635,25 +640,25 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   <div class="suggest" id="suggest">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;flex-wrap:wrap;gap:4px">
       <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap">
-        <div class="sug-t" style="margin:0">◆ แนะนำรอบถัดไป</div>
+        <div class="sug-t" style="margin:0">โ— เนเธเธฐเธเธณเธฃเธญเธเธ–เธฑเธ”เนเธ</div>
         <div class="tf-badge" id="tfBadge">TF MODEL</div>
       </div>
       <div style="display:flex;gap:4px;align-items:center">
-        <div class="risk-badge" id="riskBadge">RISK —</div>
-        <div class="chaos-badge" id="chaosBadge">CHAOS —</div>
+        <div class="risk-badge" id="riskBadge">RISK โ€”</div>
+        <div class="chaos-badge" id="chaosBadge">CHAOS โ€”</div>
       </div>
     </div>
-    <div class="auto-bot-bar off" id="autoBotStatus">🤖 Auto Play ปิด</div>
+    <div class="auto-bot-bar off" id="autoBotStatus">๐ค– Auto Play เธเธดเธ”</div>
     <div class="sug-main">
-      <div class="sug-bet" id="sugBet">—</div>
-      <div class="sug-txt" id="sugTxt">—</div>
+      <div class="sug-bet" id="sugBet">โ€”</div>
+      <div class="sug-txt" id="sugTxt">โ€”</div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;margin-top:5px">
       <div class="conf" id="confDots"></div>
       <div style="text-align:right">
         <div style="font-size:7px;letter-spacing:.12em;color:var(--dim);font-family:'Cinzel',serif">WIN RATE</div>
-        <div id="sugAcc" style="font-size:14px;font-weight:700;font-family:'Cinzel',serif;color:var(--dim)">—</div>
-        <div class="sug-skip-lbl" id="sugBetSizeLbl">เดิมพัน —</div>
+        <div id="sugAcc" style="font-size:14px;font-weight:700;font-family:'Cinzel',serif;color:var(--dim)">โ€”</div>
+        <div class="sug-skip-lbl" id="sugBetSizeLbl">เน€เธ”เธดเธกเธเธฑเธ โ€”</div>
       </div>
     </div>
   </div>
@@ -665,20 +670,20 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   <!-- CARD INPUT (collapsible) -->
   <div style="padding:8px 14px 0">
     <div class="slbl" style="cursor:pointer;margin-bottom:0" onclick="toggleCardSection()" id="cardToggleLbl">
-      🃏 กรอกไพ่ (ขยาย)
+      ๐ เธเธฃเธญเธเนเธเน (เธเธขเธฒเธข)
     </div>
   </div>
   <div id="cardSection" style="display:none">
     <div class="hands">
       <div class="hbox P"><div class="hlbl">PLAYER</div>
         <div class="cards-row" id="pCards"></div>
-        <div class="htot" id="pTot">—</div></div>
+        <div class="htot" id="pTot">โ€”</div></div>
       <div class="hbox B"><div class="hlbl">BANKER</div>
         <div class="cards-row" id="bCards"></div>
-        <div class="htot" id="bTot">—</div></div>
+        <div class="htot" id="bTot">โ€”</div></div>
     </div>
     <div class="odds-bar">
-      <div class="otitle">◆ ODDS REAL-TIME</div>
+      <div class="otitle">โ— ODDS REAL-TIME</div>
       <div class="odds-row">
         <div class="oseg P"><div class="pct" id="oddsP">45.9%</div><div class="olbl">PLAYER</div></div>
         <div class="otrack">
@@ -693,16 +698,16 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
       </div>
     </div>
     <div class="picker">
-      <div class="slbl">เพิ่มไพ่</div>
+      <div class="slbl">เน€เธเธดเนเธกเนเธเน</div>
       <div class="trow">
         <button class="tbtn ap" id="tP" onclick="setTarget('P')">PLAYER</button>
         <button class="tbtn" id="tB" onclick="setTarget('B')">BANKER</button>
       </div>
       <div class="srow">
-        <div class="stab active" id="s0" onclick="setSuit(0)">♠</div>
-        <div class="stab" id="s1" onclick="setSuit(1)">♥</div>
-        <div class="stab" id="s2" onclick="setSuit(2)">♦</div>
-        <div class="stab" id="s3" onclick="setSuit(3)">♣</div>
+        <div class="stab active" id="s0" onclick="setSuit(0)">โ </div>
+        <div class="stab" id="s1" onclick="setSuit(1)">โฅ</div>
+        <div class="stab" id="s2" onclick="setSuit(2)">โฆ</div>
+        <div class="stab" id="s3" onclick="setSuit(3)">โฃ</div>
       </div>
       <div class="cgrid" id="cgrid"></div>
     </div>
@@ -730,7 +735,7 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 <div class="page" id="page2">
   <div class="session-wrap">
     <div class="slbl" style="margin-bottom:8px">SESSION HISTORY</div>
-    <button class="sess-save" onclick="saveSession()">💾 บันทึก Session นี้</button>
+    <button class="sess-save" onclick="saveSession()">๐’พ เธเธฑเธเธ—เธถเธ Session เธเธตเน</button>
     <div class="sess-list" id="sessList"></div>
   </div>
 </div>
@@ -738,17 +743,17 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 <!-- RESET MODAL -->
 <div class="modal" id="modal">
   <div class="mbox">
-    <div class="mt">ล้างทั้งหมด?</div>
-    <div class="ms">สถิติ ประวัติ และ P&amp;L จะหายไปทั้งหมด</div>
+    <div class="mt">เธฅเนเธฒเธเธ—เธฑเนเธเธซเธกเธ”?</div>
+    <div class="ms">เธชเธ–เธดเธ•เธด เธเธฃเธฐเธงเธฑเธ•เธด เนเธฅเธฐ P&amp;L เธเธฐเธซเธฒเธขเนเธเธ—เธฑเนเธเธซเธกเธ”</div>
     <div class="mbtns">
-      <button class="mbtn-c" onclick="closeModal()">ยกเลิก</button>
-      <button class="mbtn-ok" onclick="resetAll()">ล้างเลย</button>
+      <button class="mbtn-c" onclick="closeModal()">เธขเธเน€เธฅเธดเธ</button>
+      <button class="mbtn-ok" onclick="resetAll()">เธฅเนเธฒเธเน€เธฅเธข</button>
     </div>
   </div>
 </div>
 
 <script>
-const SUITS=['♠','♥','♦','♣'],RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'],RED=[1,2];
+const SUITS=['โ ','โฅ','โฆ','โฃ'],RANKS=['A','2','3','4','5','6','7','8','9','10','J','Q','K'],RED=[1,2];
 const CV=r=>r==='A'?1:['10','J','Q','K'].includes(r)?0:parseInt(r);
 const HT=c=>c.reduce((s,x)=>s+CV(x.r),0)%10;
 const fmt=n=>n.toLocaleString();
@@ -773,7 +778,7 @@ let S={
   vstForceSkip:false,vstSkipCount:0,
   vstRecoveryLeft:0,
   mirrorWinStreak:0,lastBetPatternName:null,
-  tfWeight:3.0, // TF model influence multiplier (0–5)
+  tfWeight:3.0, // TF model influence multiplier (0โ€“5)
   qTable:{},qCount:{},learningRate:0.2,discountFactor:0.8,
   lastQLearningState:null,lastQLearningAction:null
 };
@@ -796,7 +801,7 @@ function toggleCardSection(){
   const lbl=document.getElementById('cardToggleLbl');
   const open=sec.style.display==='block';
   sec.style.display=open?'none':'block';
-  lbl.textContent=open?'🃏 กรอกไพ่ (ขยาย)':'🃏 กรอกไพ่ (ย่อ)';
+  lbl.textContent=open?'๐ เธเธฃเธญเธเนเธเน (เธเธขเธฒเธข)':'๐ เธเธฃเธญเธเนเธเน (เธขเนเธญ)';
 }
 
 // ---- CARD GRID ----
@@ -833,7 +838,7 @@ function renderHands(){
     el.innerHTML='';arr.forEach(c=>el.appendChild(renderCard(c)));
     const slots=Math.max(0,2-arr.length);
     for(let i=0;i<slots;i++){const s=document.createElement('div');s.className='cslot';s.textContent='+';el.appendChild(s);}
-    document.getElementById(side==='P'?'pTot':'bTot').textContent=arr.length?HT(arr):'—';
+    document.getElementById(side==='P'?'pTot':'bTot').textContent=arr.length?HT(arr):'โ€”';
   });
   updateOdds();
 }
@@ -898,7 +903,7 @@ function setMoneyMgmt(m){
 }
 function onTfWeightChange(val){
   S.tfWeight=parseFloat(val);
-  document.getElementById('tfWtVal').textContent=parseFloat(val).toFixed(1)+'×';
+  document.getElementById('tfWtVal').textContent=parseFloat(val).toFixed(1)+'ร—';
   if(S.hist.length)showSuggest();
   saveCurrent();
 }
@@ -916,7 +921,7 @@ function syncTrainingModeUI(){
   const hint=document.getElementById('trainingHint');
   if(sw)sw.classList.toggle('on',on);
   if(lbl){lbl.textContent='TRAINING MODE: '+(on?'ON':'OFF');lbl.classList.toggle('on',on);}
-  if(hint)hint.textContent=on?'learn only · no P&L':'learn + bet calculations';
+  if(hint)hint.textContent=on?'learn only ยท no P&L':'learn + bet calculations';
   const ids=['betControlsRow','betSideRow','betAmountRow','betQuickAmts','betSummaryRow'];
   ids.forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=on?'none':'';});
 }
@@ -994,32 +999,32 @@ function calcAutoBetAmount(conf,chaosScore){
 function updateAutoBotStatus(result){
   const el=document.getElementById('autoBotStatus');
   if(!el)return;
-  if(!S.autoPlay){el.className='auto-bot-bar off';el.textContent='🤖 Auto Play ปิด';return;}
+  if(!S.autoPlay){el.className='auto-bot-bar off';el.textContent='๐ค– Auto Play เธเธดเธ”';return;}
   el.className='auto-bot-bar';
-  let st='พร้อมแทงรอบถัดไป';
+  let st='เธเธฃเนเธญเธกเนเธ—เธเธฃเธญเธเธ–เธฑเธ”เนเธ';
   // TF Model awareness line
   const tfAvail=!!window._tfModel;
   const tfUsed=result&&result.patternName==='tf_model';
   if(tfAvail&&tfUsed)st='[TF AI] '+st;
-  else if(tfAvail)st='[TF Model พร้อม] '+st;
+  else if(tfAvail)st='[TF Model เธเธฃเนเธญเธก] '+st;
   const chaos=result&&result.chaos?result.chaos.score:S.lastSuggestChaos;
   if(isMirrorSafetyBreak()){
-    el.textContent='🤖 จบลูปสมมาตรกระจกเงา — เดิมพันขั้นต่ำ (ชนะ mirror '+S.mirrorWinStreak+' ตา)';
+    el.textContent='๐ค– เธเธเธฅเธนเธเธชเธกเธกเธฒเธ•เธฃเธเธฃเธฐเธเธเน€เธเธฒ โ€” เน€เธ”เธดเธกเธเธฑเธเธเธฑเนเธเธ•เนเธณ (เธเธเธฐ mirror '+S.mirrorWinStreak+' เธ•เธฒ)';
     return;
   }
   const vol=result&&isVolatileZone(result.conf,chaos);
   const martBlk=result&&isMartingaleBlocked(result.conf,chaos);
   const highChaos=chaos>=65;
-  if(highChaos)st='ห้องผันผวน — Flat Base Unit '+fmt(getBaseUnit());
-  else if(vol)st='โซนผันผวน — Flat Base Unit';
-  else if(martBlk)st='เบรกนิรภัย — ห้ามทบมาติงเกล';
-  else if(S.moneyMgmt==='martingale'&&S.autoLastResult==='lose')st='เสียตาก่อน — มาติงเกล ×2 สู้คืน (สูงสุด 4 ไม้)';
-  else if(result&&result.conf<=1)st='โซนผันผวน — เดิมพัน 10% เซฟทุน';
-  else if(result&&result.conf>=4)st='สัญญาณแรง — เดิมพันเต็ม 100%';
-  else if(result&&result.conf>=2)st='สัญญาณปานกลาง — เดิมพัน 50%';
-  if(result&&result.bet)st+=' → '+(result.bet==='P'?'PLAYER':'BANKER');
-  if(result&&result.patternName==='tf_model')st='🤖 TF AI · '+st;
-  el.textContent='🤖 '+st;
+  if(highChaos)st='เธซเนเธญเธเธเธฑเธเธเธงเธ โ€” Flat Base Unit '+fmt(getBaseUnit());
+  else if(vol)st='เนเธเธเธเธฑเธเธเธงเธ โ€” Flat Base Unit';
+  else if(martBlk)st='เน€เธเธฃเธเธเธดเธฃเธ เธฑเธข โ€” เธซเนเธฒเธกเธ—เธเธกเธฒเธ•เธดเธเน€เธเธฅ';
+  else if(S.moneyMgmt==='martingale'&&S.autoLastResult==='lose')st='เน€เธชเธตเธขเธ•เธฒเธเนเธญเธ โ€” เธกเธฒเธ•เธดเธเน€เธเธฅ ร—2 เธชเธนเนเธเธทเธ (เธชเธนเธเธชเธธเธ” 4 เนเธกเน)';
+  else if(result&&result.conf<=1)st='เนเธเธเธเธฑเธเธเธงเธ โ€” เน€เธ”เธดเธกเธเธฑเธ 10% เน€เธเธเธ—เธธเธ';
+  else if(result&&result.conf>=4)st='เธชเธฑเธเธเธฒเธ“เนเธฃเธ โ€” เน€เธ”เธดเธกเธเธฑเธเน€เธ•เนเธก 100%';
+  else if(result&&result.conf>=2)st='เธชเธฑเธเธเธฒเธ“เธเธฒเธเธเธฅเธฒเธ โ€” เน€เธ”เธดเธกเธเธฑเธ 50%';
+  if(result&&result.bet)st+=' โ’ '+(result.bet==='P'?'PLAYER':'BANKER');
+  if(result&&result.patternName==='tf_model')st='๐ค– TF AI ยท '+st;
+  el.textContent='๐ค– '+st;
 }
 function applyAutoPlayBet(result){
   if(!S.autoPlay||!result||!result.bet)return;
@@ -1041,7 +1046,7 @@ function applyAutoPlayBet(result){
   document.getElementById('betDisplayAmt').textContent=fmt(amt);
   S.autoRoundStake=amt;
   const prev=document.getElementById('autoAmtPreview');
-  if(prev)prev.textContent='เดิมพัน '+fmt(amt);
+  if(prev)prev.textContent='เน€เธ”เธดเธกเธเธฑเธ '+fmt(amt);
 }
 
 // ---- DEAL & QUICK ----
@@ -1058,10 +1063,17 @@ function resolveRound(w,p,b,nat){
   S.pendingSug=null;
   S.pendingSugResult=null;
   }
+<<<<<<< HEAD
   const _histBeforeResolve = S.hist.slice(); // snapshot ก่อน push
   S.hist.push(w);
   if(w==='P')S.pC++;else if(w==='B')S.bC++;else S.tC++;
   // Online learning — อัปเดต model จาก round จริง (async, ไม่บล็อก UI)
+=======
+  const _histBeforeResolve = S.hist.slice(); // snapshot เธเนเธญเธ push
+  S.hist.push(w);
+  if(w==='P')S.pC++;else if(w==='B')S.bC++;else S.tC++;
+  // Online learning โ€” เธญเธฑเธเน€เธ”เธ• model เธเธฒเธ round เธเธฃเธดเธ (async, เนเธกเนเธเธฅเนเธญเธ UI)
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
   if(window._tfModel) setTimeout(()=>autoOnlineUpdate(_histBeforeResolve,w),0);
   ['stRounds','stP','stB','stT'].forEach((id,i)=>
     document.getElementById(id).textContent=[S.hist.length,S.pC,S.bC,S.tC][i]);
@@ -1084,17 +1096,17 @@ function resolveRound(w,p,b,nat){
         updateMirrorWinStreak(true,false);
         resultClass='win';labelTxt='WIN';
         detailTxt=w==='T'
-          ?`เดิมพัน TIE ${fmt(betAmt)} (ชนะ ×8 = +${fmt(payout)})`
-          :`เดิมพัน ${betSideName} ${fmt(betAmt)}${w==='B'?' (หัก 5% commission)':''}`;
+          ?`เน€เธ”เธดเธกเธเธฑเธ TIE ${fmt(betAmt)} (เธเธเธฐ ร—8 = +${fmt(payout)})`
+          :`เน€เธ”เธดเธกเธเธฑเธ ${betSideName} ${fmt(betAmt)}${w==='B'?' (เธซเธฑเธ 5% commission)':''}`;
       }else if(w==='T'&&S.betSide!=='T'){
         pnl=0;resultClass='push';labelTxt='PUSH';
-        detailTxt=`เสมอ — คืนเดิมพัน ${fmt(betAmt)}`;
+        detailTxt=`เน€เธชเธกเธญ โ€” เธเธทเธเน€เธ”เธดเธกเธเธฑเธ ${fmt(betAmt)}`;
         updateMirrorWinStreak(false,true);
       }else{
         pnl=-betAmt;S.totalLose+=betAmt;S.balance-=betAmt;
         updateMirrorWinStreak(false,false);
         resultClass='lose';labelTxt='LOSE';
-        detailTxt=`เดิมพัน ${betSideName} ${fmt(betAmt)}`;
+        detailTxt=`เน€เธ”เธดเธกเธเธฑเธ ${betSideName} ${fmt(betAmt)}`;
       }
 
       // show bet result
@@ -1231,13 +1243,13 @@ function updatePnlBar(){
   const wins=S.sugHistory.filter(x=>x.hit).length;
   const wr=total>0?Math.round(wins/total*100):0;
   const wrEl=document.getElementById('pnlWinRate');
-  wrEl.textContent=total>0?wr+'%':'—';
+  wrEl.textContent=total>0?wr+'%':'โ€”';
   wrEl.className='pv '+(wr>=55?'pos':wr>=45&&total>0?'neu':total>0?'neg':'neu');
   syncAutoPlayUI();
 }
 
 // ======================================================
-// PATTERN ENGINE — ดุดัน ตาคม (Heuristic Voting)
+// PATTERN ENGINE โ€” เธ”เธธเธ”เธฑเธ เธ•เธฒเธเธก (Heuristic Voting)
 // ======================================================
 
 const TREND_PATS=new Set(['streak','dragon','freq10']);
@@ -1327,8 +1339,8 @@ function computeMomentumBias(h){
 function patMomentumBias(h){
   const m=computeMomentumBias(h);
   if(!m.bet||m.strength<70)return null;
-  const mode=m.dominant==='trend'?'ตามกระแสซ้ำฝั่ง':'สลับฝั่ง CHOP';
-  return{bet:m.bet,name:'momentum_bias',reason:`Momentum Bias — ${mode} ${m.strength}%`,conf:m.strength>=80?4:3};
+  const mode=m.dominant==='trend'?'เธ•เธฒเธกเธเธฃเธฐเนเธชเธเนเธณเธเธฑเนเธ':'เธชเธฅเธฑเธเธเธฑเนเธ CHOP';
+  return{bet:m.bet,name:'momentum_bias',reason:`Momentum Bias โ€” ${mode} ${m.strength}%`,conf:m.strength>=80?4:3};
 }
 
 function computeChaosScore(h){
@@ -1369,14 +1381,14 @@ function detectPatternConflict(preds){
   const pSide=preds.filter(p=>p.bet==='P');
   const bSide=preds.filter(p=>p.bet==='B');
   if(!pSide.length||!bSide.length)return{conflict:false};
-  // antistreak สวนเทรนด์โดยเจตนา — ไม่นับเป็นขัดแย้งกับ chop/pingpong
+  // antistreak เธชเธงเธเน€เธ—เธฃเธเธ”เนเนเธ”เธขเน€เธเธ•เธเธฒ โ€” เนเธกเนเธเธฑเธเน€เธเนเธเธเธฑเธ”เนเธขเนเธเธเธฑเธ chop/pingpong
   const isRev=p=>REV_PATS.has(p.name)&&p.name!=='antistreak';
   const trendP=pSide.some(p=>TREND_PATS.has(p.name));
   const revB=bSide.some(isRev);
   const trendB=bSide.some(p=>TREND_PATS.has(p.name));
   const revP=pSide.some(isRev);
   if((trendP&&revB)||(trendB&&revP))
-    return{conflict:true,reason:'แนวโน้ม vs สลับ — ขัดกัน'};
+    return{conflict:true,reason:'เนเธเธงเนเธเนเธก vs เธชเธฅเธฑเธ โ€” เธเธฑเธ”เธเธฑเธ'};
   return{conflict:false};
 }
 
@@ -1410,16 +1422,16 @@ function evaluateBetGate(h,preds,votes,winner,streak,streakSide){
   if(mirrorFlow&&chaos.mirrorStruct)conf=Math.max(conf,4);
   if(strongSignal)conf=Math.max(conf,4);
 
-  let riskLabel='ปกติ',riskLevel='mid';
+  let riskLabel='เธเธเธ•เธด',riskLevel='mid';
   if(chaos.score>=65&&!strongSignal&&!mirrorFlow&&!dragonFlow&&!pingFlow){
-    riskLabel='ห้องผันผวน — ประคองสถิติ Flat Base';
+    riskLabel='เธซเนเธญเธเธเธฑเธเธเธงเธ โ€” เธเธฃเธฐเธเธญเธเธชเธ–เธดเธ•เธด Flat Base';
     riskLevel='mid';
-  }else if(mirrorFlow){riskLabel='ลายกระจกเงา — สมมาตร';riskLevel='low';}
-  else if(dragonFlow){riskLabel='ตามมังกร / เทรนด์';riskLevel='low';}
-  else if(pingFlow){riskLabel='ตามปิงปอง';riskLevel='low';}
-  else if(doubleFlow){riskLabel='ลูกคู่ — สัญญาณแรง';riskLevel='low';}
-  else if(conf>=4){riskLabel='สัญญาณแรง — ลุยตามลาย';riskLevel='low';}
-  else if(conf<=2){riskLabel='ความเสี่ยงปานกลาง';riskLevel='mid';}
+  }else if(mirrorFlow){riskLabel='เธฅเธฒเธขเธเธฃเธฐเธเธเน€เธเธฒ โ€” เธชเธกเธกเธฒเธ•เธฃ';riskLevel='low';}
+  else if(dragonFlow){riskLabel='เธ•เธฒเธกเธกเธฑเธเธเธฃ / เน€เธ—เธฃเธเธ”เน';riskLevel='low';}
+  else if(pingFlow){riskLabel='เธ•เธฒเธกเธเธดเธเธเธญเธ';riskLevel='low';}
+  else if(doubleFlow){riskLabel='เธฅเธนเธเธเธนเน โ€” เธชเธฑเธเธเธฒเธ“เนเธฃเธ';riskLevel='low';}
+  else if(conf>=4){riskLabel='เธชเธฑเธเธเธฒเธ“เนเธฃเธ โ€” เธฅเธธเธขเธ•เธฒเธกเธฅเธฒเธข';riskLevel='low';}
+  else if(conf<=2){riskLabel='เธเธงเธฒเธกเน€เธชเธตเนเธขเธเธเธฒเธเธเธฅเธฒเธ';riskLevel='mid';}
 
   return{conf,riskLabel,riskLevel,chaos,margin,conflict:conflict.conflict,forceSkip:false,skipReason:null};
 }
@@ -1442,7 +1454,7 @@ function loadPatternWeights(){
     const d=localStorage.getItem('bac_pw');
     if(d)return JSON.parse(d);
   }catch(e){}
-  // default weights — all equal
+  // default weights โ€” all equal
   const w={};PATTERNS.forEach(p=>w[p]={wins:1,total:2});return w;
 }
 function savePatternWeights(pw){
@@ -1539,14 +1551,14 @@ function buildDerivedColorSequence(hist,offset){
   return colors;
 }
 
-// สี → ตัวเลขสำหรับ Q-Learning / UI (-1=ยังไม่พร้อม, 0=น้ำเงิน, 1=แดง)
+// เธชเธต โ’ เธ•เธฑเธงเน€เธฅเธเธชเธณเธซเธฃเธฑเธ Q-Learning / UI (-1=เธขเธฑเธเนเธกเนเธเธฃเนเธญเธก, 0=เธเนเธณเน€เธเธดเธ, 1=เนเธ”เธ)
 const DERIVED_MIN_PB=4;
 function derivedColorToCode(color){
   if(color==='red')return 1;
   if(color==='blue')return 0;
   return-1;
 }
-function colorTh(c){return c==='red'?'แดง':'น้ำเงิน';}
+function colorTh(c){return c==='red'?'เนเธ”เธ':'เธเนเธณเน€เธเธดเธ';}
 
 function makeDerivedRoadPayload(seq){
   const last=seq.length?seq[seq.length-1]:null;
@@ -1554,12 +1566,12 @@ function makeDerivedRoadPayload(seq){
     colors:seq,
     last,
     code:last?derivedColorToCode(last):-1,
-    label:last?colorTh(last):'—',
+    label:last?colorTh(last):'โ€”',
     ready:seq.length>0
   };
 }
 
-/** อ่าน S.hist คำนวณ 3 เกลอ real-time (Big Eye / Small / Cockroach) */
+/** เธญเนเธฒเธ S.hist เธเธณเธเธงเธ“ 3 เน€เธเธฅเธญ real-time (Big Eye / Small / Cockroach) */
 function getDerivedRoads(history){
   const hist=history||S.hist;
   const pb=hist.filter(x=>x!=='T');
@@ -1590,7 +1602,7 @@ function getDerivedRoads(history){
   return dr;
 }
 
-/** Rule-based: โหวตฝั่ง P/B จาก 3 เกลอเมื่อลายสีไหลชัด (≥3 ตา) */
+/** Rule-based: เนเธซเธงเธ•เธเธฑเนเธ P/B เธเธฒเธ 3 เน€เธเธฅเธญเน€เธกเธทเนเธญเธฅเธฒเธขเธชเธตเนเธซเธฅเธเธฑเธ” (โฅ3 เธ•เธฒ) */
 function computeDerivedConsensus(h,dr){
   if(dr.insufficient)return null;
   const specs=[
@@ -1609,7 +1621,7 @@ function computeDerivedConsensus(h,dr){
     for(const bet of['P','B']){
       if(simulateNextDerivedColor(h,bet,sp.off)===sig.nextColor){
         scores[bet]+=1;
-        notes.push(sp.name+'→'+bet);
+        notes.push(sp.name+'โ’'+bet);
       }
     }
     roadsAgree++;
@@ -1622,11 +1634,11 @@ function computeDerivedConsensus(h,dr){
     conf:roadsAgree>=2?4:3,
     roadsAgree,
     mode:'derived_ensemble',
-    reason:'3เกลอร่วมโหวต '+bet+' ('+notes.join(', ')+')'
+    reason:'3เน€เธเธฅเธญเธฃเนเธงเธกเนเธซเธงเธ• '+bet+' ('+notes.join(', ')+')'
   };
 }
 
-/** แปลงสี 3 เกลอล่าสุด → สตริงใน Q-State (x=default/ไม่พร้อม, 0=น้ำเงิน, 1=แดง) */
+/** เนเธเธฅเธเธชเธต 3 เน€เธเธฅเธญเธฅเนเธฒเธชเธธเธ” โ’ เธชเธ•เธฃเธดเธเนเธ Q-State (x=default/เนเธกเนเธเธฃเนเธญเธก, 0=เธเนเธณเน€เธเธดเธ, 1=เนเธ”เธ) */
 function encodeDerivedForQLearning(dr){
   const bit=road=>{
     if(!road||!road.ready||road.code<0)return'x';
@@ -1668,11 +1680,11 @@ function predictFromDerivedRoad(h,offset,patName,labelTh){
   if(!sig)return null;
   for(const bet of['P','B']){
     if(simulateNextDerivedColor(h,bet,offset)===sig.nextColor){
-      const modeTh=sig.mode==='streak'?'สีเดียวติด':'ปิงปองนิ่ง';
-      const tail=colors.slice(-3).map(colorTh).join(' → ');
+      const modeTh=sig.mode==='streak'?'เธชเธตเน€เธ”เธตเธขเธงเธ•เธดเธ”':'เธเธดเธเธเธญเธเธเธดเนเธ';
+      const tail=colors.slice(-3).map(colorTh).join(' โ’ ');
       return{
         bet,name:patName,
-        reason:`${labelTh} — ${modeTh} ${colorTh(sig.nextColor)} (${tail}) → ${bet==='P'?'PLAYER':'BANKER'}`,
+        reason:`${labelTh} โ€” ${modeTh} ${colorTh(sig.nextColor)} (${tail}) โ’ ${bet==='P'?'PLAYER':'BANKER'}`,
         conf:4
       };
     }
@@ -1681,13 +1693,13 @@ function predictFromDerivedRoad(h,offset,patName,labelTh){
 }
 
 function patBigEyeBoy(h){
-  return predictFromDerivedRoad(h,DERIVED_OFFSETS.big_eye,'big_eye','Big Eye Boy (ไข่ปลา)');
+  return predictFromDerivedRoad(h,DERIVED_OFFSETS.big_eye,'big_eye','Big Eye Boy (เนเธเนเธเธฅเธฒ)');
 }
 function patSmallRoad(h){
-  return predictFromDerivedRoad(h,DERIVED_OFFSETS.small_road,'small_road','Small Road (ซาลาเปา)');
+  return predictFromDerivedRoad(h,DERIVED_OFFSETS.small_road,'small_road','Small Road (เธเธฒเธฅเธฒเน€เธเธฒ)');
 }
 function patCockroach(h){
-  return predictFromDerivedRoad(h,DERIVED_OFFSETS.cockroach,'cockroach','Cockroach Road (ไม้ขีด)');
+  return predictFromDerivedRoad(h,DERIVED_OFFSETS.cockroach,'cockroach','Cockroach Road (เนเธกเนเธเธตเธ”)');
 }
 
 // ---- individual pattern predictors ----
@@ -1695,10 +1707,10 @@ function patCockroach(h){
 
 function patStreak(h,streak,streakSide){
   if(streak>=3&&streakSide!=='T'){
-    // dragon ≥8 → conf 5 และ lock ไม่ให้ pattern อื่น override
+    // dragon โฅ8 โ’ conf 5 เนเธฅเธฐ lock เนเธกเนเนเธซเน pattern เธญเธทเนเธ override
     const conf=streak>=8?5:streak>=5?5:Math.min(4,streak);
     return{bet:streakSide,name:'streak',
-      reason:`Streak ${streak} ตา — ตาม trend`,conf,
+      reason:`Streak ${streak} เธ•เธฒ โ€” เธ•เธฒเธก trend`,conf,
       isDragon:streak>=5};
   }
   return null;
@@ -1708,23 +1720,23 @@ function patDragon(h){
   const pb=h.filter(x=>x!=='T');
   if(pb.length<4)return null;
   const last=pb[pb.length-1];
-  // นับ streak ต่อเนื่องจริงๆ
+  // เธเธฑเธ streak เธ•เนเธญเน€เธเธทเนเธญเธเธเธฃเธดเธเน
   let streak=1;
   for(let i=pb.length-2;i>=0&&pb[i]===last;i--)streak++;
-  // dragon ≥5 ตาต่อเนื่อง → ตามเลย
+  // dragon โฅ5 เธ•เธฒเธ•เนเธญเน€เธเธทเนเธญเธ โ’ เธ•เธฒเธกเน€เธฅเธข
   if(streak>=5){
     const conf=streak>=10?5:streak>=7?5:4;
     return{bet:last,name:'dragon',
-      reason:`Dragon ${streak} ตา — ${last==='P'?'PLAYER':'BANKER'} ต่อเนื่อง ตามมังกร`,conf};
+      reason:`Dragon ${streak} เธ•เธฒ โ€” ${last==='P'?'PLAYER':'BANKER'} เธ•เนเธญเน€เธเธทเนเธญเธ เธ•เธฒเธกเธกเธฑเธเธเธฃ`,conf};
   }
-  // หรือ dominant ใน 10 ตาล่าสุด ≥80%
+  // เธซเธฃเธทเธญ dominant เนเธ 10 เธ•เธฒเธฅเนเธฒเธชเธธเธ” โฅ80%
   if(pb.length>=10){
     const last10=pb.slice(-10);
     const cnt={P:0,B:0};last10.forEach(x=>cnt[x]=(cnt[x]||0)+1);
     const dom=cnt.P>cnt.B?'P':'B';
     if(cnt[dom]>=8)
       return{bet:dom,name:'dragon',
-        reason:`Dragon dominant — ${dom==='P'?'PLAYER':'BANKER'} ${cnt[dom]}/10 ตาล่าสุด`,conf:4};
+        reason:`Dragon dominant โ€” ${dom==='P'?'PLAYER':'BANKER'} ${cnt[dom]}/10 เธ•เธฒเธฅเนเธฒเธชเธธเธ”`,conf:4};
   }
   return null;
 }
@@ -1749,7 +1761,7 @@ function patChop(h){
   for(let i=1;i<last.length;i++)if(last[i]!==last[i-1])alt++;
   if(alt>=4){
     const next=last[last.length-1]==='P'?'B':'P';
-    return{bet:next,name:'chop',reason:`Chop pattern — สลับสม่ำเสมอ`,conf:3};
+    return{bet:next,name:'chop',reason:`Chop pattern โ€” เธชเธฅเธฑเธเธชเธกเนเธณเน€เธชเธกเธญ`,conf:3};
   }
   return null;
 }
@@ -1776,11 +1788,11 @@ function patSandwichMirror(h){
   const pb=h.filter(x=>x!=='T');
   const sig=analyzeSandwichMirror(pb);
   if(!sig)return null;
-  const tagLabel={XYXX:'แซนด์วิช XYXX',XXYX:'แซนด์วิช XXYX',mirror3x3:'กระจกเงา 3×3'};
+  const tagLabel={XYXX:'เนเธเธเธ”เนเธงเธดเธ XYXX',XXYX:'เนเธเธเธ”เนเธงเธดเธ XXYX',mirror3x3:'เธเธฃเธฐเธเธเน€เธเธฒ 3ร—3'};
   return{
     bet:polToBet(sig.betPol),
     name:'sandwich_mirror',
-    reason:`ตรวจพบโครงสร้างไพ่แซนด์วิชสมมาตรสะท้อนกระจก (${tagLabel[sig.tag]||sig.tag})`,
+    reason:`เธ•เธฃเธงเธเธเธเนเธเธฃเธเธชเธฃเนเธฒเธเนเธเนเนเธเธเธ”เนเธงเธดเธเธชเธกเธกเธฒเธ•เธฃเธชเธฐเธ—เนเธญเธเธเธฃเธฐเธเธ (${tagLabel[sig.tag]||sig.tag})`,
     conf:4
   };
 }
@@ -1790,9 +1802,9 @@ function patDoublePair(h){
   if(pb.length<4)return null;
   const last4=pb.slice(-4);
   if(last4[0]===last4[1]&&last4[1]!==last4[2])
-    return{bet:last4[2],name:'doublepair',reason:'เริ่มฟอร์มไพ่ลูกคู่ (XXY → YY)',conf:4};
+    return{bet:last4[2],name:'doublepair',reason:'เน€เธฃเธดเนเธกเธเธญเธฃเนเธกเนเธเนเธฅเธนเธเธเธนเน (XXY โ’ YY)',conf:4};
   if(last4[0]===last4[1]&&last4[2]===last4[3]&&last4[0]!==last4[2])
-    return{bet:last4[3]==='P'?'B':'P',name:'doublepair',reason:'ครบลูปไพ่ลูกคู่ XXYY → แทงตัดขึ้นคู่ใหม่',conf:4};
+    return{bet:last4[3]==='P'?'B':'P',name:'doublepair',reason:'เธเธฃเธเธฅเธนเธเนเธเนเธฅเธนเธเธเธนเน XXYY โ’ เนเธ—เธเธ•เธฑเธ”เธเธถเนเธเธเธนเนเนเธซเธกเน',conf:4};
   return null;
 }
 
@@ -1851,10 +1863,10 @@ function patFreq10(h){
   const last=pb.slice(-10);
   const pC=last.filter(x=>x==='P').length;
   const bC=last.length-pC;
-  if(pC>=7){return{bet:'P',name:'freq10',reason:`PLAYER ครอง ${pC}/10 ตาล่าสุด`,conf:4};}
-  if(bC>=7){return{bet:'B',name:'freq10',reason:`BANKER ครอง ${bC}/10 ตาล่าสุด`,conf:4};}
-  if(pC>=6){return{bet:'P',name:'freq10',reason:`PLAYER ${pC}/10 — เหนือกว่า`,conf:3};}
-  if(bC>=6){return{bet:'B',name:'freq10',reason:`BANKER ${bC}/10 — เหนือกว่า`,conf:3};}
+  if(pC>=7){return{bet:'P',name:'freq10',reason:`PLAYER เธเธฃเธญเธ ${pC}/10 เธ•เธฒเธฅเนเธฒเธชเธธเธ”`,conf:4};}
+  if(bC>=7){return{bet:'B',name:'freq10',reason:`BANKER เธเธฃเธญเธ ${bC}/10 เธ•เธฒเธฅเนเธฒเธชเธธเธ”`,conf:4};}
+  if(pC>=6){return{bet:'P',name:'freq10',reason:`PLAYER ${pC}/10 โ€” เน€เธซเธเธทเธญเธเธงเนเธฒ`,conf:3};}
+  if(bC>=6){return{bet:'B',name:'freq10',reason:`BANKER ${bC}/10 โ€” เน€เธซเธเธทเธญเธเธงเนเธฒ`,conf:3};}
   return null;
 }
 
@@ -1883,11 +1895,11 @@ function patCycle(h){
 }
 
 function patAntiStreak(h,streak,streakSide){
-  // ถ้า dragon แรง (≥10 ตา) → ไม่ anti เพราะมังกรยาวไม่มีวันรู้ว่าจบเมื่อไหร่
+  // เธ–เนเธฒ dragon เนเธฃเธ (โฅ10 เธ•เธฒ) โ’ เนเธกเน anti เน€เธเธฃเธฒเธฐเธกเธฑเธเธเธฃเธขเธฒเธงเนเธกเนเธกเธตเธงเธฑเธเธฃเธนเนเธงเนเธฒเธเธเน€เธกเธทเนเธญเนเธซเธฃเน
   if(streak>=10)return null;
   if(streak>=7&&streakSide!=='T'){
     const opp=streakSide==='P'?'B':'P';
-    return{bet:opp,name:'antistreak',reason:`Anti-streak — ไหลยาว ${streak} ตา มีโอกาสตัด`,conf:2};
+    return{bet:opp,name:'antistreak',reason:`Anti-streak โ€” เนเธซเธฅเธขเธฒเธง ${streak} เธ•เธฒ เธกเธตเนเธญเธเธฒเธชเธ•เธฑเธ”`,conf:2};
   }
   return null;
 }
@@ -1901,12 +1913,12 @@ function patPingPong(h){
   const isPing=(last[0]!==last[1]&&last[1]!==last[2]&&last[2]!==last[3]);
   if(isPing){
     const next=last[last.length-1]==='P'?'B':'P';
-    return{bet:next,name:'pingpong',reason:`Ping-Pong pattern P↔B`,conf:4};
+    return{bet:next,name:'pingpong',reason:`Ping-Pong pattern Pโ”B`,conf:4};
   }
   return null;
 }
 
-// Pattern: PP-B-PP-B (streak-2 cycle) และ PPP-BB-PPP (streak-3 cycle)
+// Pattern: PP-B-PP-B (streak-2 cycle) เนเธฅเธฐ PPP-BB-PPP (streak-3 cycle)
 function patCycleStreak(h){
   const pb=h.filter(x=>x!=='T');
   if(pb.length<6)return null;
@@ -1928,39 +1940,39 @@ function patCycleStreak(h){
   const curRun=runs[runs.length-1];
 
   // --- 1. Descending pattern: n, n-1, n-2 ... (3-2-1, 4-3-2, etc.) ---
-  // ตรวจ 3 runs ล่าสุด ว่า streak lengths ลดลงทีละ 1 หรือไม่
+  // เธ•เธฃเธงเธ 3 runs เธฅเนเธฒเธชเธธเธ” เธงเนเธฒ streak lengths เธฅเธ”เธฅเธเธ—เธตเธฅเธฐ 1 เธซเธฃเธทเธญเนเธกเน
   if(last3.length===3){
     const [r1,r2,r3]=last3;
-    // descending: r1.n > r2.n > r3.n และแต่ละลดลง 1
+    // descending: r1.n > r2.n > r3.n เนเธฅเธฐเนเธ•เนเธฅเธฐเธฅเธ”เธฅเธ 1
     if(r1.n-r2.n===1&&r2.n-r3.n===1&&r1.s!==r2.s&&r2.s!==r3.s){
-      // PPP-BB-P → ตาหน้าคาดว่าเป็น BB (= r2.s × r2.n หรือสั้นกว่า)
-      // ถ้า curRun ยังสั้นกว่า r3.n-1 → ยังอยู่ใน run
-      const expectedNextLen=r3.n-1; // 3-2-1 → ตาหน้า = 0 = switch
+      // PPP-BB-P โ’ เธ•เธฒเธซเธเนเธฒเธเธฒเธ”เธงเนเธฒเน€เธเนเธ BB (= r2.s ร— r2.n เธซเธฃเธทเธญเธชเธฑเนเธเธเธงเนเธฒ)
+      // เธ–เนเธฒ curRun เธขเธฑเธเธชเธฑเนเธเธเธงเนเธฒ r3.n-1 โ’ เธขเธฑเธเธญเธขเธนเนเนเธ run
+      const expectedNextLen=r3.n-1; // 3-2-1 โ’ เธ•เธฒเธซเธเนเธฒ = 0 = switch
       if(expectedNextLen<=0){
-        // จบ descending cycle → กลับไปเริ่มใหม่ฝั่งใหม่
+        // เธเธ descending cycle โ’ เธเธฅเธฑเธเนเธเน€เธฃเธดเนเธกเนเธซเธกเนเธเธฑเนเธเนเธซเธกเน
         const nextSide=r3.s==='P'?'B':'P';
         return{bet:nextSide,name:'cycle_streak',
-          reason:`Descending ${r1.n}-${r2.n}-${r3.n} จบ cycle — คาด ${nextSide==='P'?'PLAYER':'BANKER'}`,conf:5};
+          reason:`Descending ${r1.n}-${r2.n}-${r3.n} เธเธ cycle โ€” เธเธฒเธ” ${nextSide==='P'?'PLAYER':'BANKER'}`,conf:5};
       }
       if(curRun.n<expectedNextLen){
         return{bet:curRun.s,name:'cycle_streak',
-          reason:`Descending ${r1.n}-${r2.n}-${r3.n} — ยังอยู่ใน run (${curRun.n}/${expectedNextLen})`,conf:4};
+          reason:`Descending ${r1.n}-${r2.n}-${r3.n} โ€” เธขเธฑเธเธญเธขเธนเนเนเธ run (${curRun.n}/${expectedNextLen})`,conf:4};
       }
       const nextSide=r3.s==='P'?'B':'P';
       return{bet:nextSide,name:'cycle_streak',
-        reason:`Descending ${r1.n}-${r2.n}-${r3.n} — ถึงเวลา switch`,conf:4};
+        reason:`Descending ${r1.n}-${r2.n}-${r3.n} โ€” เธ–เธถเธเน€เธงเธฅเธฒ switch`,conf:4};
     }
 
-    // descending ไม่สม่ำเสมอ: r1.n >= r2.n >= r3.n และ r1.n > r3.n
+    // descending เนเธกเนเธชเธกเนเธณเน€เธชเธกเธญ: r1.n >= r2.n >= r3.n เนเธฅเธฐ r1.n > r3.n
     if(r1.n>=r2.n&&r2.n>=r3.n&&r1.n>r3.n&&r1.s!==r2.s&&r2.s!==r3.s){
-      // trend ลดลง → คาดว่า run ต่อไปจะสั้นกว่า r3
+      // trend เธฅเธ”เธฅเธ โ’ เธเธฒเธ”เธงเนเธฒ run เธ•เนเธญเนเธเธเธฐเธชเธฑเนเธเธเธงเนเธฒ r3
       if(curRun.n>=r3.n){
         const nextSide=r3.s==='P'?'B':'P';
         return{bet:nextSide,name:'cycle_streak',
-          reason:`Shrinking runs ${r1.n}-${r2.n}-${r3.n} — คาด switch`,conf:4};
+          reason:`Shrinking runs ${r1.n}-${r2.n}-${r3.n} โ€” เธเธฒเธ” switch`,conf:4};
       }
       return{bet:curRun.s,name:'cycle_streak',
-        reason:`Shrinking runs — ยังอยู่ใน ${curRun.s==='P'?'PLAYER':'BANKER'} run`,conf:3};
+        reason:`Shrinking runs โ€” เธขเธฑเธเธญเธขเธนเนเนเธ ${curRun.s==='P'?'PLAYER':'BANKER'} run`,conf:3};
     }
   }
 
@@ -1968,19 +1980,19 @@ function patCycleStreak(h){
   if(last3.length===3){
     const [r1,r2,r3]=last3;
     if(r2.n-r1.n===1&&r3.n-r2.n===1&&r1.s!==r2.s&&r2.s!==r3.s){
-      // 1-2-3 ascending → คาดว่า run ต่อไปจะยาว r3.n+1
+      // 1-2-3 ascending โ’ เธเธฒเธ”เธงเนเธฒ run เธ•เนเธญเนเธเธเธฐเธขเธฒเธง r3.n+1
       const expectedLen=r3.n+1;
       if(curRun.n<expectedLen){
         return{bet:curRun.s,name:'cycle_streak',
-          reason:`Ascending ${r1.n}-${r2.n}-${r3.n} — คาดยาว ${expectedLen} ตา (${curRun.n}/${expectedLen})`,conf:4};
+          reason:`Ascending ${r1.n}-${r2.n}-${r3.n} โ€” เธเธฒเธ”เธขเธฒเธง ${expectedLen} เธ•เธฒ (${curRun.n}/${expectedLen})`,conf:4};
       }
       const nextSide=r3.s==='P'?'B':'P';
       return{bet:nextSide,name:'cycle_streak',
-        reason:`Ascending ${r1.n}-${r2.n}-${r3.n} จบ — switch`,conf:4};
+        reason:`Ascending ${r1.n}-${r2.n}-${r3.n} เธเธ โ€” switch`,conf:4};
     }
   }
 
-  // --- 3. Equal cycle: A×n - B×m - A×n - B×m ---
+  // --- 3. Equal cycle: Aร—n - Bร—m - Aร—n - Bร—m ---
   if(last4.length===4){
     const [r1,r2,r3,r4]=last4;
     if(r1.s===r3.s&&r2.s===r4.s&&r1.s!==r2.s){
@@ -1988,24 +2000,24 @@ function patCycleStreak(h){
       const avgB=Math.round((r2.n+r4.n)/2);
       if(curRun.n<avgA){
         return{bet:curRun.s,name:'cycle_streak',
-          reason:`Cycle ${r1.s}×${avgA}-${r2.s}×${avgB} — ยังอยู่ใน run`,conf:4};
+          reason:`Cycle ${r1.s}ร—${avgA}-${r2.s}ร—${avgB} โ€” เธขเธฑเธเธญเธขเธนเนเนเธ run`,conf:4};
       }
       const nextSide=r4.s==='P'?'B':'P';
       return{bet:nextSide,name:'cycle_streak',
-        reason:`Cycle ${r1.s}×${avgA}-${r2.s}×${avgB} — switch`,conf:4};
+        reason:`Cycle ${r1.s}ร—${avgA}-${r2.s}ร—${avgB} โ€” switch`,conf:4};
     }
   }
 
-  // --- 4. Simple 3-run mirror: A-B-A → คาด B ---
+  // --- 4. Simple 3-run mirror: A-B-A โ’ เธเธฒเธ” B ---
   if(last3.length===3){
     const [r1,r2,r3]=last3;
     if(r1.s===r3.s&&r1.s!==r2.s){
       if(curRun.n>=r3.n){
         return{bet:r2.s,name:'cycle_streak',
-          reason:`Mirror ${r1.s}×${r1.n}-${r2.s}×${r2.n}-${r3.s}×${r3.n} — คาด ${r2.s==='P'?'PLAYER':'BANKER'}`,conf:3};
+          reason:`Mirror ${r1.s}ร—${r1.n}-${r2.s}ร—${r2.n}-${r3.s}ร—${r3.n} โ€” เธเธฒเธ” ${r2.s==='P'?'PLAYER':'BANKER'}`,conf:3};
       }
       return{bet:curRun.s,name:'cycle_streak',
-        reason:`Mirror pattern — ยังอยู่ใน ${curRun.s==='P'?'PLAYER':'BANKER'} run`,conf:3};
+        reason:`Mirror pattern โ€” เธขเธฑเธเธญเธขเธนเนเนเธ ${curRun.s==='P'?'PLAYER':'BANKER'} run`,conf:3};
     }
   }
 
@@ -2015,22 +2027,22 @@ function patCycleStreak(h){
 function patMathematicalEdge(h,opts){
   const chaos=opts&&opts.chaos?opts.chaos:computeChaosScore(h);
   const highChaos=chaos.score>=65;
-  const warn='ประคองสถิติ — Flat Base Unit';
+  const warn='เธเธฃเธฐเธเธญเธเธชเธ–เธดเธ•เธด โ€” Flat Base Unit';
   const pb=h.filter(x=>x!=='T');
   if(pb.length<3)
-    return{bet:'B',name:'mathedge',reason:highChaos?warn+' · BANKER (house)':'Mathematical edge — BANKER (house)',conf:2,isFallback:true};
+    return{bet:'B',name:'mathedge',reason:highChaos?warn+' ยท BANKER (house)':'Mathematical edge โ€” BANKER (house)',conf:2,isFallback:true};
   const pC=pb.filter(x=>x==='P').length,bC=pb.length-pC;
   if(pC===bC)
-    return{bet:'B',name:'mathedge',reason:highChaos?warn+' · 50/50 → BANKER':'Mathematical edge — 50/50 → BANKER',conf:2,isFallback:true};
+    return{bet:'B',name:'mathedge',reason:highChaos?warn+' ยท 50/50 โ’ BANKER':'Mathematical edge โ€” 50/50 โ’ BANKER',conf:2,isFallback:true};
   const bet=pC<bC?'P':'B';
   const side=bet==='P'?'PLAYER':'BANKER';
   const diff=Math.abs(pC-bC);
   const conf=highChaos?2:(diff>=8?4:diff>=5?3:2);
-  const base=`Mathematical edge — ${side} ออกน้อยกว่า (${Math.min(pC,bC)}/${pb.length})`;
-  return{bet,name:'mathedge',reason:highChaos?warn+' · '+base:base,conf,isFallback:true};
+  const base=`Mathematical edge โ€” ${side} เธญเธญเธเธเนเธญเธขเธเธงเนเธฒ (${Math.min(pC,bC)}/${pb.length})`;
+  return{bet,name:'mathedge',reason:highChaos?warn+' ยท '+base:base,conf,isFallback:true};
 }
 
-// ---- Q-Learning + 3 เกลอ Feature Engineering ----
+// ---- Q-Learning + 3 เน€เธเธฅเธญ Feature Engineering ----
 const Q_ACTIONS=['P','B'];
 
 function initQState(state){
@@ -2043,7 +2055,7 @@ function getQValues(state){
   return S.qTable[state];
 }
 
-/** Rich State = streak + lastW + dragon + pingpong + transition bits + 3เกลอ + chaos */
+/** Rich State = streak + lastW + dragon + pingpong + transition bits + 3เน€เธเธฅเธญ + chaos */
 function getQLearningState(h,streak,streakSide){
   const pb=h.filter(x=>x!=='T');
   if(pb.length<3)return null;
@@ -2110,9 +2122,9 @@ function getQLearningDecision(h,streak,streakSide){
 }
 
 /**
- * Hybrid Ensemble: โหวตสูตร + Q-Learning + Rule 3 เกลอ
- * ก. Q ต่ำ/เคสใหม่ → เน้น 3 เกลอ (คัดค้านหรือเสริม)
- * ข. Q สูง → เชื่อ Q
+ * Hybrid Ensemble: เนเธซเธงเธ•เธชเธนเธ•เธฃ + Q-Learning + Rule 3 เน€เธเธฅเธญ
+ * เธ. Q เธ•เนเธณ/เน€เธเธชเนเธซเธกเน โ’ เน€เธเนเธ 3 เน€เธเธฅเธญ (เธเธฑเธ”เธเนเธฒเธเธซเธฃเธทเธญเน€เธชเธฃเธดเธก)
+ * เธ. Q เธชเธนเธ โ’ เน€เธเธทเนเธญ Q
  */
 function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
   const derived=dr.consensus;
@@ -2120,8 +2132,8 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
   let conf=3;
   const parts=[];
 
-  // CHOP ROOM OVERRIDE: ถ้า ping-pong/chop vote ชนะชัด → bypass QL
-  // ป้องกัน QL exploit ดัน trend ในห้องที่สลับสม่ำเสมอ
+  // CHOP ROOM OVERRIDE: เธ–เนเธฒ ping-pong/chop vote เธเธเธฐเธเธฑเธ” โ’ bypass QL
+  // เธเนเธญเธเธเธฑเธ QL exploit เธ”เธฑเธ trend เนเธเธซเนเธญเธเธ—เธตเนเธชเธฅเธฑเธเธชเธกเนเธณเน€เธชเธกเธญ
   const _pbH=h.filter(x=>x!=='T');
   let _chopOvr=false;
   if(_pbH.length>=6){
@@ -2130,7 +2142,7 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
     const _cs=_a/Math.max(1,_l8.length-1);
     const _vt=(votes.P||0)+(votes.B||0);
     const _vm=_vt>0?Math.abs((votes.P||0)-(votes.B||0))/_vt:0;
-    // ถ้าห้อง chop ชัด และ vote margin ชัดเจน → chop wins
+    // เธ–เนเธฒเธซเนเธญเธ chop เธเธฑเธ” เนเธฅเธฐ vote margin เธเธฑเธ”เน€เธเธ โ’ chop wins
     if(_cs>=0.75&&_vm>0.15){
       _chopOvr=true;
       parts.push('Chop Override (ping-pong dominant)');
@@ -2138,7 +2150,7 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
   }
 
   if(_chopOvr){
-    // ใช้ voteWinner ตรงๆ ไม่ผ่าน QL
+    // เนเธเน voteWinner เธ•เธฃเธเน เนเธกเนเธเนเธฒเธ QL
     winner=voteWinner;
     conf=4;
   }else if(ql){
@@ -2148,11 +2160,11 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
         if(derived.conf>=4&&derived.roadsAgree>=2){
           winner=derived.bet;
           conf=Math.max(conf,derived.conf);
-          parts.push('Derived Override (3เกลอชัด)');
+          parts.push('Derived Override (3เน€เธเธฅเธญเธเธฑเธ”)');
         }else if(derived.bet!==ql.winner){
           winner=derived.bet;
           conf=Math.max(conf,3);
-          parts.push('Derived ช่วยตัดสิน (Q Explore)');
+          parts.push('Derived เธเนเธงเธขเธ•เธฑเธ”เธชเธดเธ (Q Explore)');
         }else{
           winner=ql.winner;
           conf=Math.max(conf,ql.conf);
@@ -2183,7 +2195,7 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
   if(entropy>0.97){
     return{
       winner,conf,
-      reason:parts.join(' · '),
+      reason:parts.join(' ยท '),
       source:_chopOvr?'chop_override':(ql?(ql.explore?'q_explore':'q_exploit'):'heuristic'),
       forceSkip:true,
       skipReason:'Random Room (Entropy > 0.97)',
@@ -2191,7 +2203,7 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
     };
   }
 
-  return{winner,conf,reason:parts.join(' · '),source:_chopOvr?'chop_override':(ql?(ql.explore?'q_explore':'q_exploit'):'heuristic')};
+  return{winner,conf,reason:parts.join(' ยท '),source:_chopOvr?'chop_override':(ql?(ql.explore?'q_explore':'q_exploit'):'heuristic')};
 }
 
 function updateQTable(actualOutcome){
@@ -2266,11 +2278,11 @@ function runPredictionEngine(h,streak,streakSide){
     else if((p.name==='streak'||p.name==='dragon')&&streak>=5&&streakSide!=='T')bonus=1.3;
     if(momentum.dominant==='trend'&&MOMENTUM_TREND_PATS.has(p.name))bonus*=1.25;
     else if(momentum.dominant==='chop'&&MOMENTUM_CHOP_PATS.has(p.name))bonus*=1.25;
-    // ถ้า dragon active → suppress pattern ที่ vote สวน
+    // เธ–เนเธฒ dragon active โ’ suppress pattern เธ—เธตเน vote เธชเธงเธ
     const dragonPred=preds.find(x=>x.isDragon);
     if(dragonPred&&p.bet!==dragonPred.bet&&
       ['pingpong','antistreak','big_eye','small_road','cockroach'].includes(p.name)){
-      // ลด weight ลง 80% แทนไม่ใส่เลย
+      // เธฅเธ” weight เธฅเธ 80% เนเธ—เธเนเธกเนเนเธชเนเน€เธฅเธข
       preds.push({...p,weight:getWeight(pw,p.name,getContext(h))*bonus*0.2});
     }else{
       preds.push({...p,weight:getWeight(pw,p.name,getContext(h))*bonus});
@@ -2302,15 +2314,15 @@ function runPredictionEngine(h,streak,streakSide){
     S.lastQLearningAction=null;
   }
 
-  // TF Model candidate — weight controlled by S.tfWeight slider
-  // SUPPRESS: TF เทรนบน random data ไม่รู้จัก ping-pong/chop room
-  // ถ้า alternating pattern ชัด → ลด TF weight หนัก
+  // TF Model candidate โ€” weight controlled by S.tfWeight slider
+  // SUPPRESS: TF เน€เธ—เธฃเธเธเธ random data เนเธกเนเธฃเธนเนเธเธฑเธ ping-pong/chop room
+  // เธ–เนเธฒ alternating pattern เธเธฑเธ” โ’ เธฅเธ” TF weight เธซเธเธฑเธ
   const tfResult=getTFDecision(h);
   let tfCandidate=null;
   if(tfResult&&tfResult.conf>=2){
     const tfWt=S.tfWeight||1.5;
 
-    // วัด chop strength จาก 8 ตาล่าสุด (non-tie)
+    // เธงเธฑเธ” chop strength เธเธฒเธ 8 เธ•เธฒเธฅเนเธฒเธชเธธเธ” (non-tie)
     const _pbTf=h.filter(x=>x!=='T');
     let _chopStr=0;
     if(_pbTf.length>=6){
@@ -2318,11 +2330,12 @@ function runPredictionEngine(h,streak,streakSide){
       let _a=0;for(let i=1;i<_l8.length;i++)if(_l8[i]!==_l8[i-1])_a++;
       _chopStr=_a/Math.max(1,_l8.length-1);
     }
-    // ดูว่า ping-pong/chop pattern fire ไหม
+    // เธ”เธนเธงเนเธฒ ping-pong/chop pattern fire เนเธซเธก
     const _chopFire=preds.filter(p=>(p.name==='pingpong'||p.name==='chop')&&p.conf>=3).length>0;
     const _isChop=_chopStr>=0.75||_chopFire;
-    const _isPerfect=_chopStr>=0.875; // 7/8 ตาสลับ = perfect ping-pong
+    const _isPerfect=_chopStr>=0.875; // 7/8 เธ•เธฒเธชเธฅเธฑเธ = perfect ping-pong
 
+<<<<<<< HEAD
     // คำนวณ effective weight
     const _strongPat=preds.filter(p=>
       ['cycle_streak','cycle','streak','dragon','pingpong'].includes(p.name)&&p.conf>=4
@@ -2331,6 +2344,12 @@ function runPredictionEngine(h,streak,streakSide){
     if(_isPerfect){_effWt=0.1;}       // suppress เกือบสมบูรณ์
     else if(_isChop){_effWt=tfWt*0.2;} // ลด 80%
     else if(_strongPat){_effWt=tfWt*0.15;} // pattern ชัด → suppress TF
+=======
+    // เธเธณเธเธงเธ“ effective weight
+    let _effWt=tfWt;
+    if(_isPerfect){_effWt=0.1;}       // suppress เน€เธเธทเธญเธเธชเธกเธเธนเธฃเธ“เน
+    else if(_isChop){_effWt=tfWt*0.2;} // เธฅเธ” 80%
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 
     tfCandidate={
       name:'tf_model',
@@ -2357,18 +2376,18 @@ function runPredictionEngine(h,streak,streakSide){
   const voteConf=voteMargin>0.4?5:voteMargin>0.25?4:voteMargin>0.1?3:2;
   let confFinal=Math.max(1,Math.min(5,Math.max(gate.conf,hybrid.conf,voteConf,ql?ql.conf:0,tfResult?tfResult.conf:0)));
   let reason=hybrid.reason;
-  if(best&&best.reason&&!reason.includes(best.reason.split(' — ')[0]))
-    reason+=' · '+best.reason;
-  if(dr.insufficient&&!reason.includes('3เกลอ'))
-    reason='3เกลอรอข้อมูล ('+dr.pbCount+'/'+dr.minRequired+') · '+reason;
-  if(best.isFallback&&gate.chaos.score>=65&&!reason.includes('ประคอง'))
-    reason='ประคองสถิติ (Flat Base) · '+reason;
+  if(best&&best.reason&&!reason.includes(best.reason.split(' โ€” ')[0]))
+    reason+=' ยท '+best.reason;
+  if(dr.insufficient&&!reason.includes('3เน€เธเธฅเธญ'))
+    reason='3เน€เธเธฅเธญเธฃเธญเธเนเธญเธกเธนเธฅ ('+dr.pbCount+'/'+dr.minRequired+') ยท '+reason;
+  if(best.isFallback&&gate.chaos.score>=65&&!reason.includes('เธเธฃเธฐเธเธญเธ'))
+    reason='เธเธฃเธฐเธเธญเธเธชเธ–เธดเธ•เธด (Flat Base) ยท '+reason;
 
   if(tfCandidate&&best.name==='tf_model'&&gate.chaos.score<65&&!tfCandidate.chopSuppressed){
-    reason='TF Model ชนะลูกผสม · '+reason;
+    reason='TF Model เธเธเธฐเธฅเธนเธเธเธชเธก ยท '+reason;
   }
   if(tfCandidate&&tfCandidate.chopSuppressed){
-    reason='⚠️ Chop Room — TF suppressed · '+reason;
+    reason='โ ๏ธ Chop Room โ€” TF suppressed ยท '+reason;
   }
 
   // Propagate entropy skip from hybridEnsembleDecision
@@ -2379,14 +2398,14 @@ function runPredictionEngine(h,streak,streakSide){
     skip:forceSkip,
     hedgeTie:false,
     bet:forceSkip?'N':winner, // no-op bet when skipping
-    reason:forceSkip?(skipReason+' · '+reason):reason,
+    reason:forceSkip?(skipReason+' ยท '+reason):reason,
     conf:forceSkip?1:confFinal,
     patternName:forceSkip?'entropy_skip':(tfCandidate&&winner===tfCandidate.bet&&!tfCandidate.chopSuppressed&&tfCandidate.weight>=1.0?'tf_model':(ql?'q_hybrid':best.name)),
     weight:best.weight,
     allPreds:preds,
     votes,
     chaos:gate.chaos,
-    riskLabel:forceSkip?'Entropy สูง — Random Room':gate.riskLabel,
+    riskLabel:forceSkip?'Entropy เธชเธนเธ โ€” Random Room':gate.riskLabel,
     riskLevel:forceSkip?'high':gate.riskLevel,
     gate,
     qLearning:ql,
@@ -2436,18 +2455,18 @@ function showSuggest(){
   }
   const riskEl=document.getElementById('riskBadge');
   if(riskEl){
-    riskEl.textContent=result.riskLabel||'—';
+    riskEl.textContent=result.riskLabel||'โ€”';
     riskEl.className='risk-badge '+(result.riskLevel||'mid');
   }
 
-  // TF Model badge — shows when TF model is trained and used
+  // TF Model badge โ€” shows when TF model is trained and used
   const tfBadge=document.getElementById('tfBadge');
   if(tfBadge){
     tfBadge.className='tf-badge';
     const tfAvailable=!!window._tfModel;
     const tfUsed=result.patternName==='tf_model';
     if(tfUsed&&tfAvailable){
-      tfBadge.textContent='🤖 TF AI';
+      tfBadge.textContent='๐ค– TF AI';
       tfBadge.className='tf-badge active';
     } else if(tfAvailable){
       tfBadge.textContent='TF MODEL';
@@ -2461,7 +2480,7 @@ function showSuggest(){
   const el=document.getElementById('sugBet');
   const txtEl=document.getElementById('sugTxt');
   box.classList.remove('nobet','hedge-tie');
-  // ── Skip Signal from TF ─────────────────────────────────────────
+  // โ”€โ”€ Skip Signal from TF โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
   const tfSkip = result.tfResult && result.tfResult.winner === 'SKIP';
   const voteMarginLow = result.votes &&
     Math.abs((result.votes.P||0)-(result.votes.B||0)) /
@@ -2483,10 +2502,10 @@ function showSuggest(){
   const mirrorBreak=isMirrorSafetyBreak();
   if(mirrorBreak){
     txtEl.className='sug-txt mirror-safety';
-    txtEl.textContent='🤖 จบลูปสมมาตรกระจกเงา -> บอทปรับลดเงินเดิมพันขั้นต่ำเพื่อรอดูทรงไพ่ใหม่ · '+result.reason;
+    txtEl.textContent='๐ค– เธเธเธฅเธนเธเธชเธกเธกเธฒเธ•เธฃเธเธฃเธฐเธเธเน€เธเธฒ -> เธเธญเธ—เธเธฃเธฑเธเธฅเธ”เน€เธเธดเธเน€เธ”เธดเธกเธเธฑเธเธเธฑเนเธเธ•เนเธณเน€เธเธทเนเธญเธฃเธญเธ”เธนเธ—เธฃเธเนเธเนเนเธซเธกเน ยท '+result.reason;
   }else{
     txtEl.className='sug-txt';
-    txtEl.textContent=result.reason+(result.gate&&result.gate.conflict?' · มีสัญญาณขัด (ลดขนาดเดิมพัน)':'');
+    txtEl.textContent=result.reason+(result.gate&&result.gate.conflict?' ยท เธกเธตเธชเธฑเธเธเธฒเธ“เธเธฑเธ” (เธฅเธ”เธเธเธฒเธ”เน€เธ”เธดเธกเธเธฑเธ)':'');
   }
   result.bet=mainBet;
 
@@ -2503,7 +2522,7 @@ function showSuggest(){
       accEl.textContent=acc+'%';
       accEl.style.color=acc>=55?'var(--green-pos)':acc>=45?'var(--gold)':'var(--red-neg)';
     }else{
-      accEl.textContent='—';
+      accEl.textContent='โ€”';
       accEl.style.color='var(--dim)';
     }
   }
@@ -2512,7 +2531,7 @@ function showSuggest(){
   const dynAmt=calcAutoBetAmount(result.conf,chaos.score);
   if(sizeEl){
     const pct=Math.round(calcConfidenceMultiplier(result.conf)*100);
-    sizeEl.textContent=S.autoPlay?'เดิมพัน '+fmt(dynAmt)+' ('+pct+'%)':'แนะนำ '+fmt(dynAmt)+' ('+pct+'%)';
+    sizeEl.textContent=S.autoPlay?'เน€เธ”เธดเธกเธเธฑเธ '+fmt(dynAmt)+' ('+pct+'%)':'เนเธเธฐเธเธณ '+fmt(dynAmt)+' ('+pct+'%)';
   }
 
   updateAutoBotStatus(result);
@@ -2606,7 +2625,7 @@ function resetAll(){
   document.getElementById('suggest').classList.remove('show');
   const qrb=document.getElementById('quickResultBanner');if(qrb)qrb.classList.remove('show');
   ['bsP','bsB','bsT'].forEach(id=>document.getElementById(id).className='bsbtn');
-  document.getElementById('betSide').textContent='—';
+  document.getElementById('betSide').textContent='โ€”';
   S.betSide=null;closeModal();saveCurrent();
 }
 
@@ -2623,8 +2642,8 @@ function saveSession(){
   localStorage.setItem('bac_sessions',JSON.stringify(sessions));
   renderSessions();
   const btn=document.querySelector('.sess-save');
-  btn.textContent='✓ บันทึกแล้ว';
-  setTimeout(()=>btn.textContent='💾 บันทึก Session นี้',1500);
+  btn.textContent='โ“ เธเธฑเธเธ—เธถเธเนเธฅเนเธง';
+  setTimeout(()=>btn.textContent='๐’พ เธเธฑเธเธ—เธถเธ Session เธเธตเน',1500);
 }
 function loadSession(idx){
   const s=JSON.parse(localStorage.getItem('bac_sessions')||'[]')[idx];
@@ -2647,19 +2666,19 @@ function deleteSession(idx){
 function renderSessions(){
   const el=document.getElementById('sessList');if(!el)return;
   const sessions=JSON.parse(localStorage.getItem('bac_sessions')||'[]');
-  if(!sessions.length){el.innerHTML='<div class="sess-empty">ยังไม่มี session ที่บันทึก</div>';return;}
+  if(!sessions.length){el.innerHTML='<div class="sess-empty">เธขเธฑเธเนเธกเนเธกเธต session เธ—เธตเนเธเธฑเธเธ—เธถเธ</div>';return;}
   el.innerHTML='';
   sessions.forEach((s,i)=>{
     const pnl=s.balance||0;
     const d=document.createElement('div');d.className='sess-item';
     d.innerHTML=`<div>
       <div class="si-date">${s.date}</div>
-      <div class="si-stat">${s.rounds} ตา &nbsp;P:${s.pC} B:${s.bC} T:${s.tC}</div>
+      <div class="si-stat">${s.rounds} เธ•เธฒ &nbsp;P:${s.pC} B:${s.bC} T:${s.tC}</div>
       <div class="si-pnl ${pnl>0?'pos':pnl<0?'neg':'neu'}">${pnl>=0?'+':''}${fmt(pnl)}</div>
     </div>
     <div class="sess-btns">
-      <button class="sess-load-btn" onclick="loadSession(${i})">โหลด</button>
-      <button class="sess-del" onclick="deleteSession(${i})">ลบ</button>
+      <button class="sess-load-btn" onclick="loadSession(${i})">เนเธซเธฅเธ”</button>
+      <button class="sess-del" onclick="deleteSession(${i})">เธฅเธ</button>
     </div>`;
     el.appendChild(d);
   });
@@ -2713,7 +2732,7 @@ function loadCurrent(){
   syncTrainingModeUI();
   setMoneyMgmt(S.moneyMgmt);
   document.getElementById('tfWtSlider').value = S.tfWeight;
-  document.getElementById('tfWtVal').textContent = (S.tfWeight||3).toFixed(1)+'×';
+  document.getElementById('tfWtVal').textContent = (S.tfWeight||3).toFixed(1)+'ร—';
   updatePnlBar();updateOdds();renderHistRow();showSuggest();
   setTimeout(()=>{const el=document.getElementById('betDisplayAmt');if(el)el.textContent=fmt(getCurrentBet());},0);
 }
@@ -2721,7 +2740,11 @@ function loadCurrent(){
 // Init
 loadQTable();
 buildGrid();renderHands();loadCurrent();
+<<<<<<< HEAD
 // Auto-train on startup (ไม่รบกวน UI)
+=======
+// Auto-train on startup (เนเธกเนเธฃเธเธเธงเธ UI)
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 setTimeout(()=>autoTrainOnStartup(),800);
 
 // Load persisted TF model on startup so it's available for in-game use
@@ -2743,7 +2766,7 @@ setTimeout(()=>autoTrainOnStartup(),800);
   }
 })();
 
-// ---- TRAINING DASHBOARD — self-train AI in browser ----
+// ---- TRAINING DASHBOARD โ€” self-train AI in browser ----
 // The trained model is stored in window._tfModel and used directly by
 // getTFDecision() for in-game predictions (bypasses S.qTable).
 
@@ -2762,7 +2785,7 @@ let _td = {
 
 function _tdMakeModel() {
   const m = tf.sequential();
-  // 32-feature input → deeper network
+  // 32-feature input โ’ deeper network
   m.add(tf.layers.dense({ inputShape: [ENCODE_SIZE], units: 256, activation: 'relu',
     kernelInitializer: 'glorotUniform' }));
   m.add(tf.layers.batchNormalization());
@@ -2772,7 +2795,7 @@ function _tdMakeModel() {
   m.add(tf.layers.dense({ units: 64, activation: 'relu' }));
   m.add(tf.layers.dropout({ rate: 0.10 }));
   m.add(tf.layers.dense({ units: 32, activation: 'relu' }));
-  // Output: 3 actions — B=0, P=1, SKIP=2
+  // Output: 3 actions โ€” B=0, P=1, SKIP=2
   m.add(tf.layers.dense({ units: 3, activation: 'linear' }));
   m.compile({
     optimizer: tf.train.adam(0.0008),
@@ -2786,8 +2809,8 @@ function _tdMakeModel() {
 async function _tdSaveModel(model, stats) {
   try {
     const weights = model.getWeights();
-    // FIX: Float32Array ต้อง Array.from() ก่อน JSON.stringify
-    // ไม่งั้น serialize เป็น {"0":0.1,"1":0.2} แล้ว tf.tensor() load กลับไม่ได้
+    // FIX: Float32Array เธ•เนเธญเธ Array.from() เธเนเธญเธ JSON.stringify
+    // เนเธกเนเธเธฑเนเธ serialize เน€เธเนเธ {"0":0.1,"1":0.2} เนเธฅเนเธง tf.tensor() load เธเธฅเธฑเธเนเธกเนเนเธ”เน
     const serialized = await Promise.all(
       weights.map(async w => { const d = await w.data(); return Array.from(d); })
     );
@@ -2824,17 +2847,17 @@ async function _tdLoadModel(model) {
     const meta = JSON.parse(metaJson);
     if (!weightsData.length) return false;
 
-    // ── Version check: ถ้าโมเดลเก่าใช้ 16 features → clear ทิ้ง ──────
-    // Shape[0] ของ layer แรก = [inputSize, units] → shapes[0][0] คือ inputSize
+    // โ”€โ”€ Version check: เธ–เนเธฒเนเธกเน€เธ”เธฅเน€เธเนเธฒเนเธเน 16 features โ’ clear เธ—เธดเนเธ โ”€โ”€โ”€โ”€โ”€โ”€
+    // Shape[0] เธเธญเธ layer เนเธฃเธ = [inputSize, units] โ’ shapes[0][0] เธเธทเธญ inputSize
     const savedInputSize = meta.shapes && meta.shapes[0] ? meta.shapes[0][0] : 0;
     if (savedInputSize !== ENCODE_SIZE) {
-      console.warn(`[TF Model] Input size mismatch: saved=${savedInputSize} expected=${ENCODE_SIZE} — clearing old model`);
+      console.warn(`[TF Model] Input size mismatch: saved=${savedInputSize} expected=${ENCODE_SIZE} โ€” clearing old model`);
       localStorage.removeItem('tf_model_weights');
       localStorage.removeItem('tf_model_meta');
       return false;
     }
     const tensors = weightsData.map((data, i) => {
-      // FIX: force Float32Array เพื่อให้ tf.tensor() รับได้เสมอ
+      // FIX: force Float32Array เน€เธเธทเนเธญเนเธซเน tf.tensor() เธฃเธฑเธเนเธ”เนเน€เธชเธกเธญ
       const typedData = data instanceof Float32Array ? data : new Float32Array(data);
       return tf.tensor(typedData, meta.shapes[i], meta.dtypes[i]);
     });
@@ -2853,7 +2876,7 @@ async function _tdLoadModel(model) {
 async function exportTFModel() {
   const model = window._tfModel;
   if (!model) {
-    alert('ยังไม่มีโมเดลที่เทรนแล้ว — กรุณาเทรนก่อน'); return;
+    alert('เธขเธฑเธเนเธกเนเธกเธตเนเธกเน€เธ”เธฅเธ—เธตเนเน€เธ—เธฃเธเนเธฅเนเธง โ€” เธเธฃเธธเธ“เธฒเน€เธ—เธฃเธเธเนเธญเธ'); return;
   }
   try {
     const weights = model.getWeights();
@@ -2872,7 +2895,7 @@ async function exportTFModel() {
     a.click();
     URL.revokeObjectURL(url);
   } catch(e) {
-    alert('Export ล้มเหลว: ' + e.message);
+    alert('Export เธฅเนเธกเน€เธซเธฅเธง: ' + e.message);
   }
 }
 
@@ -2884,7 +2907,7 @@ async function importTFModel(fileInput) {
     const text = await file.text();
     const data = JSON.parse(text);
     if (!data.version || !data.weights || !data.shapes || !data.dtypes) {
-      alert('ไฟล์ไม่ถูกต้อง: ไม่ใช่ TF Model export file'); return;
+      alert('เนเธเธฅเนเนเธกเนเธ–เธนเธเธ•เนเธญเธ: เนเธกเนเนเธเน TF Model export file'); return;
     }
     await tf.ready();
     const m = _tdMakeModel();
@@ -2898,23 +2921,23 @@ async function importTFModel(fileInput) {
     if (msgEl) {
       const r = data.meta?.trainedRounds || '?';
       const wr = data.meta?.winRate ? (data.meta.winRate * 100).toFixed(1) + '%' : '?';
-      msgEl.innerHTML = '<span style="color:var(--green-pos)">✅ โหลดโมเดลสำเร็จ</span> — ' + r + ' รอบ, Win Rate ' + wr;
+      msgEl.innerHTML = '<span style="color:var(--green-pos)">โ… เนเธซเธฅเธ”เนเธกเน€เธ”เธฅเธชเธณเน€เธฃเนเธ</span> โ€” ' + r + ' เธฃเธญเธ, Win Rate ' + wr;
     }
     fileInput.value = '';
   } catch(e) {
-    alert('Import ล้มเหลว: ' + e.message);
+    alert('Import เธฅเนเธกเน€เธซเธฅเธง: ' + e.message);
     fileInput.value = '';
   }
 }
 
-/** Encode game history → 16-feature vector (must match encodeState exactly) */
+/** Encode game history โ’ 16-feature vector (must match encodeState exactly) */
 function encodeStateForTF(hist) {
   return encodeState(hist);
 }
 
-/** Sync TF prediction for in-game use — returns {bet, conf, qP, qB} or null */
-// ── Skip threshold: ถ้า best Q - second Q < SKIP_THRESHOLD → SKIP ──────
-const SKIP_THRESHOLD = 0.18; // ตัวเลขนี้ต้องปรับตาม training จริง
+/** Sync TF prediction for in-game use โ€” returns {bet, conf, qP, qB} or null */
+// โ”€โ”€ Skip threshold: เธ–เนเธฒ best Q - second Q < SKIP_THRESHOLD โ’ SKIP โ”€โ”€โ”€โ”€โ”€โ”€
+const SKIP_THRESHOLD = 0.18; // เธ•เธฑเธงเน€เธฅเธเธเธตเนเธ•เนเธญเธเธเธฃเธฑเธเธ•เธฒเธก training เธเธฃเธดเธ
 
 function getTFDecision(hist) {
   if (!window._tfModel) return null;
@@ -2928,14 +2951,14 @@ function getTFDecision(hist) {
     const qP    = qVals[1];
     const qSkip = qVals.length >= 3 ? qVals[2] : -Infinity;
 
-    // ── Confidence Margin ───────────────────────────
-    // max - second = margin (สาย Quant)
+    // โ”€โ”€ Confidence Margin โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
+    // max - second = margin (เธชเธฒเธข Quant)
     const sorted = [qB, qP, qSkip].sort((a, b) => b - a);
     const margin = sorted[0] - sorted[1]; // margin between top-2
 
-    // ── Skip Signal ─────────────────────────────────
+    // โ”€โ”€ Skip Signal โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
     // 1. SKIP action wins outright
-    // 2. margin ต่ำ → ไม่ชัดเจน → SKIP
+    // 2. margin เธ•เนเธณ โ’ เนเธกเนเธเธฑเธ”เน€เธเธ โ’ SKIP
     if (qSkip >= qB && qSkip >= qP) {
       return { winner: 'SKIP', conf: 1, qP, qB, qSkip, margin, source: 'tf_skip' };
     }
@@ -2943,11 +2966,11 @@ function getTFDecision(hist) {
       return { winner: 'SKIP', conf: 1, qP, qB, qSkip, margin, source: 'tf_lowconf' };
     }
 
-    // ── Winner ──────────────────────────────────────
+    // โ”€โ”€ Winner โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
     const winner = qP >= qB ? 'P' : 'B';
 
-    // ── Proper Confidence from margin ───────────────
-    // ใช้ margin จริง ไม่ใช่ threshold เดิม
+    // โ”€โ”€ Proper Confidence from margin โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
+    // เนเธเน margin เธเธฃเธดเธ เนเธกเนเนเธเน threshold เน€เธ”เธดเธก
     let conf = 1;
     if (margin >= 1.5) conf = 5;
     else if (margin >= 0.9) conf = 4;
@@ -2968,10 +2991,17 @@ function updateTrainDashToggleHint() {
     const meta = (() => { try { return JSON.parse(localStorage.getItem('tf_model_meta')||'{}'); } catch(e){return{};} })();
     const r = meta.stats && meta.stats.trainedRounds ? meta.stats.trainedRounds : '?';
     const wr = meta.stats && meta.stats.winRate ? Math.round(meta.stats.winRate*100)+'%' : '?';
+<<<<<<< HEAD
     hint.textContent = '✓ AI Active — '+r+'r, '+wr;
     hint.style.color = 'var(--green-pos)';
   } else {
     hint.textContent = '⏳ กำลังโหลด AI...';
+=======
+    hint.textContent = 'โ“ AI Active โ€” '+r+'r, '+wr;
+    hint.style.color = 'var(--green-pos)';
+  } else {
+    hint.textContent = 'โณ เธเธณเธฅเธฑเธเนเธซเธฅเธ” AI...';
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     hint.style.color = 'var(--gold)';
   }
 }
@@ -3013,7 +3043,7 @@ function toggleTrainDash() {
   const btPanel = document.getElementById('backtestPanel');
   const btn = document.getElementById('trainDashToggle');
   const vis = el.classList.toggle('show');
-  btn.textContent = vis ? '▲ AI เรียนรู้' : '▼ AI เรียนรู้';
+  btn.textContent = vis ? 'โ–ฒ AI เน€เธฃเธตเธขเธเธฃเธนเน' : 'โ–ผ AI เน€เธฃเธตเธขเธเธฃเธนเน';
   // Show backtest panel alongside train panel
   if (btPanel) btPanel.style.display = vis ? 'block' : 'none';
 }
@@ -3039,7 +3069,7 @@ function drawTrainChart() {
 
   const PADL = 8, PADR = 8, PADT = 16, PADB = 8;
 
-  // Data bounds (winRate 0.30–0.70, epsilon 0–1)
+  // Data bounds (winRate 0.30โ€“0.70, epsilon 0โ€“1)
   const wrMin = 0.30, wrMax = 0.70;
 
   // If we have epsilon data, normalise it to winRate range for overlay
@@ -3077,10 +3107,10 @@ function drawTrainChart() {
   // Legend
   ctx.fillStyle = 'rgba(201,168,76,0.6)';
   ctx.font = '7px Sarabun, sans-serif';
-  ctx.fillText('● Win Rate', PADL, PADT - 4);
+  ctx.fillText('โ— Win Rate', PADL, PADT - 4);
   if (hasEps) {
     ctx.fillStyle = 'rgba(34,197,94,0.6)';
-    ctx.fillText('● ε สำรวจ', PADL + 65, PADT - 4);
+    ctx.fillText('โ— ฮต เธชเธณเธฃเธงเธ', PADL + 65, PADT - 4);
   }
 
   // Win rate fill under curve
@@ -3138,12 +3168,12 @@ function updateTrainDashUI(stats) {
   if (!stats) return;
   const { winRate, pnl, rounds, epsilon: eps, converged, baselines, testPnl, youPnl, casinoPnl } = stats;
 
-  document.getElementById('trainWinRate').textContent = winRate != null ? _pct(winRate) : '—';
-  document.getElementById('trainPnl').textContent = pnl != null ? _fmtN(pnl) : '—';
+  document.getElementById('trainWinRate').textContent = winRate != null ? _pct(winRate) : 'โ€”';
+  document.getElementById('trainPnl').textContent = pnl != null ? _fmtN(pnl) : 'โ€”';
   document.getElementById('trainRounds').textContent = rounds != null ? rounds : '0';
-  document.getElementById('trainEpsilon').textContent = eps != null ? eps.toFixed(3) : '—';
+  document.getElementById('trainEpsilon').textContent = eps != null ? eps.toFixed(3) : 'โ€”';
 
-  // Progress bar: 0→100% maps to epsilon 1.0→0.05 (convergence progress)
+  // Progress bar: 0โ’100% maps to epsilon 1.0โ’0.05 (convergence progress)
   const bar = document.getElementById('trainProgressBar');
   if (bar) {
     const initialEps = 1.0, epsMin = 0.05;
@@ -3157,7 +3187,7 @@ function updateTrainDashUI(stats) {
     }
   }
 
-  // Chart — rolling win rate + epsilon overlay
+  // Chart โ€” rolling win rate + epsilon overlay
   _td.chartData.push({ winRate, epsilon: _td.currentEpsilon });
   if (_td.chartData.length > _td.maxPoints) _td.chartData.shift();
   drawTrainChart();
@@ -3169,7 +3199,7 @@ function updateTrainDashUI(stats) {
       box.style.display = 'block';
       // Update header with actual trained rounds
       const hdr = document.getElementById('trainCompareHeader');
-      if (hdr && rounds) hdr.textContent = '◆ เปรียบเทียบผล (' + rounds + ' รอบที่เทรน)';
+      if (hdr && rounds) hdr.textContent = 'โ— เน€เธเธฃเธตเธขเธเน€เธ—เธตเธขเธเธเธฅ (' + rounds + ' เธฃเธญเธเธ—เธตเนเน€เธ—เธฃเธ)';
       // Use full-pass stats (all trained rounds) for AI
       const bankPnl = baselines['always-bank']?.pnl || 0;
       const playPnl = baselines['always-play']?.pnl || 0;
@@ -3178,11 +3208,11 @@ function updateTrainDashUI(stats) {
       const playWins = baselines['always-play']?.wins || 0;
       const playTotal = baselines['always-play']?.total || 1;
 
-      // AI row — uses full-pass pnl & winRate from training, baselines for comparison
+      // AI row โ€” uses full-pass pnl & winRate from training, baselines for comparison
       const aiPct = document.getElementById('trainAiPct');
       const aiPnl = document.getElementById('trainAiPnl');
       const aiDiff = document.getElementById('trainAiDiff');
-      if (aiPct) { aiPct.textContent = winRate != null ? _pct(winRate) : '—'; aiPct.style.color = winRate != null && winRate >= 0.5 ? 'var(--green-pos)' : 'var(--red-neg)'; }
+      if (aiPct) { aiPct.textContent = winRate != null ? _pct(winRate) : 'โ€”'; aiPct.style.color = winRate != null && winRate >= 0.5 ? 'var(--green-pos)' : 'var(--red-neg)'; }
       if (aiPnl) { aiPnl.textContent = Math.round(pnl) > 0 ? '+' + Math.round(pnl) : Math.round(pnl); aiPnl.style.color = pnl > 0 ? 'var(--green-pos)' : pnl < 0 ? 'var(--red-neg)' : 'var(--dim)'; }
       if (aiDiff) { const diff = Math.round(pnl - bankPnl); aiDiff.textContent = diff > 0 ? '+' + diff : diff; aiDiff.style.color = diff > 0 ? 'var(--green-pos)' : diff < 0 ? 'var(--red-neg)' : 'var(--dim)'; }
 
@@ -3203,7 +3233,7 @@ function updateTrainDashUI(stats) {
   // Status
   const statusEl = document.getElementById('trainStatus');
   if (converged) {
-    statusEl.textContent = 'เสร็จ';
+    statusEl.textContent = 'เน€เธชเธฃเนเธ';
     statusEl.className = 'train-dash-status done';
   }
 }
@@ -3262,7 +3292,7 @@ function generateSequence(rounds, seed) {
 }
 
 // =====================================================
-// encodeState v3.0 — 32 Features
+// encodeState v3.0 โ€” 32 Features
 // Quant-grade feature engineering for Baccarat
 // =====================================================
 const ENCODE_VERSION = 3;
@@ -3274,11 +3304,11 @@ function encodeState(history) {
 
   const n = h.length;
 
-  // ── 1. Last winner ──────────────────────────────
+  // โ”€โ”€ 1. Last winner โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
   const last    = h[n - 1];
   const lastIsB = last === 'B' ? 1 : 0;
 
-  // ── 2. Dragon / Streak Detection ───────────────
+  // โ”€โ”€ 2. Dragon / Streak Detection โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
   let streakLen = 1;
   for (let i = n - 2; i >= 0; i--) {
     if (h[i] === last) streakLen++; else break;
@@ -3289,8 +3319,8 @@ function encodeState(history) {
   const isDragon10  = streakLen >= 10 ? 1 : 0;
   const streakSideB = last === 'B' ? 1 : 0;
 
-  // ── 3. Ping-Pong / Alternation Detection ────────
-  // alternScore: สัดส่วนการสลับใน window (PBPBPB = 1.0, PPPPPP = 0.0)
+  // โ”€โ”€ 3. Ping-Pong / Alternation Detection โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
+  // alternScore: เธชเธฑเธ”เธชเนเธงเธเธเธฒเธฃเธชเธฅเธฑเธเนเธ window (PBPBPB = 1.0, PPPPPP = 0.0)
   const w10 = h.slice(-10);
   const w6  = h.slice(-6);
   const w5  = h.slice(-5);
@@ -3304,12 +3334,12 @@ function encodeState(history) {
   const altScore6  = altScore(w6);
   const altScore5  = altScore(w5);
 
-  // Perfect ping-pong: last 4 เป็น PBPB หรือ BPBP
+  // Perfect ping-pong: last 4 เน€เธเนเธ PBPB เธซเธฃเธทเธญ BPBP
   const last4 = h.slice(-4);
   const isPingPong = (last4.length === 4 &&
     last4[0] !== last4[1] && last4[1] !== last4[2] && last4[2] !== last4[3]) ? 1 : 0;
 
-  // ── 4. Transition Matrix (full history) ─────────
+  // โ”€โ”€ 4. Transition Matrix (full history) โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
   const trans = { PP: 0, PB: 0, BP: 0, BB: 0 };
   for (let i = 0; i < n - 1; i++) {
     const k = h[i] + h[i+1];
@@ -3325,7 +3355,7 @@ function encodeState(history) {
   const markovNextB = last === 'P' ? tpb : tbb;
   const markovConf  = Math.abs(markovNextB - 0.5) * 2; // 0=uncertain, 1=certain
 
-  // ── 5. Multi-Window Frequency Features ──────────
+  // โ”€โ”€ 5. Multi-Window Frequency Features โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
   const cnt = (win, side) => win.filter(x => x === side).length / Math.max(1, win.length);
   const last5P  = cnt(h.slice(-5), 'P');
   const last5B  = cnt(h.slice(-5), 'B');
@@ -3337,8 +3367,8 @@ function encodeState(history) {
   // Overall banker ratio
   const bankerRatio = cnt(h, 'B');
 
-  // ── 6. Shannon Entropy ───────────────────────────
-  // H = -sum(p * log2(p)) — normalized to [0,1]
+  // โ”€โ”€ 6. Shannon Entropy โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
+  // H = -sum(p * log2(p)) โ€” normalized to [0,1]
   const shannonEntropy = (win) => {
     if (win.length < 2) return 0;
     const p = cnt(win, 'P');
@@ -3350,26 +3380,26 @@ function encodeState(history) {
   const entropy20   = shannonEntropy(h.slice(-20));
   const isHighChaos = entropy10 > 0.92 ? 1 : 0;  // near-perfect 50/50
 
-  // ── 7. Raw last-8 encoding ───────────────────────
+  // โ”€โ”€ 7. Raw last-8 encoding โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
   const last8 = h.slice(-8).map(x => x === 'B' ? 1 : 0);
   while (last8.length < 8) last8.unshift(0.5);
 
-  // ── 8. Meta features ────────────────────────────
+  // โ”€โ”€ 8. Meta features โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
   const totalNorm   = Math.min(1, n / 100);
   const dataMature  = n >= 15 ? 1 : 0;
 
-  // ── Confidence Margin (for skip logic in training) ─
-  // ตัวนี้ใช้ใน skip signal: ถ้า margin < threshold → ไม่แน่ใจ
+  // โ”€โ”€ Confidence Margin (for skip logic in training) โ”€
+  // เธ•เธฑเธงเธเธตเนเนเธเนเนเธ skip signal: เธ–เนเธฒ margin < threshold โ’ เนเธกเนเนเธเนเนเธ
   const confMargin  = Math.abs(markovNextB - 0.5) * 2 *
                       (isDragon4 ? 1.3 : isPingPong ? 1.2 : 1.0);
 
-  // ── Assemble 32-feature vector ───────────────────
+  // โ”€โ”€ Assemble 32-feature vector โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
   return [
     /* [0]  */ lastIsB,                              // last winner = Banker
     /* [1]  */ streakNorm,                           // streak length / 12
-    /* [2]  */ isDragon4,                            // streak ≥ 4
-    /* [3]  */ isDragon6,                            // streak ≥ 6
-    /* [4]  */ isDragon10,                           // streak ≥ 10
+    /* [2]  */ isDragon4,                            // streak โฅ 4
+    /* [3]  */ isDragon6,                            // streak โฅ 6
+    /* [4]  */ isDragon10,                           // streak โฅ 10
     /* [5]  */ streakSideB,                          // streak side = Banker
     /* [6]  */ altScore10,                           // ping-pong score last 10
     /* [7]  */ altScore6,                            // ping-pong score last 6
@@ -3425,7 +3455,7 @@ async function startTraining() {
   document.getElementById('trainStartBtn').disabled = true;
   document.getElementById('trainStopBtn').disabled = false;
   const statusEl = document.getElementById('trainStatus');
-  statusEl.textContent = 'กำลังเทรน...';
+  statusEl.textContent = 'เธเธณเธฅเธฑเธเน€เธ—เธฃเธ...';
   statusEl.className = 'train-dash-status running';
   const msgEl = document.getElementById('trainMsg');
   msgEl.textContent = '';
@@ -3437,19 +3467,19 @@ async function startTraining() {
     const el = document.getElementById(id);
     if (el) el.textContent = text;
   };
-  _clearBacktestRow('btAiCorrect', '—');
-  _clearBacktestRow('btAiPct', '—');
-  _clearBacktestRow('btAiPnl', '—');
-  _clearBacktestRow('btAiDiff', '—');
-  _clearBacktestRow('btQLCorrect', '—');
-  _clearBacktestRow('btQLPct', '—');
-  _clearBacktestRow('btQLPnl', '—');
-  _clearBacktestRow('btQLDiff', '—');
-  _clearBacktestRow('btBankCorrect', '—');
-  _clearBacktestRow('btBankPct', '—');
-  _clearBacktestRow('btBankPnl', '—');
+  _clearBacktestRow('btAiCorrect', 'โ€”');
+  _clearBacktestRow('btAiPct', 'โ€”');
+  _clearBacktestRow('btAiPnl', 'โ€”');
+  _clearBacktestRow('btAiDiff', 'โ€”');
+  _clearBacktestRow('btQLCorrect', 'โ€”');
+  _clearBacktestRow('btQLPct', 'โ€”');
+  _clearBacktestRow('btQLPnl', 'โ€”');
+  _clearBacktestRow('btQLDiff', 'โ€”');
+  _clearBacktestRow('btBankCorrect', 'โ€”');
+  _clearBacktestRow('btBankPct', 'โ€”');
+  _clearBacktestRow('btBankPnl', 'โ€”');
   const note = document.getElementById('backtestNote');
-  if (note) note.textContent = 'กด ▶ Backtest บนข้อมูล OOS (200 รอบที่ AI ไม่เคยเห็น)';
+  if (note) note.textContent = 'เธเธ” โ–ถ Backtest เธเธเธเนเธญเธกเธนเธฅ OOS (200 เธฃเธญเธเธ—เธตเน AI เนเธกเนเน€เธเธขเน€เธซเนเธ)';
 
   // Init TensorFlow
   let model, targetModel;
@@ -3476,7 +3506,7 @@ async function startTraining() {
       loadedFromCache = await _tdLoadModel(model);
       if (loadedFromCache) {
         targetModel.setWeights(model.getWeights().map(w => w.clone()));
-        msgEl.textContent = 'โหลดโมเดลเก่าแล้ว — ต่อยอดจากเทรนครั้งก่อน';
+        msgEl.textContent = 'เนเธซเธฅเธ”เนเธกเน€เธ”เธฅเน€เธเนเธฒเนเธฅเนเธง โ€” เธ•เนเธญเธขเธญเธ”เธเธฒเธเน€เธ—เธฃเธเธเธฃเธฑเนเธเธเนเธญเธ';
       }
     }
   }
@@ -3484,7 +3514,7 @@ async function startTraining() {
   // === TRAINING HYPERPARAMETERS ===
   const memory = [];
   // 3 actions: B=0, P=1, SKIP=2
-  // SKIP reward: ถ้าห้อง chaos สูง → skip ดีกว่าแทงผิด
+  // SKIP reward: เธ–เนเธฒเธซเนเธญเธ chaos เธชเธนเธ โ’ skip เธ”เธตเธเธงเนเธฒเนเธ—เธเธเธดเธ”
   const ACTIONS = ['B', 'P', 'SKIP'];
   let epsilon = 1.0;
   const epsilonMin = 0.05;
@@ -3549,7 +3579,7 @@ async function startTraining() {
   /** Epsilon decay: reaches epsilonMin exactly when actual training rounds end */
   const epsilonDecay = Math.pow(epsilonMin / 1.0, 1 / Math.max(1, trainEnd - trainStart));
 
-  /** Payout with Skip reward — skip is better than a wrong bet in chaos */
+  /** Payout with Skip reward โ€” skip is better than a wrong bet in chaos */
   const stake = 10;
   function pnlFor(bet, actual) {
     if (actual === 'T') return 0;
@@ -3559,9 +3589,9 @@ async function startTraining() {
   }
 
   /** Skip reward: depends on how "guessable" this round was
-   *  If it was a wrong bet → skip would have been better → +0.5 reward
-   *  If it was a correct bet → skip cost us a win → -0.2 reward
-   *  Chaos amplifies skip reward (ห้องเละ = skip ดีกว่า)
+   *  If it was a wrong bet โ’ skip would have been better โ’ +0.5 reward
+   *  If it was a correct bet โ’ skip cost us a win โ’ -0.2 reward
+   *  Chaos amplifies skip reward (เธซเนเธญเธเน€เธฅเธฐ = skip เธ”เธตเธเธงเนเธฒ)
    */
   function skipReward(actual, hSlice) {
     const feat = encodeState(hSlice);
@@ -3580,7 +3610,7 @@ async function startTraining() {
       const state = encodeState(hSlice);
       const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
 
-      // Epsilon-greedy — 3 actions: B / P / SKIP
+      // Epsilon-greedy โ€” 3 actions: B / P / SKIP
       let action;
       if (Math.random() < epsilon) {
         // During exploration: bias toward B/P 80%, SKIP 20% (don't over-learn skip)
@@ -3597,9 +3627,15 @@ async function startTraining() {
       const pnl = pnlFor(action, actual);
       cumulativePnl += pnl;
 
+<<<<<<< HEAD
       // Reward — use skip reward for SKIP action
       const rawSkip = action === 'SKIP' ? skipReward(actual, hSlice) : pnl;
       const reward = Math.max(-1.5, Math.min(1.5, rawSkip)); // clip rewards ป้องกัน explosion
+=======
+      // Reward โ€” use skip reward for SKIP action
+      const rawSkip = action === 'SKIP' ? skipReward(actual, hSlice) : pnl;
+      const reward = Math.max(-1.5, Math.min(1.5, rawSkip)); // clip rewards เธเนเธญเธเธเธฑเธ explosion
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
       const nextState = encodeState(history.slice(0, i + 1));
       memory.push({ state, nextState, action, reward, done: i === trainEnd });
 
@@ -3619,7 +3655,11 @@ async function startTraining() {
           const tr = [...row];
           const bestNext = Math.max(...nextVals[j]);
           const rawTarget = s.reward + (s.done ? 0 : gamma * bestNext);
+<<<<<<< HEAD
           // ── Clip target to [-3, +3] ป้องกัน Q explosion ──
+=======
+          // โ”€โ”€ Clip target to [-3, +3] เธเนเธญเธเธเธฑเธ Q explosion โ”€โ”€
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
           const aIdx = ACTIONS.indexOf(s.action);
           tr[aIdx] = Math.max(-3, Math.min(3, rawTarget));
           return tr;
@@ -3646,6 +3686,7 @@ async function startTraining() {
           ? rollingWindow.reduce((a, b) => a + b, 0) / rollingWindow.length
           : 0;
         updateTrainDashUI({
+<<<<<<< HEAD
           winRate: wr,
           pnl: cumulativePnl,
           rounds: i - trainStart,
@@ -3653,6 +3694,15 @@ async function startTraining() {
           converged: false
         });
         msgEl.textContent = `กำลังเทรน รอบ ${i} กำไร=${cumulativePnl > 0 ? '+' : ''}${cumulativePnl}`;
+=======
+      winRate: wr,
+      pnl: cumulativePnl,
+      rounds: i - trainStart,
+      epsilon,
+      converged: false
+    });
+        msgEl.textContent = `เธเธณเธฅเธฑเธเน€เธ—เธฃเธ เธฃเธญเธ ${i} เธเธณเนเธฃ=${cumulativePnl > 0 ? '+' : ''}${cumulativePnl}${epsilon <= epsilonMin ? ' [เธเธเนเธฅเนเธง]' : ''}`;
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
       }
     }
     const trainedRounds = Math.max(0, trainEnd - trainStart); // actual rounds the model learned on
@@ -3665,6 +3715,7 @@ async function startTraining() {
     let alwaysBPnl = 0, alwaysPPnl = 0;
     let alwaysBWins = 0, alwaysPWins = 0;
 
+<<<<<<< HEAD
     // Helper: pick action from 3-output qVals with skip signal
     const _pickAction = (qv) => {
       const qB = qv[0], qP = qv[1], qS = qv.length >= 3 ? qv[2] : -Infinity;
@@ -3674,6 +3725,18 @@ async function startTraining() {
       return qP >= qB ? 'P' : 'B';
     };
     msgEl.textContent = 'ทดสอบผลบนข้อมูลจริง...';
+=======
+
+  // Helper: pick action from 3-output qVals with skip signal
+  const _pickAction = (qv) => {
+    const qB = qv[0], qP = qv[1], qS = qv.length >= 3 ? qv[2] : -Infinity;
+    const margin = Math.abs(qP - qB);
+    if (qS >= qB && qS >= qP) return 'SKIP';
+    if (margin < SKIP_THRESHOLD) return 'SKIP';
+    return qP >= qB ? 'P' : 'B';
+  };
+    msgEl.textContent = 'เธ—เธ”เธชเธญเธเธเธฅเธเธเธเนเธญเธกเธนเธฅเธเธฃเธดเธ...';
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     for (let i = testStart; i <= testEnd; i++) {
       const state = encodeState(history.slice(0, i));
       const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
@@ -3762,12 +3825,12 @@ async function startTraining() {
       if (bp > 0) oosBWins++;
     }
     _td.trainingTestResults = {
-      // in-sample (full training pass) — สำหรับ training dashboard เท่านั้น
+      // in-sample (full training pass) โ€” เธชเธณเธซเธฃเธฑเธ training dashboard เน€เธ—เนเธฒเธเธฑเนเธ
       ai:    { pnl: fullPnl, wins: fullWins, total: fullNonTie, rounds: trainedRounds },
       ql:    { pnl: fullQLPnl, wins: fullQLWins, total: fullNonTie, rounds: trainedRounds },
       bank:  { pnl: fullBPnl, wins: fullBWins, total: fullNonTie, rounds: trainedRounds },
       play:  { pnl: fullPPnl, wins: fullPWins, total: fullNonTie, rounds: trainedRounds },
-      // OOS (last 200 unseen) — สำหรับ backtest panel
+      // OOS (last 200 unseen) โ€” เธชเธณเธซเธฃเธฑเธ backtest panel
       oos: {
         ai:   { pnl: testPnl, wins: testWins, total: testNonTie, rounds: testNonTie },
         bank: { pnl: oosBPnl, wins: oosBWins, total: oosBTotal }
@@ -3800,15 +3863,15 @@ async function startTraining() {
       testPnl
     });
 
-    statusEl.textContent = 'เสร็จ';
+    statusEl.textContent = 'เน€เธชเธฃเนเธ';
     statusEl.className = 'train-dash-status done';
     const aiVsBank = Math.round(fullPnl - fullBPnl);
     const vsTag = aiVsBank >= 0
-      ? '<b style="color:var(--green-pos)">ชนะ Banker +' + aiVsBank + '</b>'
-      : '<b style="color:var(--red-neg)">แพ้ Banker ' + aiVsBank + '</b>';
-    msgEl.innerHTML = 'เทรนเสร็จแล้ว! ' + vsTag +
+      ? '<b style="color:var(--green-pos)">เธเธเธฐ Banker +' + aiVsBank + '</b>'
+      : '<b style="color:var(--red-neg)">เนเธเน Banker ' + aiVsBank + '</b>';
+    msgEl.innerHTML = 'เน€เธ—เธฃเธเน€เธชเธฃเนเธเนเธฅเนเธง! ' + vsTag +
       ' <span style="color:var(--green-pos);font-size:7px">| TF Model Active</span>' +
-      (loadedFromCache ? ' <span style="color:var(--gold);font-size:7px">| ต่อยอดโมเดลเดิม</span>' : '');
+      (loadedFromCache ? ' <span style="color:var(--gold);font-size:7px">| เธ•เนเธญเธขเธญเธ”เนเธกเน€เธ”เธฅเน€เธ”เธดเธก</span>' : '');
 
     // Auto-show and run backtest
     const btPanel = document.getElementById('backtestPanel');
@@ -3828,19 +3891,19 @@ async function startTraining() {
 
 function stopTraining() {
   _td.stop = true;
-  document.getElementById('trainMsg').textContent = 'กำลังหยุด...';
+  document.getElementById('trainMsg').textContent = 'เธเธณเธฅเธฑเธเธซเธขเธธเธ”...';
 }
 
 /* =============================================
-   BACKTEST — เปรียบเทียบระบบทั้ง 3 บน data เดียวกัน
+   BACKTEST โ€” เน€เธเธฃเธตเธขเธเน€เธ—เธตเธขเธเธฃเธฐเธเธเธ—เธฑเนเธ 3 เธเธ data เน€เธ”เธตเธขเธงเธเธฑเธ
    ============================================= */
 
 function runBacktest() {
   const btn = document.getElementById('backtestRunBtn');
   const note = document.getElementById('backtestNote');
   btn.disabled = true;
-  btn.textContent = 'กำลังรัน...';
-  note.textContent = 'กำลังประมวลผล...';
+  btn.textContent = 'เธเธณเธฅเธฑเธเธฃเธฑเธ...';
+  note.textContent = 'เธเธณเธฅเธฑเธเธเธฃเธฐเธกเธงเธฅเธเธฅ...';
 
   // Run async so UI doesn't freeze
   setTimeout(() => {
@@ -3863,8 +3926,8 @@ function runBacktest() {
         }
       }
       if (history.length < 10) {
-        note.textContent = '⚠️ ข้อมูลน้อยเกินไป (ต้อง ≥10 รอบ)';
-        btn.disabled = false; btn.textContent = '▶ รัน Backtest';
+        note.textContent = 'โ ๏ธ เธเนเธญเธกเธนเธฅเธเนเธญเธขเน€เธเธดเธเนเธ (เธ•เนเธญเธ โฅ10 เธฃเธญเธ)';
+        btn.disabled = false; btn.textContent = 'โ–ถ เธฃเธฑเธ Backtest';
         return;
       }
 
@@ -3887,8 +3950,8 @@ function runBacktest() {
         if (actual === 'T') continue;
 
         // --- AI TF Model ---
-        // FIX: รัน AI บน history เดียวกันกับที่ backtest loop ใช้
-        // ถ้าไม่มีโมเดล live ให้ skip (จะ fallback ไป cached ทีหลัง)
+        // FIX: เธฃเธฑเธ AI เธเธ history เน€เธ”เธตเธขเธงเธเธฑเธเธเธฑเธเธ—เธตเน backtest loop เนเธเน
+        // เธ–เนเธฒเนเธกเนเธกเธตเนเธกเน€เธ”เธฅ live เนเธซเน skip (เธเธฐ fallback เนเธ cached เธ—เธตเธซเธฅเธฑเธ)
         const aiModel = window._tfModel;
         if (aiModel) {
           try {
@@ -3902,7 +3965,7 @@ function runBacktest() {
           } catch(aiErr) { /* skip round on tensor error */ }
         }
 
-        // --- Q-Learning + 3 เกลอ ---
+        // --- Q-Learning + 3 เน€เธเธฅเธญ ---
         // Reconstruct streak from history[0..i-1]
         const hSlice = history.slice(0, i);
         const pbSlice = hSlice.filter(x => x !== 'T');
@@ -3941,7 +4004,7 @@ function runBacktest() {
       const _c = (n) => n > 0 ? 'var(--green-pos)' : n < 0 ? 'var(--red-neg)' : 'var(--dim)';
       const cached = _td.trainingTestResults;
 
-      // AI row: priority 1=live OOS, 2=saved OOS (200 rounds), 3=in-sample⚠️
+      // AI row: priority 1=live OOS, 2=saved OOS (200 rounds), 3=in-sampleโ ๏ธ
       {
         const aiCorrect = document.getElementById('btAiCorrect');
         const aiPct = document.getElementById('btAiPct');
@@ -3960,14 +4023,14 @@ function runBacktest() {
         if (aiSrc) {
           const pct = Math.round(aiSrc.wins / aiSrc.total * 100);
           if (aiCorrect) aiCorrect.textContent = aiSrc.wins + '/' + aiSrc.total;
-          if (aiPct) { aiPct.textContent = pct + '%' + (aiWarn ? ' ⚠️' : ''); aiPct.style.color = aiWarn ? 'var(--gold)' : _c(pct - 50); }
+          if (aiPct) { aiPct.textContent = pct + '%' + (aiWarn ? ' โ ๏ธ' : ''); aiPct.style.color = aiWarn ? 'var(--gold)' : _c(pct - 50); }
           if (aiPnlEl2) { aiPnlEl2.textContent = (Math.round(aiSrc.pnl) > 0 ? '+' : '') + Math.round(aiSrc.pnl); aiPnlEl2.style.color = _c(Math.round(aiSrc.pnl)); }
           if (aiDiff) { const diff = Math.round(aiSrc.pnl - bankRefPnl); aiDiff.textContent = (diff > 0 ? '+' : '') + diff; aiDiff.style.color = _c(diff); }
         } else {
-          if (aiCorrect) aiCorrect.textContent = '—';
-          if (aiPct) { aiPct.textContent = 'เทรนก่อน'; aiPct.style.color = 'var(--dim)'; }
-          if (aiPnlEl2) { aiPnlEl2.textContent = '—'; aiPnlEl2.style.color = 'var(--dim)'; }
-          if (aiDiff) { aiDiff.textContent = '—'; aiDiff.style.color = 'var(--dim)'; }
+          if (aiCorrect) aiCorrect.textContent = 'โ€”';
+          if (aiPct) { aiPct.textContent = 'เน€เธ—เธฃเธเธเนเธญเธ'; aiPct.style.color = 'var(--dim)'; }
+          if (aiPnlEl2) { aiPnlEl2.textContent = 'โ€”'; aiPnlEl2.style.color = 'var(--dim)'; }
+          if (aiDiff) { aiDiff.textContent = 'โ€”'; aiDiff.style.color = 'var(--dim)'; }
         }
       }
 
@@ -3976,8 +4039,8 @@ function runBacktest() {
       const qlPct = document.getElementById('btQLPct');
       const qlPnlEl = document.getElementById('btQLPnl');
       const qlDiff = document.getElementById('btQLDiff');
-      if (qlCorrect) { qlCorrect.textContent = results.ql.total > 0 ? results.ql.wins + '/' + results.ql.total : '—'; qlCorrect.style.color = _c(1); }
-      if (qlPct) { qlPct.textContent = results.ql.total > 0 ? Math.round(results.ql.wins / results.ql.total * 100) + '%' : '—'; qlPct.style.color = results.ql.total > 0 ? _c((results.ql.wins / results.ql.total) - 0.5) : 'var(--dim)'; }
+      if (qlCorrect) { qlCorrect.textContent = results.ql.total > 0 ? results.ql.wins + '/' + results.ql.total : 'โ€”'; qlCorrect.style.color = _c(1); }
+      if (qlPct) { qlPct.textContent = results.ql.total > 0 ? Math.round(results.ql.wins / results.ql.total * 100) + '%' : 'โ€”'; qlPct.style.color = results.ql.total > 0 ? _c((results.ql.wins / results.ql.total) - 0.5) : 'var(--dim)'; }
       if (qlPnlEl) { qlPnlEl.textContent = Math.round(results.ql.pnl) > 0 ? '+' + Math.round(results.ql.pnl) : Math.round(results.ql.pnl); qlPnlEl.style.color = _c(Math.round(results.ql.pnl)); }
       if (qlDiff) { const bankRef = results.bank.total > 0 ? results.bank.pnl : (cached && cached.oos ? cached.oos.bank.pnl : (cached ? cached.bank.pnl : 0)); const diff = Math.round(results.ql.pnl - bankRef); qlDiff.textContent = diff > 0 ? '+' + diff : diff; qlDiff.style.color = _c(diff); }
 
@@ -3985,11 +4048,11 @@ function runBacktest() {
       const bankCorrect = document.getElementById('btBankCorrect');
       const bankPct = document.getElementById('btBankPct');
       const bankPnlEl = document.getElementById('btBankPnl');
-      if (bankCorrect) { bankCorrect.textContent = results.bank.total > 0 ? results.bank.wins + '/' + results.bank.total : '—'; }
-      if (bankPct) { bankPct.textContent = results.bank.total > 0 ? Math.round(results.bank.wins / results.bank.total * 100) + '%' : '—'; bankPct.style.color = results.bank.total > 0 ? _c((results.bank.wins / results.bank.total) - 0.5) : 'var(--dim)'; }
+      if (bankCorrect) { bankCorrect.textContent = results.bank.total > 0 ? results.bank.wins + '/' + results.bank.total : 'โ€”'; }
+      if (bankPct) { bankPct.textContent = results.bank.total > 0 ? Math.round(results.bank.wins / results.bank.total * 100) + '%' : 'โ€”'; bankPct.style.color = results.bank.total > 0 ? _c((results.bank.wins / results.bank.total) - 0.5) : 'var(--dim)'; }
       if (bankPnlEl) { bankPnlEl.textContent = Math.round(results.bank.pnl) > 0 ? '+' + Math.round(results.bank.pnl) : Math.round(results.bank.pnl); bankPnlEl.style.color = _c(Math.round(results.bank.pnl)); }
 
-      // Summary note — เลือก AI source เดียวกับตาราง
+      // Summary note โ€” เน€เธฅเธทเธญเธ AI source เน€เธ”เธตเธขเธงเธเธฑเธเธ•เธฒเธฃเธฒเธ
       const _aiSum = results.ai.total > 0 ? results.ai
         : (cached && cached.oos && cached.oos.ai && cached.oos.ai.total > 0 ? cached.oos.ai
         : (cached ? cached.ai : null));
@@ -4000,20 +4063,21 @@ function runBacktest() {
       const qlPnl   = results.ql.pnl;
       const bankPnl = results.bank.total > 0 ? results.bank.pnl : (cached && cached.oos ? cached.oos.bank.pnl : (cached ? cached.bank.pnl : 0));
       const bestPnl = Math.max(aiPnl, qlPnl, bankPnl);
-      const aiLbl = '🤖 AI (TF Model)';
-      const bestName = aiPnl === bestPnl ? aiLbl : qlPnl === bestPnl ? 'Q-Learning+3เกลอ' : 'แทง Banker เสมอ';
-      note.innerHTML = '✅ Backtest ' + totalRounds + ' รอบ OOS · อันดับ 1: <b style="color:var(--gold)">' + bestName + '</b> (' + (bestPnl > 0 ? '+' : '') + Math.round(bestPnl) + ')';
+      const aiLbl = '๐ค– AI (TF Model)';
+      const bestName = aiPnl === bestPnl ? aiLbl : qlPnl === bestPnl ? 'Q-Learning+3เน€เธเธฅเธญ' : 'เนเธ—เธ Banker เน€เธชเธกเธญ';
+      note.innerHTML = 'โ… Backtest ' + totalRounds + ' เธฃเธญเธ OOS ยท เธญเธฑเธเธ”เธฑเธ 1: <b style="color:var(--gold)">' + bestName + '</b> (' + (bestPnl > 0 ? '+' : '') + Math.round(bestPnl) + ')';
 
     } catch(e) {
-      note.textContent = '❌ Error: ' + e.message;
+      note.textContent = 'โ Error: ' + e.message;
     }
     btn.disabled = false;
-    btn.textContent = '▶ รัน Backtest';
+    btn.textContent = 'โ–ถ เธฃเธฑเธ Backtest';
   }, 50);
 }
 
 
 // =====================================================
+<<<<<<< HEAD
 //  AUTO-TRAIN SYSTEM — ไม่ต้องกดเทรนเอง
 //  - โหลด model จาก localStorage ทุก startup
 //  - ถ้าไม่มีหรือ model เก่า (<300 rounds) → train background ทันที
@@ -4025,6 +4089,19 @@ const AUTO_TRAIN_ROUNDS   = 2000;  // rounds สำหรับ initial training
 const AUTO_RETRAIN_EVERY  = 30;    // กี่ round จึง trigger mini re-train
 const AUTO_MINI_ROUNDS    = 400;   // rounds ของ mini re-train
 const AUTO_ONLINE_LR      = 0.003; // learning rate สำหรับ online update ทีละ round
+=======
+//  AUTO-TRAIN SYSTEM โ€” เนเธกเนเธ•เนเธญเธเธเธ”เน€เธ—เธฃเธเน€เธญเธ
+//  - เนเธซเธฅเธ” model เธเธฒเธ localStorage เธ—เธธเธ startup
+//  - เธ–เนเธฒเนเธกเนเธกเธตเธซเธฃเธทเธญ model เน€เธเนเธฒ (<300 rounds) โ’ train background เธ—เธฑเธเธ—เธต
+//  - Online learning: เธ—เธธเธ quickAdd() โ’ update weights เธเธฒเธ round เธเธฑเนเธ
+//  - Mini re-train: เธ—เธธเธ AUTO_RETRAIN_EVERY rounds โ’ background re-train เน€เธเธดเนเธก
+// =====================================================
+
+const AUTO_TRAIN_ROUNDS   = 2000;  // rounds เธชเธณเธซเธฃเธฑเธ initial training
+const AUTO_RETRAIN_EVERY  = 30;    // เธเธตเน round เธเธถเธ trigger mini re-train
+const AUTO_MINI_ROUNDS    = 400;   // rounds เธเธญเธ mini re-train
+const AUTO_ONLINE_LR      = 0.003; // learning rate เธชเธณเธซเธฃเธฑเธ online update เธ—เธตเธฅเธฐ round
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 
 let _autoTrainState = {
   roundsSinceRetrain: 0,
@@ -4032,7 +4109,11 @@ let _autoTrainState = {
   onlineUpdateQueue: [],
 };
 
+<<<<<<< HEAD
 // ─── Status badge (top-left mini indicator) ──────────
+=======
+// โ”€โ”€โ”€ Status badge (top-left mini indicator) โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 function _showAutoTrainStatus(msg, color) {
   let el = document.getElementById('autoTrainBadge');
   if (!el) {
@@ -4057,11 +4138,19 @@ function _hideAutoTrainBadge() {
   if (el) { el.style.opacity = '0'; }
 }
 
+<<<<<<< HEAD
 // ─── Startup: โหลด/เทรน model อัตโนมัติ ─────────────
 async function autoTrainOnStartup() {
   await tf.ready();
 
   // โหลด model จาก localStorage
+=======
+// โ”€โ”€โ”€ Startup: เนเธซเธฅเธ”/เน€เธ—เธฃเธ model เธญเธฑเธ•เนเธเธกเธฑเธ•เธด โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
+async function autoTrainOnStartup() {
+  await tf.ready();
+
+  // เนเธซเธฅเธ” model เธเธฒเธ localStorage
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
   const model = _tdMakeModel();
   const loaded = await _tdLoadModel(model);
 
@@ -4069,14 +4158,22 @@ async function autoTrainOnStartup() {
     const meta = JSON.parse(localStorage.getItem('tf_model_meta') || '{}');
     const rounds = meta.stats && meta.stats.trainedRounds ? meta.stats.trainedRounds : 0;
 
+<<<<<<< HEAD
     // ── Sanity check: ถ้า Q values สูงผิดปกติ (exploded) → clear แล้ว retrain ──
+=======
+    // โ”€โ”€ Sanity check: เธ–เนเธฒ Q values เธชเธนเธเธเธดเธ”เธเธเธ•เธด (exploded) โ’ clear เนเธฅเนเธง retrain โ”€โ”€
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     let qExploded = false;
     try {
       const testVec = encodeState(['B','P','B','P','B']);
       const testQ = model.predict(tf.tensor2d([testVec])).arraySync()[0];
       const maxQ = Math.max(...testQ.map(Math.abs));
       if (maxQ > 50) {
+<<<<<<< HEAD
         console.warn('[AutoTrain] Q-exploded model detected (maxQ=' + maxQ.toFixed(1) + ') — clearing');
+=======
+        console.warn('[AutoTrain] Q-exploded model detected (maxQ=' + maxQ.toFixed(1) + ') โ€” clearing');
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
         localStorage.removeItem('tf_model_weights');
         localStorage.removeItem('tf_model_meta');
         qExploded = true;
@@ -4084,7 +4181,11 @@ async function autoTrainOnStartup() {
     } catch(e) {}
 
     if (qExploded) {
+<<<<<<< HEAD
       _showAutoTrainStatus('🔄 AI reset & retrain...', 'var(--gold)');
+=======
+      _showAutoTrainStatus('๐” AI reset & retrain...', 'var(--gold)');
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
       const freshModel = _tdMakeModel();
       await _runAutoTrain(AUTO_TRAIN_ROUNDS, freshModel);
     } else {
@@ -4092,22 +4193,38 @@ async function autoTrainOnStartup() {
       _tdExportKnowledgeToQTable(model);
       updateTrainDashToggleHint();
       if (rounds < 300) {
+<<<<<<< HEAD
         _showAutoTrainStatus('🔄 AI ปรับปรุงโมเดล...', 'var(--gold)');
         await _runAutoTrain(AUTO_TRAIN_ROUNDS, model);
       } else {
         _showAutoTrainStatus('✓ AI พร้อมแล้ว (' + rounds + 'r)', 'var(--green-pos)');
+=======
+        _showAutoTrainStatus('๐” AI เธเธฃเธฑเธเธเธฃเธธเธเนเธกเน€เธ”เธฅ...', 'var(--gold)');
+        await _runAutoTrain(AUTO_TRAIN_ROUNDS, model);
+      } else {
+        _showAutoTrainStatus('โ“ AI เธเธฃเนเธญเธกเนเธฅเนเธง (' + rounds + 'r)', 'var(--green-pos)');
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
         setTimeout(_hideAutoTrainBadge, 3000);
       }
     }
   } else {
+<<<<<<< HEAD
     // ไม่มี model → train ใหม่ทันที
     _showAutoTrainStatus('🧠 AI กำลังเรียนรู้...', 'var(--gold)');
+=======
+    // เนเธกเนเธกเธต model โ’ train เนเธซเธกเนเธ—เธฑเธเธ—เธต
+    _showAutoTrainStatus('๐ง  AI เธเธณเธฅเธฑเธเน€เธฃเธตเธขเธเธฃเธนเน...', 'var(--gold)');
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     const newModel = _tdMakeModel();
     await _runAutoTrain(AUTO_TRAIN_ROUNDS, newModel);
   }
 }
 
+<<<<<<< HEAD
 // ─── Core auto-train loop (silent, background) ───────
+=======
+// โ”€โ”€โ”€ Core auto-train loop (silent, background) โ”€โ”€โ”€โ”€โ”€โ”€โ”€
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 async function _runAutoTrain(targetRounds, existingModel) {
   if (_autoTrainState.isAutoTraining) return;
   _autoTrainState.isAutoTraining = true;
@@ -4119,7 +4236,11 @@ async function _runAutoTrain(targetRounds, existingModel) {
       targetModel.setWeights(model.getWeights().map(w => w.clone()));
     }
 
+<<<<<<< HEAD
     // ใช้ history จริง + extend ถ้าสั้น
+=======
+    // เนเธเน history เธเธฃเธดเธ + extend เธ–เนเธฒเธชเธฑเนเธ
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     let history = [];
     try {
       const d = localStorage.getItem('bac_cur');
@@ -4129,7 +4250,11 @@ async function _runAutoTrain(targetRounds, existingModel) {
       }
     } catch(e) {}
 
+<<<<<<< HEAD
     // extend ด้วย simulated rounds (real baccarat probability)
+=======
+    // extend เธ”เนเธงเธข simulated rounds (real baccarat probability)
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     const needed = Math.max(targetRounds + 200, history.length + 200);
     const rng = (() => { let s = Date.now() >>> 0; return () => { s = (1664525*s+1013904223)>>>0; return s/2**32; }; })();
     while (history.length < needed) {
@@ -4148,11 +4273,19 @@ async function _runAutoTrain(targetRounds, existingModel) {
     const epsilonMin = 0.05;
     const epsilonDecay = Math.pow(epsilonMin / 1.0, 1 / Math.max(1, trainEnd - trainStart));
 
+<<<<<<< HEAD
     // Normalized reward: ±1 เท่านั้น → ไม่ explode ไม่ว่า gamma จะเป็นเท่าไหร่
     const pnlFor = (bet, actual) => {
       if (actual === 'T') return 0;
       if (bet === 'SKIP') return 0;
       if (bet === actual) return bet === 'B' ? 0.95 : 1.0;  // normalized ±1
+=======
+    // Normalized reward: ยฑ1 เน€เธ—เนเธฒเธเธฑเนเธ โ’ เนเธกเน explode เนเธกเนเธงเนเธฒ gamma เธเธฐเน€เธเนเธเน€เธ—เนเธฒเนเธซเธฃเน
+    const pnlFor = (bet, actual) => {
+      if (actual === 'T') return 0;
+      if (bet === 'SKIP') return 0;
+      if (bet === actual) return bet === 'B' ? 0.95 : 1.0;  // normalized ยฑ1
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
       return -1.0;
     };
 
@@ -4201,7 +4334,11 @@ async function _runAutoTrain(targetRounds, existingModel) {
           const tr = [...row];
           const bestNext = Math.max(...nextVals[j]);
           const rawTarget = s.reward + (s.done ? 0 : gamma * bestNext);
+<<<<<<< HEAD
           // ── Clip target to [-3, +3] ป้องกัน Q explosion ──
+=======
+          // โ”€โ”€ Clip target to [-3, +3] เธเนเธญเธเธเธฑเธ Q explosion โ”€โ”€
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
           const aIdx = ACTIONS.indexOf(s.action);
           tr[aIdx] = Math.max(-3, Math.min(3, rawTarget));
           return tr;
@@ -4220,7 +4357,11 @@ async function _runAutoTrain(targetRounds, existingModel) {
       if (i - lastUIUpdate >= 8) {
         lastUIUpdate = i;
         const pct = Math.round(((1.0 - epsilon) / (1.0 - epsilonMin)) * 100);
+<<<<<<< HEAD
         _showAutoTrainStatus(`🧠 AI เรียนรู้ ${pct}%`, 'var(--gold)');
+=======
+        _showAutoTrainStatus(`๐ง  AI เน€เธฃเธตเธขเธเธฃเธนเน ${pct}%`, 'var(--gold)');
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
         await new Promise(r => setTimeout(r, 0)); // yield to UI thread
       }
     }
@@ -4253,7 +4394,11 @@ async function _runAutoTrain(targetRounds, existingModel) {
       testPnl: 0
     });
 
+<<<<<<< HEAD
     _showAutoTrainStatus(`✓ AI พร้อม — WR ${wr}%`, wr >= 50 ? 'var(--green-pos)' : 'var(--gold)');
+=======
+    _showAutoTrainStatus(`โ“ AI เธเธฃเนเธญเธก โ€” WR ${wr}%`, wr >= 50 ? 'var(--green-pos)' : 'var(--gold)');
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     setTimeout(_hideAutoTrainBadge, 4000);
 
     // Refresh suggest if we're on deal tab
@@ -4261,13 +4406,18 @@ async function _runAutoTrain(targetRounds, existingModel) {
 
   } catch(e) {
     console.warn('[AutoTrain] Error:', e.message);
+<<<<<<< HEAD
     _showAutoTrainStatus('⚠️ AI error', 'var(--red-neg)');
+=======
+    _showAutoTrainStatus('โ ๏ธ AI error', 'var(--red-neg)');
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     setTimeout(_hideAutoTrainBadge, 3000);
   }
 
   _autoTrainState.isAutoTraining = false;
 }
 
+<<<<<<< HEAD
 // ─── Online Learning: buffer real rounds → batch replay ─
 // ใช้ experience buffer แทน single-step fit
 // ไม่มี gamma compounding → ไม่ Q-explode
@@ -4275,23 +4425,45 @@ const _onlineBuffer = [];
 const ONLINE_BUF_MAX  = 200;   // เก็บ experience ล่าสุด
 const ONLINE_BATCH    = 16;    // batch size สำหรับ replay
 const ONLINE_REPLAY_EVERY = 8; // replay ทุก N rounds
+=======
+// โ”€โ”€โ”€ Online Learning: buffer real rounds โ’ batch replay โ”€
+// เนเธเน experience buffer เนเธ—เธ single-step fit
+// เนเธกเนเธกเธต gamma compounding โ’ เนเธกเน Q-explode
+const _onlineBuffer = [];
+const ONLINE_BUF_MAX  = 200;   // เน€เธเนเธ experience เธฅเนเธฒเธชเธธเธ”
+const ONLINE_BATCH    = 16;    // batch size เธชเธณเธซเธฃเธฑเธ replay
+const ONLINE_REPLAY_EVERY = 8; // replay เธ—เธธเธ N rounds
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 const ONLINE_LR       = 0.001; // conservative LR
 
 function autoOnlineUpdate(histBefore, actual) {
   if (!window._tfModel) return;
   if (actual === 'T') return;
 
+<<<<<<< HEAD
   // reward แบบ normalized ±1 ไม่ใช่ cumulative
   const REWARD_WIN  =  1.0;
   const REWARD_LOSE = -1.0;
 
   // state = features ณ ตอนนั้น
+=======
+  // reward เนเธเธ normalized ยฑ1 เนเธกเนเนเธเน cumulative
+  const REWARD_WIN  =  1.0;
+  const REWARD_LOSE = -1.0;
+
+  // state = features เธ“ เธ•เธญเธเธเธฑเนเธ
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
   const state = encodeState(histBefore);
   const nextState = encodeState([...histBefore, actual]);
 
   // Determine what the "correct" action was
+<<<<<<< HEAD
   // B won → reward=+1 for action B, -1 for action P, 0 for SKIP
   // P won → reward=+1 for action P, -1 for action B, 0 for SKIP
+=======
+  // B won โ’ reward=+1 for action B, -1 for action P, 0 for SKIP
+  // P won โ’ reward=+1 for action P, -1 for action B, 0 for SKIP
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
   const rB = actual === 'B' ? REWARD_WIN  : REWARD_LOSE;
   const rP = actual === 'P' ? REWARD_WIN  : REWARD_LOSE;
   const rS = 0; // skip = neutral
@@ -4310,7 +4482,11 @@ function autoOnlineUpdate(histBefore, actual) {
   // Mini re-train every AUTO_RETRAIN_EVERY rounds
   if (_autoTrainState.roundsSinceRetrain >= AUTO_RETRAIN_EVERY && !_autoTrainState.isAutoTraining) {
     _autoTrainState.roundsSinceRetrain = 0;
+<<<<<<< HEAD
     _showAutoTrainStatus('🔄 AI ปรับปรุง...', 'var(--gold)');
+=======
+    _showAutoTrainStatus('๐” AI เธเธฃเธฑเธเธเธฃเธธเธ...', 'var(--gold)');
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     setTimeout(() => _runAutoTrain(AUTO_MINI_ROUNDS, window._tfModel), 300);
   }
 }
@@ -4326,13 +4502,21 @@ async function _onlineReplay() {
     batch.push(_onlineBuffer[idx]);
   }
 
+<<<<<<< HEAD
   // Build supervised targets — NO gamma, NO bootstrapping
+=======
+  // Build supervised targets โ€” NO gamma, NO bootstrapping
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
   // Target[action] = reward_for_that_action (bounded to [-1, +1])
   const states  = batch.map(x => x.state);
   const targets = batch.map(x => {
     // Get current Q prediction to use as base (preserve other action values)
     // We'll overwrite only the relevant action slots
+<<<<<<< HEAD
     // Simple: just set targets directly — avoids Q propagation entirely
+=======
+    // Simple: just set targets directly โ€” avoids Q propagation entirely
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
     const t = [0, 0, 0]; // [B, P, SKIP]
     t[0] = Math.max(-1, Math.min(1, x.rB)); // clip to [-1,1]
     t[1] = Math.max(-1, Math.min(1, x.rP));
@@ -4355,7 +4539,11 @@ async function _onlineReplay() {
   }
 }
 
+<<<<<<< HEAD
 // Helpers shared with TF training — MUST match encodeState() used in TF training
+=======
+// Helpers shared with TF training โ€” MUST match encodeState() used in TF training
+>>>>>>> 5f185227f00816553b45ab4190b1b568be72519e
 function _encodeStateForModel(history) {
   return encodeState(history);
 }
