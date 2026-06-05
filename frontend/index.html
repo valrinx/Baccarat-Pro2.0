@@ -385,7 +385,7 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 <body>
 
 <div class="hdr">
-  <div class="logo">BACCARAT PRO 2.7.1</div>
+  <div class="logo">BACCARAT PRO 2.7.2</div>  <!-- แก้ไข Version ด้วย ทุกครั้งที่อัพเดท -->
   <div class="logo-sub">CALCULATOR · TRACKER · SYSTEM</div>
 </div>
 
@@ -1023,6 +1023,13 @@ function updateAutoBotStatus(result){
 }
 function applyAutoPlayBet(result){
   if(!S.autoPlay||!result||!result.bet)return;
+  // ถ้า skip → clear betSide ไม่ให้นับ P&L
+  if(result.skip||result.bet==='N'||result.bet==='SKIP'){
+    S.betSide=null;
+    S.autoRoundStake=0;
+    document.getElementById('betDisplayAmt').textContent='—';
+    return;
+  }
   const chaos=result.chaos?result.chaos.score:0;
   S.lastBetPatternName=result.patternName||null;
   S.lastSuggestConf=result.conf;
@@ -1051,16 +1058,20 @@ function resolveRound(w,p,b,nat){
   S.pendingSug=null;
   S.pendingSugResult=null;
   }
+  const _histBeforeResolve = S.hist.slice(); // snapshot ก่อน push
   S.hist.push(w);
   if(w==='P')S.pC++;else if(w==='B')S.bC++;else S.tC++;
+  // Online learning — อัปเดต model จาก round จริง (async, ไม่บล็อก UI)
+  if(window._tfModel) setTimeout(()=>autoOnlineUpdate(_histBeforeResolve,w),0);
   ['stRounds','stP','stB','stT'].forEach((id,i)=>
     document.getElementById(id).textContent=[S.hist.length,S.pC,S.bC,S.tC][i]);
   if(w===S.streakSide)S.streak++;else{S.streak=1;S.streakSide=w;}
 
-  // P&L calc
+  // P&L calc — skip ถ้า betSide เป็น N หรือ SKIP หรือ null
   if(!isTrainingMode){
     const betAmt=getCurrentBet();
-    if(S.betSide&&betAmt>0){
+    const _isSkipRound=!S.betSide||S.betSide==='N'||S.betSide==='SKIP';
+    if(!_isSkipRound&&betAmt>0){
       S.betTotal++;
       S.betHistory.push({side:S.betSide,amt:betAmt,w});
       let pnl=0,resultClass='',labelTxt='',detailTxt='';
@@ -2083,20 +2094,8 @@ function qConfidenceFromGap(qP,qB){
 }
 
 function getQLearningDecision(h,streak,streakSide){
-  const tfResult = getTFDecision(h);
-  if (tfResult) {
-    const explore = tfResult.conf <= 2;
-    return {
-      state: 'tf:' + (streak + '-' + (h[h.length-1]||'?')),
-      winner: tfResult.winner,
-      conf: tfResult.conf,
-      qP: tfResult.qP,
-      qB: tfResult.qB,
-      visits: 999,
-      explore,
-      reason: `TF-DQN [${tfResult.winner}] Q(P)=${tfResult.qP.toFixed(2)} Q(B)=${tfResult.qB.toFixed(2)} ${explore?'Explore':'Exploit'}`
-    };
-  }
+  // ไม่ให้ TF override QL — TF inject แยกใน runPredictionEngine แล้ว
+  // ถ้า TF inject ที่นี่ด้วย = double count และ bypass pattern votes
   const state=getQLearningState(h,streak,streakSide);
   if(!state)return null;
   const q=getQValues(state);
@@ -2309,7 +2308,7 @@ function runPredictionEngine(h,streak,streakSide){
   const tfResult=getTFDecision(h);
   let tfCandidate=null;
   if(tfResult&&tfResult.conf>=2){
-    const tfWt=S.tfWeight||3.0;
+    const tfWt=S.tfWeight||1.5;
 
     // วัด chop strength จาก 8 ตาล่าสุด (non-tie)
     const _pbTf=h.filter(x=>x!=='T');
@@ -2325,18 +2324,22 @@ function runPredictionEngine(h,streak,streakSide){
     const _isPerfect=_chopStr>=0.875; // 7/8 ตาสลับ = perfect ping-pong
 
     // คำนวณ effective weight
+    const _strongPat=preds.filter(p=>
+      ['cycle_streak','cycle','streak','dragon','pingpong'].includes(p.name)&&p.conf>=4
+    ).length>0;
     let _effWt=tfWt;
     if(_isPerfect){_effWt=0.1;}       // suppress เกือบสมบูรณ์
     else if(_isChop){_effWt=tfWt*0.2;} // ลด 80%
+    else if(_strongPat){_effWt=tfWt*0.15;} // pattern ชัด → suppress TF
 
     tfCandidate={
       name:'tf_model',
       bet:tfResult.winner,
       conf:tfResult.conf,
       weight:_effWt,
-      reason:'TF Model'+(_isPerfect?' [suppress:ping-pong]':_isChop?' [reduced:chop]':''),
+      reason:'TF Model'+(_isPerfect?' [suppress:ping-pong]':_isChop?' [reduced:chop]':_strongPat?' [reduced:strong-pat]':''),
       isFallback:false,
-      chopSuppressed:_isChop||_isPerfect
+      chopSuppressed:_isChop||_isPerfect||_strongPat
     };
     preds.push(tfCandidate);
     votes[tfResult.winner]=(votes[tfResult.winner]||0)+tfResult.conf*0.8*(_effWt/3.0);
@@ -2718,6 +2721,8 @@ function loadCurrent(){
 // Init
 loadQTable();
 buildGrid();renderHands();loadCurrent();
+// Auto-train on startup (ไม่รบกวน UI)
+setTimeout(()=>autoTrainOnStartup(),800);
 
 // Load persisted TF model on startup so it's available for in-game use
 (async () => {
@@ -2960,11 +2965,14 @@ function updateTrainDashToggleHint() {
   const hint = document.getElementById('trainDashToggleHint');
   if (!hint) return;
   if (window._tfModel) {
-    hint.textContent = '✓ มีโมเดล AI';
+    const meta = (() => { try { return JSON.parse(localStorage.getItem('tf_model_meta')||'{}'); } catch(e){return{};} })();
+    const r = meta.stats && meta.stats.trainedRounds ? meta.stats.trainedRounds : '?';
+    const wr = meta.stats && meta.stats.winRate ? Math.round(meta.stats.winRate*100)+'%' : '?';
+    hint.textContent = '✓ AI Active — '+r+'r, '+wr;
     hint.style.color = 'var(--green-pos)';
   } else {
-    hint.textContent = 'ยังไม่มีโมเดล';
-    hint.style.color = 'var(--dim)';
+    hint.textContent = '⏳ กำลังโหลด AI...';
+    hint.style.color = 'var(--gold)';
   }
 }
 
@@ -3207,26 +3215,48 @@ function onTrainModeChange() {
 }
 
 function generateSequence(rounds, seed) {
-  let state = (seed >>> 0);
+  let state = (seed >>> 0) || 1;
   const rng = () => {
     state = (1664525 * state + 1013904223) >>> 0;
     return state / 2 ** 32;
   };
-  // Real Baccarat probabilities (from casino data, excluding ties):
-  //   Player: ~45.87%, Banker: ~44.63%, Tie: ~9.51%
-  const P_PROB = 0.4587, B_PROB = 0.4463, T_PROB = 0.0951;
+
+  // Curriculum-style synthetic shoe generator:
+  // - starts with simpler, higher-signal regimes
+  // - gradually increases noise / tie rate / alternation
+  // - preserves baccarat-like marginals while creating learnable structure
   const history = [];
-  for (let i = 0; i < rounds; i++) {
+  const stages = [
+    { len: 120, tie: 0.04, p: 0.43, b: 0.53, streakBias: 0.66, flipBias: 0.18 },
+    { len: 240, tie: 0.07, p: 0.45, b: 0.48, streakBias: 0.56, flipBias: 0.26 },
+    { len: 420, tie: 0.09, p: 0.4587, b: 0.4463, streakBias: 0.50, flipBias: 0.32 },
+    { len: Infinity, tie: 0.0951, p: 0.4587, b: 0.4463, streakBias: 0.46, flipBias: 0.36 }
+  ];
+
+  const pickNonTie = (stage, prev, streakLen) => {
     const roll = rng();
-    let next;
-    if (roll < T_PROB) {
-      next = 'T';
-    } else if (roll < T_PROB + P_PROB) {
-      next = 'P';
-    } else {
-      next = 'B';
+    const stayBias = Math.min(0.7, stage.streakBias + Math.max(0, streakLen - 1) * 0.03);
+    if (prev && roll < stayBias) return prev;
+    if (roll < stayBias + stage.flipBias) return prev === 'B' ? 'P' : 'B';
+    return rng() < stage.p / (stage.p + stage.b) ? 'P' : 'B';
+  };
+
+  for (let i = 0; i < rounds; i++) {
+    const stage = stages.find(s => i < s.len) || stages[stages.length - 1];
+    const prevNonTie = [...history].reverse().find(x => x !== 'T') || null;
+    let streakLen = 0;
+    if (prevNonTie) {
+      for (let j = history.length - 1; j >= 0; j--) {
+        if (history[j] === prevNonTie) streakLen++; else if (history[j] !== 'T') break;
+      }
     }
-    history.push(next);
+
+    const roll = rng();
+    if (roll < stage.tie) {
+      history.push('T');
+    } else {
+      history.push(pickNonTie(stage, prevNonTie, streakLen));
+    }
   }
   return history;
 }
@@ -3380,7 +3410,7 @@ async function startTraining() {
   if (_td.running) return;
 
   const mode = document.getElementById('trainModeSelect').value;
-  let rounds = Math.max(500, parseInt(document.getElementById('trainRoundsInput').value) || 2000);
+  let rounds = Math.max(100, parseInt(document.getElementById('trainRoundsInput').value) || 2000);
   let seed = mode === 'random'
     ? (parseInt(document.getElementById('trainSeedInput').value) || 0)
     : 42;
@@ -3507,11 +3537,12 @@ async function startTraining() {
     }
   } else {
     if (!seed) seed = Math.floor(Math.random() * 99999);
-    history = generateSequence(rounds, seed);
+    history = generateSequence(rounds + 200, seed);
     msgEl.textContent = 'Generating sequence...';
   }
 
-  const trainEnd = history.length - 200; // reserve last 200 for testing (unseen data)
+  // Reserve a fixed unseen OOS block, while keeping requested training rounds intact
+  const trainEnd = Math.min(rounds, Math.max(0, history.length - 200));
   const rollingWindow = [];
   let cumulativePnl = 0;
 
@@ -3541,8 +3572,8 @@ async function startTraining() {
   }
 
   try {
-    // Train until exploration rate drops to minimum (model converges) or trainEnd reached
-    for (let i = trainStart; epsilon > epsilonMin && i < trainEnd; i++) {
+    // Train every planned round so displayed rounds always match requested scope
+    for (let i = trainStart; i < trainEnd; i++) {
       if (_td.stop) break;
 
       const hSlice = history.slice(0, i);
@@ -3567,7 +3598,8 @@ async function startTraining() {
       cumulativePnl += pnl;
 
       // Reward — use skip reward for SKIP action
-      const reward = action === 'SKIP' ? skipReward(actual, hSlice) : pnl;
+      const rawSkip = action === 'SKIP' ? skipReward(actual, hSlice) : pnl;
+      const reward = Math.max(-1.5, Math.min(1.5, rawSkip)); // clip rewards ป้องกัน explosion
       const nextState = encodeState(history.slice(0, i + 1));
       memory.push({ state, nextState, action, reward, done: i === trainEnd });
 
@@ -3586,8 +3618,10 @@ async function startTraining() {
           const s = batch[j];
           const tr = [...row];
           const bestNext = Math.max(...nextVals[j]);
+          const rawTarget = s.reward + (s.done ? 0 : gamma * bestNext);
+          // ── Clip target to [-3, +3] ป้องกัน Q explosion ──
           const aIdx = ACTIONS.indexOf(s.action);
-          tr[aIdx] = s.reward + (s.done ? 0 : gamma * bestNext);
+          tr[aIdx] = Math.max(-3, Math.min(3, rawTarget));
           return tr;
         });
         await model.fit(states, tf.tensor2d(targets), { epochs: 1, verbose: 0 });
@@ -3612,16 +3646,17 @@ async function startTraining() {
           ? rollingWindow.reduce((a, b) => a + b, 0) / rollingWindow.length
           : 0;
         updateTrainDashUI({
-      winRate: wr,
-      pnl: cumulativePnl,
-      rounds: i - trainStart,
-      epsilon,
-      converged: false
-    });
-        msgEl.textContent = `กำลังเทรน รอบ ${i} กำไร=${cumulativePnl > 0 ? '+' : ''}${cumulativePnl}${epsilon <= epsilonMin ? ' [จบแล้ว]' : ''}`;
+          winRate: wr,
+          pnl: cumulativePnl,
+          rounds: i - trainStart,
+          epsilon,
+          converged: false
+        });
+        msgEl.textContent = `กำลังเทรน รอบ ${i} กำไร=${cumulativePnl > 0 ? '+' : ''}${cumulativePnl}`;
       }
     }
-    const trainedRounds = trainEnd - trainStart; // actual rounds the model learned on
+    const trainedRounds = Math.max(0, trainEnd - trainStart); // actual rounds the model learned on
+    _td.currentEpsilon = epsilon;
 
     // === TEST on last 200 unseen rounds ===
     const testStart = history.length - 200;
@@ -3630,15 +3665,14 @@ async function startTraining() {
     let alwaysBPnl = 0, alwaysPPnl = 0;
     let alwaysBWins = 0, alwaysPWins = 0;
 
-
-  // Helper: pick action from 3-output qVals with skip signal
-  const _pickAction = (qv) => {
-    const qB = qv[0], qP = qv[1], qS = qv.length >= 3 ? qv[2] : -Infinity;
-    const margin = Math.abs(qP - qB);
-    if (qS >= qB && qS >= qP) return 'SKIP';
-    if (margin < SKIP_THRESHOLD) return 'SKIP';
-    return qP >= qB ? 'P' : 'B';
-  };
+    // Helper: pick action from 3-output qVals with skip signal
+    const _pickAction = (qv) => {
+      const qB = qv[0], qP = qv[1], qS = qv.length >= 3 ? qv[2] : -Infinity;
+      const margin = Math.abs(qP - qB);
+      if (qS >= qB && qS >= qP) return 'SKIP';
+      if (margin < SKIP_THRESHOLD) return 'SKIP';
+      return qP >= qB ? 'P' : 'B';
+    };
     msgEl.textContent = 'ทดสอบผลบนข้อมูลจริง...';
     for (let i = testStart; i <= testEnd; i++) {
       const state = encodeState(history.slice(0, i));
@@ -3814,11 +3848,11 @@ function runBacktest() {
       // Priority: use training OOS test set (last 200 rounds, never seen by model)
       // Fallback: localStorage / S.hist (live game data)
       let history = [];
-      let isOosTest = false;
+      let historySource = 'live';
       if (_td.trainingHistory && _td.trainingHistory.length > 200) {
         // Use only the OOS test portion (last 200 rounds)
         history = _td.trainingHistory.slice(-200);
-        isOosTest = true;
+        historySource = 'training-oos';
       } else {
         const raw = localStorage.getItem('bac_shoe') || localStorage.getItem('bac_shoe_history');
         if (raw) {
@@ -3860,7 +3894,7 @@ function runBacktest() {
           try {
             const state = _encodeStateForModel(history.slice(0, i));
             const qVals = aiModel.predict(tf.tensor2d([state])).arraySync()[0];
-            const aiBet = qVals[0] >= qVals[1] ? 'B' : 'P';
+            const aiBet = _pickAction(qVals);
             const aiPnl = _pnlFor(aiBet, actual);
             results.ai.pnl += aiPnl;
             results.ai.total++;
@@ -3959,7 +3993,9 @@ function runBacktest() {
       const _aiSum = results.ai.total > 0 ? results.ai
         : (cached && cached.oos && cached.oos.ai && cached.oos.ai.total > 0 ? cached.oos.ai
         : (cached ? cached.ai : null));
-      const totalRounds = results.bank.total || (cached && cached.oos ? cached.oos.ai.total : (cached ? cached.ai.rounds : 0));
+      const totalRounds = historySource === 'training-oos'
+        ? history.length
+        : (results.bank.total || (cached && cached.oos ? cached.oos.ai.total : (cached ? cached.ai.rounds : 0)));
       const aiPnl   = _aiSum ? _aiSum.pnl : -Infinity;
       const qlPnl   = results.ql.pnl;
       const bankPnl = results.bank.total > 0 ? results.bank.pnl : (cached && cached.oos ? cached.oos.bank.pnl : (cached ? cached.bank.pnl : 0));
@@ -3976,17 +4012,362 @@ function runBacktest() {
   }, 50);
 }
 
+
+// =====================================================
+//  AUTO-TRAIN SYSTEM — ไม่ต้องกดเทรนเอง
+//  - โหลด model จาก localStorage ทุก startup
+//  - ถ้าไม่มีหรือ model เก่า (<300 rounds) → train background ทันที
+//  - Online learning: ทุก quickAdd() → update weights จาก round นั้น
+//  - Mini re-train: ทุก AUTO_RETRAIN_EVERY rounds → background re-train เพิ่ม
+// =====================================================
+
+const AUTO_TRAIN_ROUNDS   = 2000;  // rounds สำหรับ initial training
+const AUTO_RETRAIN_EVERY  = 30;    // กี่ round จึง trigger mini re-train
+const AUTO_MINI_ROUNDS    = 400;   // rounds ของ mini re-train
+const AUTO_ONLINE_LR      = 0.003; // learning rate สำหรับ online update ทีละ round
+
+let _autoTrainState = {
+  roundsSinceRetrain: 0,
+  isAutoTraining: false,
+  onlineUpdateQueue: [],
+};
+
+// ─── Status badge (top-left mini indicator) ──────────
+function _showAutoTrainStatus(msg, color) {
+  let el = document.getElementById('autoTrainBadge');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'autoTrainBadge';
+    el.style.cssText = [
+      'position:fixed;bottom:56px;right:8px;z-index:999',
+      'background:rgba(10,20,14,0.92);border:1px solid rgba(201,168,76,0.25)',
+      'border-radius:6px;padding:4px 8px;font-size:9px;font-family:Sarabun,sans-serif',
+      'color:var(--gold);pointer-events:none;transition:opacity .4s',
+      'max-width:160px;text-align:right;line-height:1.4'
+    ].join(';');
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.color = color || 'var(--gold)';
+  el.style.opacity = '1';
+}
+
+function _hideAutoTrainBadge() {
+  const el = document.getElementById('autoTrainBadge');
+  if (el) { el.style.opacity = '0'; }
+}
+
+// ─── Startup: โหลด/เทรน model อัตโนมัติ ─────────────
+async function autoTrainOnStartup() {
+  await tf.ready();
+
+  // โหลด model จาก localStorage
+  const model = _tdMakeModel();
+  const loaded = await _tdLoadModel(model);
+
+  if (loaded) {
+    const meta = JSON.parse(localStorage.getItem('tf_model_meta') || '{}');
+    const rounds = meta.stats && meta.stats.trainedRounds ? meta.stats.trainedRounds : 0;
+
+    // ── Sanity check: ถ้า Q values สูงผิดปกติ (exploded) → clear แล้ว retrain ──
+    let qExploded = false;
+    try {
+      const testVec = encodeState(['B','P','B','P','B']);
+      const testQ = model.predict(tf.tensor2d([testVec])).arraySync()[0];
+      const maxQ = Math.max(...testQ.map(Math.abs));
+      if (maxQ > 50) {
+        console.warn('[AutoTrain] Q-exploded model detected (maxQ=' + maxQ.toFixed(1) + ') — clearing');
+        localStorage.removeItem('tf_model_weights');
+        localStorage.removeItem('tf_model_meta');
+        qExploded = true;
+      }
+    } catch(e) {}
+
+    if (qExploded) {
+      _showAutoTrainStatus('🔄 AI reset & retrain...', 'var(--gold)');
+      const freshModel = _tdMakeModel();
+      await _runAutoTrain(AUTO_TRAIN_ROUNDS, freshModel);
+    } else {
+      window._tfModel = model;
+      _tdExportKnowledgeToQTable(model);
+      updateTrainDashToggleHint();
+      if (rounds < 300) {
+        _showAutoTrainStatus('🔄 AI ปรับปรุงโมเดล...', 'var(--gold)');
+        await _runAutoTrain(AUTO_TRAIN_ROUNDS, model);
+      } else {
+        _showAutoTrainStatus('✓ AI พร้อมแล้ว (' + rounds + 'r)', 'var(--green-pos)');
+        setTimeout(_hideAutoTrainBadge, 3000);
+      }
+    }
+  } else {
+    // ไม่มี model → train ใหม่ทันที
+    _showAutoTrainStatus('🧠 AI กำลังเรียนรู้...', 'var(--gold)');
+    const newModel = _tdMakeModel();
+    await _runAutoTrain(AUTO_TRAIN_ROUNDS, newModel);
+  }
+}
+
+// ─── Core auto-train loop (silent, background) ───────
+async function _runAutoTrain(targetRounds, existingModel) {
+  if (_autoTrainState.isAutoTraining) return;
+  _autoTrainState.isAutoTraining = true;
+
+  try {
+    const model = existingModel || _tdMakeModel();
+    const targetModel = _tdMakeModel();
+    if (existingModel) {
+      targetModel.setWeights(model.getWeights().map(w => w.clone()));
+    }
+
+    // ใช้ history จริง + extend ถ้าสั้น
+    let history = [];
+    try {
+      const d = localStorage.getItem('bac_cur');
+      if (d) {
+        const o = JSON.parse(d);
+        if (o && o.hist && o.hist.length > 10) history = [...o.hist];
+      }
+    } catch(e) {}
+
+    // extend ด้วย simulated rounds (real baccarat probability)
+    const needed = Math.max(targetRounds + 200, history.length + 200);
+    const rng = (() => { let s = Date.now() >>> 0; return () => { s = (1664525*s+1013904223)>>>0; return s/2**32; }; })();
+    while (history.length < needed) {
+      const r = rng();
+      history.push(r < 0.0951 ? 'T' : r < 0.0951 + 0.4587 ? 'P' : 'B');
+    }
+
+    const ACTIONS = ['B','P','SKIP'];
+    const memory = [];
+    const batchSize = 32;
+    const gamma = 0.95;
+    const stake = 10;
+    const trainEnd = history.length - 200;
+    const trainStart = Math.min(15, Math.floor(targetRounds * 0.05));
+    let epsilon = 1.0;
+    const epsilonMin = 0.05;
+    const epsilonDecay = Math.pow(epsilonMin / 1.0, 1 / Math.max(1, trainEnd - trainStart));
+
+    // Normalized reward: ±1 เท่านั้น → ไม่ explode ไม่ว่า gamma จะเป็นเท่าไหร่
+    const pnlFor = (bet, actual) => {
+      if (actual === 'T') return 0;
+      if (bet === 'SKIP') return 0;
+      if (bet === actual) return bet === 'B' ? 0.95 : 1.0;  // normalized ±1
+      return -1.0;
+    };
+
+    let cumulativePnl = 0;
+    let trainedCount = 0;
+    let lastUIUpdate = 0;
+
+    for (let i = trainStart; epsilon > epsilonMin && i < trainEnd; i++) {
+      if (_td.stop) break;
+
+      const hSlice = history.slice(0, i);
+      const state = encodeState(hSlice);
+      const qVals = model.predict(tf.tensor2d([state])).arraySync()[0];
+
+      let action;
+      if (Math.random() < epsilon) {
+        const r = Math.random();
+        action = r < 0.4 ? 'B' : r < 0.8 ? 'P' : 'SKIP';
+      } else {
+        const maxQ = Math.max(qVals[0], qVals[1], qVals[2] || -Infinity);
+        action = (qVals[2] >= maxQ - 0.05) ? 'SKIP' : qVals[0] >= qVals[1] ? 'B' : 'P';
+      }
+
+      const actual = history[i];
+      const pnl = pnlFor(action, actual);
+      cumulativePnl += pnl;
+
+      const entropy = encodeState(hSlice)[23] || 0;
+      const chaos = entropy > 0.9 ? 1.0 : entropy > 0.8 ? 0.7 : entropy > 0.7 ? 0.4 : 0.1;
+      const reward = action === 'SKIP' ? (-0.5 + chaos * 1.0) : pnl;
+      const nextState = encodeState(history.slice(0, i + 1));
+      memory.push({ state, nextState, action, reward, done: i === trainEnd - 1 });
+
+      if (memory.length >= batchSize) {
+        const pool = memory.length > 1500 ? memory.slice(-1500) : memory;
+        const batch = pool.length <= batchSize ? pool :
+          Array.from({length: batchSize}, () => pool[Math.floor(Math.random() * pool.length)]);
+        const states = tf.tensor2d(batch.map(x => x.state));
+        const nextStates = tf.tensor2d(batch.map(x => x.nextState));
+        const qPred = model.predict(states);
+        const qNext = targetModel.predict(nextStates);
+        const predVals = await qPred.array();
+        const nextVals = await qNext.array();
+        const targets = predVals.map((row, j) => {
+          const s = batch[j];
+          const tr = [...row];
+          const bestNext = Math.max(...nextVals[j]);
+          const rawTarget = s.reward + (s.done ? 0 : gamma * bestNext);
+          // ── Clip target to [-3, +3] ป้องกัน Q explosion ──
+          const aIdx = ACTIONS.indexOf(s.action);
+          tr[aIdx] = Math.max(-3, Math.min(3, rawTarget));
+          return tr;
+        });
+        await model.fit(states, tf.tensor2d(targets), { epochs: 1, verbose: 0 });
+        tf.dispose([states, nextStates, qPred, qNext]);
+        if (i % 100 === 0) {
+          targetModel.setWeights(model.getWeights().map(w => w.clone()));
+        }
+      }
+
+      epsilon = Math.max(epsilonMin, epsilon * epsilonDecay);
+      trainedCount++;
+
+      // Update badge every 8 rounds (lightweight)
+      if (i - lastUIUpdate >= 8) {
+        lastUIUpdate = i;
+        const pct = Math.round(((1.0 - epsilon) / (1.0 - epsilonMin)) * 100);
+        _showAutoTrainStatus(`🧠 AI เรียนรู้ ${pct}%`, 'var(--gold)');
+        await new Promise(r => setTimeout(r, 0)); // yield to UI thread
+      }
+    }
+
+    // Save to global + localStorage
+    window._tfModel = model;
+    _tdExportKnowledgeToQTable(model);
+    updateTrainDashToggleHint();
+
+    // Evaluate win rate on test set (last 200)
+    const testStart = history.length - 200;
+    let testWins = 0, testTotal = 0;
+    for (let i = testStart; i < history.length - 1; i++) {
+      const actual = history[i + 1];
+      if (actual === 'T') continue;
+      const qv = model.predict(tf.tensor2d([encodeState(history.slice(0, i))])).arraySync()[0];
+      const margin = Math.abs(qv[0] - qv[1]);
+      if (margin < SKIP_THRESHOLD) continue;
+      const bet = qv[0] >= qv[1] ? 'B' : 'P';
+      testTotal++;
+      if (bet === actual) testWins++;
+    }
+    const wr = testTotal > 0 ? Math.round(testWins / testTotal * 100) : 0;
+
+    _tdSaveModel(model, {
+      winRate: wr / 100,
+      pnl: cumulativePnl,
+      trainedRounds: trainedCount,
+      testWinRate: wr / 100,
+      testPnl: 0
+    });
+
+    _showAutoTrainStatus(`✓ AI พร้อม — WR ${wr}%`, wr >= 50 ? 'var(--green-pos)' : 'var(--gold)');
+    setTimeout(_hideAutoTrainBadge, 4000);
+
+    // Refresh suggest if we're on deal tab
+    if (S.hist.length > 0) showSuggest();
+
+  } catch(e) {
+    console.warn('[AutoTrain] Error:', e.message);
+    _showAutoTrainStatus('⚠️ AI error', 'var(--red-neg)');
+    setTimeout(_hideAutoTrainBadge, 3000);
+  }
+
+  _autoTrainState.isAutoTraining = false;
+}
+
+// ─── Online Learning: buffer real rounds → batch replay ─
+// ใช้ experience buffer แทน single-step fit
+// ไม่มี gamma compounding → ไม่ Q-explode
+const _onlineBuffer = [];
+const ONLINE_BUF_MAX  = 200;   // เก็บ experience ล่าสุด
+const ONLINE_BATCH    = 16;    // batch size สำหรับ replay
+const ONLINE_REPLAY_EVERY = 8; // replay ทุก N rounds
+const ONLINE_LR       = 0.001; // conservative LR
+
+function autoOnlineUpdate(histBefore, actual) {
+  if (!window._tfModel) return;
+  if (actual === 'T') return;
+
+  // reward แบบ normalized ±1 ไม่ใช่ cumulative
+  const REWARD_WIN  =  1.0;
+  const REWARD_LOSE = -1.0;
+
+  // state = features ณ ตอนนั้น
+  const state = encodeState(histBefore);
+  const nextState = encodeState([...histBefore, actual]);
+
+  // Determine what the "correct" action was
+  // B won → reward=+1 for action B, -1 for action P, 0 for SKIP
+  // P won → reward=+1 for action P, -1 for action B, 0 for SKIP
+  const rB = actual === 'B' ? REWARD_WIN  : REWARD_LOSE;
+  const rP = actual === 'P' ? REWARD_WIN  : REWARD_LOSE;
+  const rS = 0; // skip = neutral
+
+  _onlineBuffer.push({ state, nextState, actual, rB, rP, rS });
+  if (_onlineBuffer.length > ONLINE_BUF_MAX) _onlineBuffer.shift();
+
+  // Count rounds for replay trigger
+  _autoTrainState.roundsSinceRetrain++;
+
+  // Replay every N rounds
+  if (_autoTrainState.roundsSinceRetrain % ONLINE_REPLAY_EVERY === 0) {
+    _onlineReplay(); // async-ish: no await, runs in microtask
+  }
+
+  // Mini re-train every AUTO_RETRAIN_EVERY rounds
+  if (_autoTrainState.roundsSinceRetrain >= AUTO_RETRAIN_EVERY && !_autoTrainState.isAutoTraining) {
+    _autoTrainState.roundsSinceRetrain = 0;
+    _showAutoTrainStatus('🔄 AI ปรับปรุง...', 'var(--gold)');
+    setTimeout(() => _runAutoTrain(AUTO_MINI_ROUNDS, window._tfModel), 300);
+  }
+}
+
+async function _onlineReplay() {
+  if (!window._tfModel || _onlineBuffer.length < ONLINE_BATCH) return;
+  const model = window._tfModel;
+
+  // Sample random mini-batch from buffer
+  const batch = [];
+  for (let i = 0; i < ONLINE_BATCH; i++) {
+    const idx = Math.floor(Math.random() * _onlineBuffer.length);
+    batch.push(_onlineBuffer[idx]);
+  }
+
+  // Build supervised targets — NO gamma, NO bootstrapping
+  // Target[action] = reward_for_that_action (bounded to [-1, +1])
+  const states  = batch.map(x => x.state);
+  const targets = batch.map(x => {
+    // Get current Q prediction to use as base (preserve other action values)
+    // We'll overwrite only the relevant action slots
+    // Simple: just set targets directly — avoids Q propagation entirely
+    const t = [0, 0, 0]; // [B, P, SKIP]
+    t[0] = Math.max(-1, Math.min(1, x.rB)); // clip to [-1,1]
+    t[1] = Math.max(-1, Math.min(1, x.rP));
+    t[2] = Math.max(-1, Math.min(1, x.rS));
+    return t;
+  });
+
+  try {
+    // Temporarily lower LR for online update
+    const prevLr = model.optimizer.learningRate;
+    model.optimizer.learningRate = ONLINE_LR;
+    await model.fit(
+      tf.tensor2d(states),
+      tf.tensor2d(targets),
+      { epochs: 1, verbose: 0 }
+    );
+    model.optimizer.learningRate = prevLr;
+  } catch(e) {
+    console.warn('[OnlineReplay] fit error:', e.message);
+  }
+}
+
 // Helpers shared with TF training — MUST match encodeState() used in TF training
 function _encodeStateForModel(history) {
   return encodeState(history);
 }
 
 function _pnlFor(bet, actual) {
+  const stake = 10;
   if (actual === 'T') return 0;
+  if (bet === 'SKIP') return 0;
   if (bet === actual) {
-    return bet === 'B' ? 0.95 : 1.0;
+    return bet === 'B' ? stake * 0.95 : stake;
   }
-  return -1.0;
+  return -stake;
 }
 </script>
 </body>
