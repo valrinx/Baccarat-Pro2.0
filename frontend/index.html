@@ -3135,7 +3135,10 @@ function encodeStateForTF(hist) {
 
 /** Sync TF prediction for in-game use — returns {bet, conf, qP, qB} or null */
 // ── Skip threshold: ถ้า best Q - second Q < SKIP_THRESHOLD → SKIP ──────
-const SKIP_THRESHOLD = 0.30; // raised from 0.18 — skip more aggressively when Q-margin is low
+// SKIP_THRESHOLD ต้องตรงกับ exploit phase ใน startTraining และ _runAutoTrain
+// training exploit: action = SKIP เมื่อ qS >= maxQ - 0.05 หรือ margin < threshold
+// ใช้ 0.10 เพื่อให้ตรงกัน — ลดการ skip ที่มากเกินจาก online learning
+const SKIP_THRESHOLD = 0.10;
 
 function getTFDecision(hist) {
   if (!window._tfModel) return null;
@@ -3409,9 +3412,9 @@ function updateTrainDashUI(stats) {
     const box = document.getElementById('trainCompareBox');
     if (box) {
       box.style.display = 'block';
-      // Update header with actual trained rounds
+      // Update header with actual trained rounds + in-sample warning
       const hdr = document.getElementById('trainCompareHeader');
-      if (hdr && rounds) hdr.textContent = '◆ เปรียบเทียบผล (' + rounds + ' รอบที่เทรน)';
+      if (hdr && rounds) hdr.textContent = '◆ เปรียบเทียบผล (' + rounds + ' รอบที่เทรน) ⚠️ In-Sample';
       const cached = _td.trainingTestResults;
       // Use OOS stats consistently for training dashboard comparison
       const source = cached && cached.oos && cached.oos.ai && cached.oos.ai.total > 0
@@ -3766,7 +3769,9 @@ async function startTraining() {
         }
         history.push(next);
       }
-      msgEl.textContent = `Using real history: ${o.hist.length} rounds (extended to ${history.length})`;
+      const realLen = o.hist.length;
+      const simLen = history.length - realLen;
+      msgEl.textContent = `Real: ${realLen} รอบ + Simulated: ${simLen} รอบ (รวม ${history.length})`;
     } catch (e) {
       msgEl.textContent = 'Failed to load history: ' + e.message;
       _td.running = false;
@@ -3828,10 +3833,13 @@ async function startTraining() {
         const r = Math.random();
         action = r < 0.4 ? 'B' : r < 0.8 ? 'P' : 'SKIP';
       } else {
-        // Exploit: pick best Q value across all 3 actions
-        const maxQ = Math.max(qVals[0], qVals[1], qVals[2] || -Infinity);
-        if (qVals[2] >= maxQ - 0.05) action = 'SKIP'; // slight bonus to skip on tie
-        else action = qVals[0] >= qVals[1] ? 'B' : 'P';
+        // Exploit: ใช้ SKIP_THRESHOLD เดียวกับ getTFDecision()
+        const qB2 = qVals[0], qP2 = qVals[1], qS2 = qVals[2] || -Infinity;
+        const sorted2 = [qB2, qP2, qS2].sort((a, b) => b - a);
+        const margin2 = sorted2[0] - sorted2[1];
+        if (qS2 >= qB2 && qS2 >= qP2) action = 'SKIP';
+        else if (margin2 < SKIP_THRESHOLD) action = 'SKIP';
+        else action = qP2 >= qB2 ? 'P' : 'B';
       }
 
       const actual = history[i];
@@ -4401,7 +4409,9 @@ async function _runAutoTrain(targetRounds, existingModel) {
 
     const normalizeReward = (bet, actual, isHighChaos) => {
       if (actual === 'T') return 0;
-      if (bet === 'SKIP') return isHighChaos ? 0.2 : -0.05;
+      // ใช้ skip reward เดียวกับ startTraining: -0.5 + chaos*1.0
+      // isHighChaos → +0.10, else → -0.20 (conservative, ไม่ดัน Q(SKIP))
+      if (bet === 'SKIP') return isHighChaos ? 0.10 : -0.20;
       const raw = bet === actual ? (bet === 'B' ? Math.floor(stake * 0.95) : stake) : -stake;
       return Math.max(-1, Math.min(1, raw / stake));
     };
@@ -4425,6 +4435,7 @@ async function _runAutoTrain(targetRounds, existingModel) {
         const qB = qVals[0], qP = qVals[1], qS = qVals.length >= 3 ? qVals[2] : -Infinity;
         const sorted = [qB, qP, qS].sort((a, b) => b - a);
         const margin = sorted[0] - sorted[1];
+        // ใช้ SKIP_THRESHOLD เดียวกับ getTFDecision() และ startTraining
         action = (qS >= qB && qS >= qP) ? 'SKIP' : (margin < SKIP_THRESHOLD ? 'SKIP' : (qP >= qB ? 'P' : 'B'));
       }
 
@@ -4589,11 +4600,12 @@ async function _onlineReplay() {
   // Target[action] = reward_for_that_action (bounded to [-1, +1])
   const states  = batch.map(x => x.state);
   const targets = batch.map(x => {
-    // FIX: ให้ SKIP มีค่าบวกในห้องที่ entropy สูง (chaos ≥65)
-    // ก่อนหน้า SKIP=0 ทุกกรณี → โมเดลไม่เรียนรู้ที่จะ skip เลย
-    const entropyFeat = x.state[29] || 0; // entropy10 feature
-    const isHighChaos = entropyFeat > 0.88; // ≈ chaos ≥65
-    const skipReward = isHighChaos ? 0.35 : -0.05; // chaos → skip ดี, clear → skip เสียโอกาส
+    // skipReward ต้องสอดคล้องกับ skipReward() ใน startTraining
+    // startTraining: skip = -0.5 + chaos*1.0 → range [-0.5, +0.5]
+    // ลด skipReward ให้ไม่ดัน Q(SKIP) ขึ้นเรื่อยๆ ระหว่าง online play
+    const entropyFeat = x.state[29] || 0;
+    const isHighChaos = entropyFeat > 0.88;
+    const skipReward = isHighChaos ? 0.10 : -0.20; // conservative — เทียบเท่า startTraining
     const t = [0, 0, 0]; // [B, P, SKIP]
     t[0] = Math.max(-1, Math.min(1, x.rB)); // clip to [-1,1]
     t[1] = Math.max(-1, Math.min(1, x.rP));
