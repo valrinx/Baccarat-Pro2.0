@@ -777,7 +777,7 @@ let S={
   vstForceSkip:false,vstSkipCount:0,
   vstRecoveryLeft:0,
   mirrorWinStreak:0,lastBetPatternName:null,
-  tfWeight:1.5, // TF model influence multiplier (0–5)
+  tfWeight:1.5, // TF model influence multiplier (0–5) — lowered from 3.0 to prevent TF overriding good pattern signals
   qTable:{},qCount:{},learningRate:0.2,discountFactor:0.8,
   lastQLearningState:null,lastQLearningAction:null
 };
@@ -999,6 +999,12 @@ function updateAutoBotStatus(result){
   const el=document.getElementById('autoBotStatus');
   if(!el)return;
   if(!S.autoPlay){el.className='auto-bot-bar off';el.textContent='🤖 Auto Play ปิด';return;}
+  // FIX: แสดงสถานะรอข้อมูลถ้ายังไม่ถึง 20 ตา
+  if(S.hist.length<20){
+    el.className='auto-bot-bar';
+    el.textContent='🤖 รอข้อมูล '+(20-S.hist.length)+' ตา — ยังไม่เดิมพัน';
+    return;
+  }
   el.className='auto-bot-bar';
   let st='พร้อมแทงรอบถัดไป';
   // TF Model awareness line
@@ -1027,6 +1033,13 @@ function updateAutoBotStatus(result){
 }
 function applyAutoPlayBet(result){
   if(!S.autoPlay||!result||!result.bet)return;
+  // FIX: รอข้อมูลอย่างน้อย 20 ตาก่อนเดิมพัน — ข้อมูลน้อยเกินไปจะ random
+  if(S.hist.length<20){
+    S.betSide=null;
+    S.autoRoundStake=0;
+    document.getElementById('betDisplayAmt').textContent='รอ '+(20-S.hist.length)+' ตา';
+    return;
+  }
   // ถ้า skip → clear betSide ไม่ให้นับ P&L
   if(result.skip||result.bet==='N'||result.bet==='SKIP'){
     S.betSide=null;
@@ -2203,7 +2216,9 @@ function updateQTable(actualOutcome){
   const action=S.lastQLearningAction;
   if(!state||!action||!Q_ACTIONS.includes(action))return;
   if(!actualOutcome||actualOutcome==='T')return;
-  const reward=(isTrainingMode||!S.betSide)?(action===actualOutcome?1.0:-1.0):(S.betSide===actualOutcome?1.0:-1.0);
+  // FIX: reward ต้องคำนวณจาก action ที่ AI เลือก (lastQLearningAction)
+  // ไม่ใช่ betSide ของผู้เล่น — ทั้งสองอาจต่างกันและทำให้ Q-values ผิดพลาด
+  const reward=(action===actualOutcome?1.0:-1.0);
   const nextState=getQLearningState(S.hist,S.streak,S.streakSide);
   initQState(state);
   S.qCount[state][action]=(S.qCount[state][action]||0)+1;
@@ -2470,7 +2485,8 @@ function showSuggest(){
   const voteMarginLow = result.votes &&
     Math.abs((result.votes.P||0)-(result.votes.B||0)) /
     Math.max(1,(result.votes.P||0)+(result.votes.B||0)) < 0.08;
-  const shouldSkip = tfSkip || (voteMarginLow && result.conf <= 2);
+  // FIX: ลด AND เป็น OR — skip ถ้า (1) TF บอก skip หรือ (2) conf ต่ำมาก หรือ (3) margin ต่ำ+conf ไม่แรง
+  const shouldSkip = tfSkip || result.conf <= 1 || (voteMarginLow && result.conf <= 3);
 
   const mainBet = shouldSkip ? 'SKIP' :
                   (result.bet==='P'||result.bet==='B'?result.bet:'B');
@@ -2716,8 +2732,8 @@ function loadCurrent(){
   syncAutoPlayUI();
   syncTrainingModeUI();
   setMoneyMgmt(S.moneyMgmt);
-  document.getElementById('tfWtSlider').value = S.tfWeight;
-  document.getElementById('tfWtVal').textContent = (S.tfWeight||3).toFixed(1)+'×';
+  document.getElementById('tfWtSlider').value = S.tfWeight || 1.5;
+  document.getElementById('tfWtVal').textContent = (S.tfWeight||1.5).toFixed(1)+'×';
   updatePnlBar();updateOdds();renderHistRow();showSuggest();
   setTimeout(()=>{const el=document.getElementById('betDisplayAmt');if(el)el.textContent=fmt(getCurrentBet());},0);
 }
@@ -2925,7 +2941,7 @@ function encodeStateForTF(hist) {
 
 /** Sync TF prediction for in-game use — returns {bet, conf, qP, qB} or null */
 // ── Skip threshold: ถ้า best Q - second Q < SKIP_THRESHOLD → SKIP ──────
-const SKIP_THRESHOLD = 0.30; // เพิ่ม threshold → skip รอบที่ไม่ชัดเจนมากขึ้น
+const SKIP_THRESHOLD = 0.30; // raised from 0.18 — skip more aggressively when Q-margin is low
 
 function getTFDecision(hist) {
   if (!window._tfModel) return null;
@@ -4379,13 +4395,15 @@ async function _onlineReplay() {
   // Target[action] = reward_for_that_action (bounded to [-1, +1])
   const states  = batch.map(x => x.state);
   const targets = batch.map(x => {
-    // Get current Q prediction to use as base (preserve other action values)
-    // We'll overwrite only the relevant action slots
-    // Simple: just set targets directly — avoids Q propagation entirely
+    // FIX: ให้ SKIP มีค่าบวกในห้องที่ entropy สูง (chaos ≥65)
+    // ก่อนหน้า SKIP=0 ทุกกรณี → โมเดลไม่เรียนรู้ที่จะ skip เลย
+    const entropyFeat = x.state[29] || 0; // entropy10 feature
+    const isHighChaos = entropyFeat > 0.88; // ≈ chaos ≥65
+    const skipReward = isHighChaos ? 0.35 : -0.05; // chaos → skip ดี, clear → skip เสียโอกาส
     const t = [0, 0, 0]; // [B, P, SKIP]
     t[0] = Math.max(-1, Math.min(1, x.rB)); // clip to [-1,1]
     t[1] = Math.max(-1, Math.min(1, x.rP));
-    t[2] = Math.max(-1, Math.min(1, x.rS));
+    t[2] = Math.max(-1, Math.min(1, skipReward)); // FIX: ไม่ใช่ 0 อีกต่อไป
     return t;
   });
 
