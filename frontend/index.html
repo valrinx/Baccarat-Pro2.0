@@ -246,14 +246,18 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 .tf-badge.active{display:inline-block;border-color:var(--green-pos);color:var(--green-pos);background:rgba(34,197,94,.1)}
 .tf-badge.train-only{display:inline-block;border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.1)}
 
-/* HISTORY BEAD ROW */
-.hist-row{display:flex;flex-wrap:wrap;gap:4px;padding:8px 14px 0;min-height:26px}
-.hbead{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-  font-size:7px;font-family:'Cinzel',serif;font-weight:700;flex-shrink:0;animation:popIn .15s ease-out}
+/* RECENT BIG ROAD */
+.hist-row{padding:8px 14px 0;overflow-x:auto;min-height:30px}
+.hist-bigroad{display:flex;gap:2px;width:max-content}
+.hist-br-col{display:flex;flex-direction:column;gap:2px}
+.hist-br-cell{width:22px;height:22px;border-radius:50%;border:2px solid transparent;
+  display:flex;align-items:center;justify-content:center;
+  font-size:7px;font-family:'Cinzel',serif;font-weight:700;flex-shrink:0}
+.hist-br-cell.P{border-color:var(--pl);color:var(--pl)}
+.hist-br-cell.B{border-color:var(--bl);color:var(--bl)}
+.hist-br-cell.T{background:var(--tie);color:#fff;border-color:var(--tie)}
 @keyframes popIn{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
-.hbead.P{background:var(--player);color:#fff}
-.hbead.B{background:var(--banker);color:#fff}
-.hbead.T{background:var(--tie);color:#fff}
+.hist-br-cell{animation:popIn .15s ease-out}
 
 /* DEAL/CLEAR BUTTONS */
 .bbar{display:flex;gap:8px;padding:10px 14px 0}
@@ -364,7 +368,31 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 .train-dash-msg{font-size:8px;color:var(--dim);text-align:center;padding:4px}
 .train-dash-msg .err{color:var(--red-neg)}
 
-/* MODAL */
+/* 3 DERIVED ROADS PANEL */
+.dr-block{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 5px 4px;overflow:hidden}
+.dr-lbl{font-family:'Cinzel',serif;font-size:7px;letter-spacing:.06em;color:var(--gold-dim);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dr-signal{font-size:7px;font-weight:700;padding:1px 4px;border-radius:3px;margin-left:2px}
+.dr-signal.red{color:#ef4444;background:rgba(239,68,68,.12)}
+.dr-signal.blue{color:#4a8fd4;background:rgba(42,92,170,.15)}
+.dr-next{font-size:7px;font-family:'Cinzel',serif;margin-left:2px}
+.dr-next.P{color:var(--pl)}.dr-next.B{color:var(--bl)}
+.dr-road-wrap{overflow-x:auto;overflow-y:hidden}
+.dr-road{display:flex;flex-direction:row;gap:2px;width:max-content;align-items:flex-start}
+.dr-road-col{display:flex;flex-direction:column;gap:2px}
+/* Base dot — 11×11, shared by all 3 roads */
+.dr-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;box-sizing:border-box;display:flex;align-items:center;justify-content:center}
+.dr-dot.empty{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+/* ไข่ปลา (Big Eye Boy): outline only — red outline / blue outline */
+.dr-dot.beb-red{background:transparent;border:1.5px solid #ef4444}
+.dr-dot.beb-blue{background:transparent;border:1.5px solid #4a8fd4}
+/* ซาลาเปา (Small Road): solid fill — red / blue */
+.dr-dot.sm-red{background:#ef4444;border:none}
+.dr-dot.sm-blue{background:#4a8fd4;border:none}
+/* ไม้ขีด (Cockroach): diagonal slash — red / blue */
+.dr-dot.ck-red,.dr-dot.ck-blue{background:transparent;border:none;border-radius:0;font-size:10px;line-height:1;font-weight:700}
+.dr-dot.ck-red{color:#ef4444}
+.dr-dot.ck-blue{color:#4a8fd4}
+
 .modal{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.8);
   align-items:center;justify-content:center;display:none}
 .modal.show{display:flex;animation:fadeIn .15s ease}
@@ -580,15 +608,47 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
     </div>
     <div class="bet-amount-row" id="betAmountRow">
       <label>จำนวนเงิน</label>
-      <input class="bet-input" type="number" id="betAmt" value="20" min="10" step="10" oninput="_syncBetDisplay()">
+      <input class="bet-input" type="number" id="betAmt" value="20" min="20" step="10" oninput="_syncBetDisplay()">
     </div>
     <div class="bet-quick-amts" id="betQuickAmts">
-      <div class="bqa" onclick="setBetAmt(10)">10</div>
-      <div class="bqa" onclick="setBetAmt(20)">20</div>
-      <div class="bqa" onclick="addBetAmt(10)">+10</div>
+      <div class="bqa" onclick="setBetAmt(getMinBet())">MIN</div>
+      <div class="bqa" onclick="setBetAmt(getMinBet()*2)">×2</div>
+      <div class="bqa" onclick="addBetAmt(getMinBet())">+MIN</div>
       <div class="bqa" onclick="addBetAmt(50)">+50</div>
       <div class="bqa" onclick="addBetAmt(100)">+100</div>
-      <div class="bqa" onclick="setBetAmt(MIN_BET)">MIN</div>
+      <div class="bqa" onclick="setBetAmt(getBaseUnit())">BASE</div>
+    </div>
+    <!-- Capital + MinBet settings -->
+    <div style="display:flex;gap:8px;padding:8px 0 0;border-top:1px solid var(--border);margin-top:4px" id="capitalRow">
+      <div style="flex:1">
+        <label style="font-size:8px;color:var(--dim);font-family:'Cinzel',serif;letter-spacing:.1em;display:block;margin-bottom:3px">◆ ทุนตั้งต้น</label>
+        <input type="number" id="capitalAmt" value="1000" min="100" step="100"
+          style="width:100%;background:var(--card-bg);border:1px solid var(--border);color:var(--gold);font-family:'Cinzel',serif;font-size:13px;padding:5px 8px;border-radius:6px;text-align:center"
+          oninput="onCapitalChange()">
+      </div>
+      <div style="flex:1">
+        <label style="font-size:8px;color:var(--dim);font-family:'Cinzel',serif;letter-spacing:.1em;display:block;margin-bottom:3px">◆ bet ขั้นต่ำ</label>
+        <input type="number" id="minBetAmt" value="20" min="20" step="10"
+          style="width:100%;background:var(--card-bg);border:1px solid var(--border);color:var(--green-pos);font-family:'Cinzel',serif;font-size:13px;padding:5px 8px;border-radius:6px;text-align:center"
+          oninput="onMinBetChange()">
+      </div>
+    </div>
+    <!-- Capital remaining bar -->
+    <div style="padding:4px 0 0" id="capitalBarRow">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:8px;color:var(--dim);margin-bottom:3px">
+        <span style="font-family:'Cinzel',serif">ทุนคงเหลือ</span>
+        <span style="display:flex;gap:6px;align-items:center">
+          <span id="capitalRemainLbl" style="color:var(--gold);font-family:'Cinzel',serif">1,000</span>
+          <span id="capitalPctLbl" style="color:var(--dim);font-size:7px"></span>
+        </span>
+      </div>
+      <div style="background:var(--border);border-radius:3px;height:5px;overflow:hidden">
+        <div id="capitalBar" style="height:100%;background:var(--green-pos);width:100%;transition:width .3s;border-radius:3px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:7px;color:var(--dim);margin-top:2px;font-family:'Cinzel',serif">
+        <span>base unit: <span id="baseUnitLbl" style="color:var(--gold)">—</span></span>
+        <span id="capitalStatusLbl" style="color:var(--green-pos)">ปกติ</span>
+      </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding-top:6px;border-top:1px solid var(--border)" id="betSummaryRow">
       <div class="bn-lbl" style="font-size:10px;color:var(--dim)">เดิมพัน: <span id="betSide" style="font-family:'Cinzel',serif;color:var(--gold)">—</span></div>
@@ -666,53 +726,31 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   <div class="slbl" style="padding:8px 14px 0">RECENT</div>
   <div class="hist-row" id="histRow"></div>
 
-  <!-- CARD INPUT (collapsible) -->
-  <div style="padding:8px 14px 0">
-    <div class="slbl" style="cursor:pointer;margin-bottom:0" onclick="toggleCardSection()" id="cardToggleLbl">
-      🃏 กรอกไพ่ (ขยาย)
-    </div>
-  </div>
-  <div id="cardSection" style="display:none">
-    <div class="hands">
-      <div class="hbox P"><div class="hlbl">PLAYER</div>
-        <div class="cards-row" id="pCards"></div>
-        <div class="htot" id="pTot">—</div></div>
-      <div class="hbox B"><div class="hlbl">BANKER</div>
-        <div class="cards-row" id="bCards"></div>
-        <div class="htot" id="bTot">—</div></div>
-    </div>
-    <div class="odds-bar">
-      <div class="otitle">◆ ODDS REAL-TIME</div>
-      <div class="odds-row">
-        <div class="oseg P"><div class="pct" id="oddsP">45.9%</div><div class="olbl">PLAYER</div></div>
-        <div class="otrack">
-          <div class="ofp" id="fillP" style="width:45.9%"></div>
-          <div class="oft" id="fillT" style="width:9.5%"></div>
-          <div class="ofb" id="fillB" style="width:44.6%"></div>
-        </div>
-        <div class="oseg B"><div class="pct" id="oddsB">44.6%</div><div class="olbl">BANKER</div></div>
-      </div>
-      <div style="display:flex;justify-content:center;margin-top:3px">
-        <div class="oseg T"><div class="pct" id="oddsT">9.5%</div><div class="olbl">TIE</div></div>
+  <!-- 3 DERIVED ROADS PANEL -->
+  <div id="derivedRoadsPanel" style="padding:6px 14px 4px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+      <div class="slbl" style="margin-bottom:0">🧬 3 เกลอ</div>
+      <div id="drConsensus" style="display:none">
+        <span id="drConsensusText" style="font-family:'Cinzel',serif;font-size:8px;font-weight:700"></span>
       </div>
     </div>
-    <div class="picker">
-      <div class="slbl">เพิ่มไพ่</div>
-      <div class="trow">
-        <button class="tbtn ap" id="tP" onclick="setTarget('P')">PLAYER</button>
-        <button class="tbtn" id="tB" onclick="setTarget('B')">BANKER</button>
+    <!-- 3 roads side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">
+      <div class="dr-block">
+        <div class="dr-lbl">ไข่ปลา <span class="dr-signal" id="drSig0"></span><span class="dr-next" id="drNext0"></span></div>
+        <div class="dr-road-wrap"><div class="dr-road" id="drRoad0"></div></div>
       </div>
-      <div class="srow">
-        <div class="stab active" id="s0" onclick="setSuit(0)">♠</div>
-        <div class="stab" id="s1" onclick="setSuit(1)">♥</div>
-        <div class="stab" id="s2" onclick="setSuit(2)">♦</div>
-        <div class="stab" id="s3" onclick="setSuit(3)">♣</div>
+      <div class="dr-block">
+        <div class="dr-lbl">ซาลาเปา <span class="dr-signal" id="drSig1"></span><span class="dr-next" id="drNext1"></span></div>
+        <div class="dr-road-wrap"><div class="dr-road" id="drRoad1"></div></div>
       </div>
-      <div class="cgrid" id="cgrid"></div>
+      <div class="dr-block">
+        <div class="dr-lbl">ไม้ขีด <span class="dr-signal" id="drSig2"></span><span class="dr-next" id="drNext2"></span></div>
+        <div class="dr-road-wrap"><div class="dr-road" id="drRoad2"></div></div>
+      </div>
     </div>
-    <div class="bbar">
-      <button class="btn-deal" id="btnDeal" onclick="dealHand()" disabled>DEAL</button>
-      <button class="btn-clr" onclick="clearHand()">CLEAR</button>
+    <div id="drWaiting" style="text-align:center;font-size:9px;color:var(--dim);padding:6px 0;display:none">
+      รอข้อมูล P/B อย่างน้อย 4 ตา
     </div>
   </div>
 
@@ -756,8 +794,55 @@ const SUITS=['♠','♥','♦','♣'],RANKS=['A','2','3','4','5','6','7','8','9'
 const CV=r=>r==='A'?1:['10','J','Q','K'].includes(r)?0:parseInt(r);
 const HT=c=>c.reduce((s,x)=>s+CV(x.r),0)%10;
 const fmt=n=>n.toLocaleString();
-const MIN_BET=10;
+const MIN_BET=20; // hardcode floor — actual min from getMinBet() which reads UI input
 const DEFAULT_BASE_BET=20;
+
+// ── Capital & MinBet helpers ─────────────────────────────────
+function getMinBet(){
+  return Math.max(20, parseInt(document.getElementById('minBetAmt')?.value)||S.minBet||20);
+}
+function getCapital(){
+  return Math.max(100, parseInt(document.getElementById('capitalAmt')?.value)||S.capital||1000);
+}
+function onCapitalChange(){
+  S.capital=getCapital();
+  updateCapitalBar();
+}
+function onMinBetChange(){
+  S.minBet=getMinBet();
+  // sync clamp
+  const cur=parseInt(document.getElementById('betAmt').value)||0;
+  if(cur<S.minBet){
+    document.getElementById('betAmt').value=S.minBet;
+    _syncBetDisplay();
+  }
+}
+function updateCapitalBar(){
+  const cap=getCapital();
+  const remain=cap+S.balance;
+  const pct=Math.max(0,Math.min(100,remain/cap*100));
+  const bar=document.getElementById('capitalBar');
+  const lbl=document.getElementById('capitalRemainLbl');
+  if(bar){
+    bar.style.width=pct+'%';
+    bar.style.background=pct>60?'var(--green-pos)':pct>30?'var(--gold)':'var(--red-neg)';
+  }
+  if(lbl){lbl.textContent=fmt(Math.max(0,remain));lbl.style.color=pct>60?'var(--gold)':pct>30?'var(--gold)':'var(--red-neg)';}
+  // % remain
+  const pctLbl=document.getElementById('capitalPctLbl');
+  if(pctLbl)pctLbl.textContent='('+Math.round(pct)+'%)';
+  // status
+  const statLbl=document.getElementById('capitalStatusLbl');
+  if(statLbl){
+    if(pct<=20){statLbl.textContent='⚠️ วิกฤต';statLbl.style.color='var(--red-neg)';}
+    else if(pct<=40){statLbl.textContent='⚠️ ทุนต่ำ';statLbl.style.color='var(--gold)';}
+    else if(pct>100){statLbl.textContent='🟢 กำไร';statLbl.style.color='var(--green-pos)';}
+    else{statLbl.textContent='ปกติ';statLbl.style.color='var(--green-pos)';}
+  }
+  // base unit
+  const buLbl=document.getElementById('baseUnitLbl');
+  if(buLbl)buLbl.textContent=fmt(getBaseUnit());
+}
 
 let isTrainingMode=false;
 let S={
@@ -765,6 +850,7 @@ let S={
   pCards:[],bCards:[],
   hist:[],pC:0,bC:0,tC:0,
   betSide:null,baseBet:DEFAULT_BASE_BET,baseUnit:DEFAULT_BASE_BET,
+  capital:1000,minBet:20,  // ทุนทั้งหมดและขั้นต่ำ
   winStreak:0,streakSide:'',streak:0,
   balance:0,totalWin:0,totalLose:0,hedgeLose:0,hedgeWin:0,betWins:0,betTotal:0,
   betHistory:[],
@@ -794,54 +880,15 @@ function switchTab(i){
 function openModal(){document.getElementById('modal').classList.add('show')}
 function closeModal(){document.getElementById('modal').classList.remove('show')}
 
-// ---- MODE ----
-function toggleCardSection(){
-  const sec=document.getElementById('cardSection');
-  const lbl=document.getElementById('cardToggleLbl');
-  const open=sec.style.display==='block';
-  sec.style.display=open?'none':'block';
-  lbl.textContent=open?'🃏 กรอกไพ่ (ขยาย)':'🃏 กรอกไพ่ (ย่อ)';
-}
-
-// ---- CARD GRID ----
-function buildGrid(){
-  const g=document.getElementById('cgrid');g.innerHTML='';
-  RANKS.forEach(r=>{
-    const d=document.createElement('div');
-    d.className='pc'+(RED.includes(S.suit)?' red':'');
-    d.innerHTML=`<span>${r}</span><span class="ps">${SUITS[S.suit]}</span>`;
-    d.onclick=()=>addCard(r,S.suit);g.appendChild(d);
-  });
-}
-function setSuit(s){S.suit=s;document.querySelectorAll('.stab').forEach((e,i)=>e.classList.toggle('active',i===s));buildGrid();}
-function setTarget(t){
-  S.target=t;
-  document.getElementById('tP').className='tbtn'+(t==='P'?' ap':'');
-  document.getElementById('tB').className='tbtn'+(t==='B'?' ab':'');
-}
-function addCard(r,s){
-  const arr=S.target==='P'?S.pCards:S.bCards;
-  if(arr.length>=3)return;
-  arr.push({r,s});renderHands();checkReady();
-}
-function renderCard(c){
-  const d=document.createElement('div');
-  d.className='card'+(RED.includes(c.s)?' red':'');
-  d.innerHTML=`<span>${c.r}</span><span class="cs">${SUITS[c.s]}</span>`;
-  return d;
-}
-function renderHands(){
-  ['P','B'].forEach(side=>{
-    const arr=side==='P'?S.pCards:S.bCards;
-    const el=document.getElementById(side==='P'?'pCards':'bCards');
-    el.innerHTML='';arr.forEach(c=>el.appendChild(renderCard(c)));
-    const slots=Math.max(0,2-arr.length);
-    for(let i=0;i<slots;i++){const s=document.createElement('div');s.className='cslot';s.textContent='+';el.appendChild(s);}
-    document.getElementById(side==='P'?'pTot':'bTot').textContent=arr.length?HT(arr):'—';
-  });
-  updateOdds();
-}
-function checkReady(){document.getElementById('btnDeal').disabled=!(S.pCards.length>=2&&S.bCards.length>=2);}
+// ---- CARD SYSTEM REMOVED — stubs for safety ----
+function toggleCardSection(){}
+function buildGrid(){}
+function setSuit(){}
+function setTarget(){}
+function addCard(){}
+function renderCard(){}
+function renderHands(){}
+function checkReady(){}
 
 // ---- ODDS ----
 const BP=0.4586,BB=0.4462,BT=0.0952;
@@ -850,12 +897,12 @@ function updateOdds(){
   const tot=S.hist.length;
   if(tot>4){p=S.pC/tot*.4+BP*.6;b=S.bC/tot*.4+BB*.6;t=S.tC/tot*.4+BT*.6;}
   const sum=p+b+t;p/=sum;b/=sum;t/=sum;
-  document.getElementById('oddsP').textContent=(p*100).toFixed(1)+'%';
-  document.getElementById('oddsB').textContent=(b*100).toFixed(1)+'%';
-  document.getElementById('oddsT').textContent=(t*100).toFixed(1)+'%';
-  document.getElementById('fillP').style.width=(p*100)+'%';
-  document.getElementById('fillB').style.width=(b*100)+'%';
-  document.getElementById('fillT').style.width=(t*100)+'%';
+  const eP=document.getElementById('oddsP');if(eP)eP.textContent=(p*100).toFixed(1)+'%';
+  const eB=document.getElementById('oddsB');if(eB)eB.textContent=(b*100).toFixed(1)+'%';
+  const eT=document.getElementById('oddsT');if(eT)eT.textContent=(t*100).toFixed(1)+'%';
+  const fP=document.getElementById('fillP');if(fP)fP.style.width=(p*100)+'%';
+  const fB=document.getElementById('fillB');if(fB)fB.style.width=(b*100)+'%';
+  const fT=document.getElementById('fillT');if(fT)fT.style.width=(t*100)+'%';
 }
 
 // ---- BETTING ----
@@ -867,7 +914,7 @@ function setBetSide(s){
   });
   document.getElementById('betSide').textContent=s==='P'?'PLAYER':s==='B'?'BANKER':'TIE';
 }
-function clampBet(n){return Math.max(MIN_BET,Math.round(n)||MIN_BET);}
+function clampBet(n){const mb=getMinBet();const cap=Math.max(mb,getCapital()+S.balance);return Math.max(mb,Math.min(Math.round(n)||mb,cap));}
 function _syncBetDisplay(){
   const raw=parseInt(document.getElementById('betAmt').value)||0;
   const v=raw>0?clampBet(raw):DEFAULT_BASE_BET;
@@ -948,7 +995,8 @@ function countRecentLossStreak(){
   let n=0;
   for(let i=S.betHistory.length-1;i>=0;i--){
     const b=S.betHistory[i];
-    if(b.w==='T'&&b.side!=='T')continue; // push ข้าม
+    if(b.w==='T'&&b.side!=='T')continue; // push ข้าม (P/B แทง แต่ TIE ออก)
+    if(b.side==='T'&&b.w!=='T')continue; // push ข้าม (TIE แทง แต่ P/B ออก)
     if(b.side===b.w)break;               // win → หยุด
     n++;
   }
@@ -998,8 +1046,8 @@ function calcAutoBetAmount(conf,chaosScore,patternName){
   // ── Cut-Loss Rules ────────────────────────────────────────────────────
   // แพ้ ≥3 ตาติด → ลดเหลือ minimum รอ pattern ใหม่
   if(lossStreak>=3){
-    S.autoRoundStake=MIN_BET;
-    return MIN_BET;
+    S.autoRoundStake=getMinBet();
+    return getMinBet();
   }
   // แพ้ 2 ตา + chaos สูง → ลดเหลือ 25%
   if(lossStreak>=2&&chaos>=60){
@@ -1010,15 +1058,15 @@ function calcAutoBetAmount(conf,chaosScore,patternName){
 
   // ── Mirror Safety ─────────────────────────────────────────────────────
   if(isMirrorSafetyBreak()){
-    S.autoRoundStake=MIN_BET;
-    return MIN_BET;
+    S.autoRoundStake=getMinBet();
+    return getMinBet();
   }
 
   // ── Volatile/High Chaos → Flat minimum ───────────────────────────────
   const volatile=isVolatileZone(conf,chaos);
   if(volatile||chaos>=75){
-    S.autoRoundStake=MIN_BET;
-    return MIN_BET;
+    S.autoRoundStake=getMinBet();
+    return getMinBet();
   }
 
   // ── Pattern-Scaled Bet ────────────────────────────────────────────────
@@ -1032,16 +1080,57 @@ function calcAutoBetAmount(conf,chaosScore,patternName){
       S.autoRoundStake=MIN_BET;
       return MIN_BET;
     }
-    // cap ที่ 3× unit และสูงสุด 3 ไม้ (ลดจาก 4)
+    // cap ที่ 3 ไม้ max
+    const _capLeft=Math.max(0,getCapital()+S.balance);
     if((S.autoMartingaleLossStreak||0)>=3){
-      S.autoRoundStake=unit;
+      // แพ้ 3 ไม้ติด → reset กลับ minBet เริ่มใหม่
+      S.autoRoundStake=getMinBet();
       S.autoMartingaleLossStreak=0;
-      return clampBet(unit);
+      return getMinBet();
     }
-    const cap=clampBet(unit*3);
-    amt=clampBet(Math.min(cap,(S.autoRoundStake||unit)*2));
+    const _prevStake=S.autoRoundStake||unit;
+    const proposed=clampBet(Math.min(unit*4,_prevStake*2));
+    // ทบแล้วจะเกินทุน → reset minBet (bust protection)
+    if(proposed>_capLeft){
+      S.autoMartingaleLossStreak=0;
+      S.autoRoundStake=getMinBet();
+      return getMinBet();
+    }
+    amt=proposed;
   }
 
+  // ── Capital Guard — ปกป้องทุน ────────────────────────────────
+  const capitalRemain=Math.max(0,getCapital()+S.balance);
+  const minB=getMinBet();
+
+  // ถ้าทุนหมดหรือใกล้หมด → หยุด
+  if(capitalRemain<=0){
+    S.autoRoundStake=0;
+    return 0;
+  }
+  // ถ้า bet > ทุนที่เหลือ → ใช้ minBet (ไม่ bust)
+  if(amt>capitalRemain){
+    S.autoRoundStake=minB;
+    return minB;
+  }
+  // ถ้า martingale ทบแล้วจะเกินทุน → reset minBet ทันที
+  if(S.moneyMgmt==='martingale'&&S.autoLastResult==='lose'){
+    const nextDouble=(S.autoRoundStake||minB)*2;
+    if(nextDouble>capitalRemain){
+      // ทบแล้วจะ bust — เริ่มใหม่ที่ minBet
+      S.autoMartingaleLossStreak=0;
+      S.autoRoundStake=minB;
+      return minB;
+    }
+  }
+  // ทุนน้อยกว่า 5× minBet → ล็อก minBet รอฟื้น
+  if(capitalRemain<minB*5){
+    S.autoRoundStake=minB;
+    // แสดงใน UI ว่า reset แล้ว
+    const statEl=document.getElementById('capitalStatusLbl');
+    if(statEl){statEl.textContent='🔄 ทุนต่ำ → reset minBet';statEl.style.color='var(--gold)';}
+    return minB;
+  }
   S.autoRoundStake=amt;
   return amt;
 }
@@ -1056,11 +1145,11 @@ function updateAutoBotStatus(result,finalSkip,mainBet){
     return;
   }
   // FIX: ถ้า finalSkip=true → แสดงสาเหตุที่ skip ชัดเจน
+  // FIX8I: ไม่มี SKIP แสดงผล — ใช้ Banker แทน
   if(finalSkip){
     el.className='auto-bot-bar';
     const chaos=result&&result.chaos?result.chaos.score:S.lastSuggestChaos;
-    if(chaos>=75) el.textContent='🚫 CHAOS '+chaos+'% — ห้องผันผวนสูงมาก ไม่เดิมพัน';
-    else el.textContent='⏸ Skip — สัญญาณไม่ชัดพอ ไม่เดิมพัน';
+    el.textContent='🤖 TIE — รอดูไพ่' + (chaos>=75?' [chaos '+chaos+'%]':'');
     return;
   }
   el.className='auto-bot-bar';
@@ -1085,7 +1174,8 @@ function updateAutoBotStatus(result,finalSkip,mainBet){
   else if(result&&result.conf>=4)st='สัญญาณแรง — เดิมพันตาม pattern';
   else if(result&&result.conf>=2)st='สัญญาณปานกลาง — เดิมพัน 50%';
   // แสดง mainBet จริง ไม่ใช่ result.bet เดิม
-  if(mainBet&&mainBet!=='SKIP')st+=' → '+(mainBet==='P'?'PLAYER':'BANKER');
+  if(mainBet&&mainBet!=='T')st+=' → '+(mainBet==='P'?'PLAYER':'BANKER');
+  else if(mainBet==='T')st+=' → TIE';
   if(result&&result.patternName==='tf_model')st='🤖 TF AI · '+st;
   el.textContent='🤖 '+st;
 }
@@ -1098,11 +1188,14 @@ function applyAutoPlayBet(result){
     document.getElementById('betDisplayAmt').textContent='รอ '+(5-S.hist.length)+' ตา';
     return;
   }
-  // ถ้า skip → clear betSide ไม่ให้นับ P&L
-  if(result.skip||result.bet==='N'||result.bet==='SKIP'){
+  // N / SKIP = ไม่แทง — TIE = แทง TIE จริง (ถึงแม้ result.skip=true แต่ bet='T' = chaos fallback → แทงได้)
+  if((result.skip&&result.bet!=='T')||result.bet==='N'||result.bet==='SKIP'){
     S.betSide=null;
     S.autoRoundStake=0;
+    document.getElementById('betAmt').value=getMinBet();
     document.getElementById('betDisplayAmt').textContent='—';
+    const prev=document.getElementById('autoAmtPreview');
+    if(prev)prev.textContent='ไม่เดิมพัน';
     return;
   }
   const chaos=result.chaos?result.chaos.score:0;
@@ -1122,16 +1215,21 @@ function applyAutoPlayBet(result){
 // ---- DEAL & QUICK ----
 function resolveRound(w,p,b,nat){
   if(S.pendingSug!==null){
-  if(w!=='T'){
-    S.sugTotal++;
-    const sugHit=(S.pendingSug===w);
-    if(sugHit)S.sugWins++;
-    else if(S.pendingSugResult&&S.pendingSugResult.patternName==='sandwich_mirror')S.mirrorWinStreak=0;
-    S.sugHistory.push({sug:S.pendingSug,hit:sugHit,formula:true});
-    if(S.pendingSugResult)updatePatternWeights(S.pendingSugResult,w);
-  }
-  S.pendingSug=null;
-  S.pendingSugResult=null;
+    // นับ suggest accuracy รวม TIE
+    // pendingSug==='T' → นับเฉพาะเมื่อ w==='T' (ถูก) หรือ w!=='T' (ผิด)
+    // pendingSug==='P'/'B' → นับเฉพาะ w!=='T' (ไม่นับตา TIE เพราะ push)
+    const isTieSug = S.pendingSug==='T';
+    const shouldCount = isTieSug ? true : (w!=='T');
+    if(shouldCount){
+      S.sugTotal++;
+      const sugHit=(S.pendingSug===w);
+      if(sugHit)S.sugWins++;
+      else if(S.pendingSugResult&&S.pendingSugResult.patternName==='sandwich_mirror')S.mirrorWinStreak=0;
+      S.sugHistory.push({sug:S.pendingSug,hit:sugHit,formula:true});
+      if(S.pendingSugResult)updatePatternWeights(S.pendingSugResult,w);
+    }
+    S.pendingSug=null;
+    S.pendingSugResult=null;
   }
   const _histBeforeResolve = S.hist.slice(); // snapshot ก่อน push
   S.hist.push(w);
@@ -1145,13 +1243,14 @@ function resolveRound(w,p,b,nat){
   // P&L calc — skip ถ้า betSide เป็น N หรือ SKIP หรือ null
   if(!isTrainingMode){
     const betAmt=getCurrentBet();
-    const _isSkipRound=!S.betSide||S.betSide==='N'||S.betSide==='SKIP';
+    const _isSkipRound=!S.betSide||S.betSide==='N'||S.betSide==='SKIP'; // betSide=null = ไม่แทง
     if(!_isSkipRound&&betAmt>0){
       S.betTotal++;
       S.betHistory.push({side:S.betSide,amt:betAmt,w});
       let pnl=0,resultClass='',labelTxt='',detailTxt='';
       const betSideName=S.betSide==='P'?'PLAYER':S.betSide==='B'?'BANKER':'TIE';
       if(S.betSide===w){
+        // ชนะ — รวมถึงแทง TIE ถูก
         let payout=betAmt;
         if(w==='T')payout=betAmt*8;
         else if(w==='B')payout=Math.floor(betAmt*0.95);
@@ -1162,8 +1261,17 @@ function resolveRound(w,p,b,nat){
           ?`เดิมพัน TIE ${fmt(betAmt)} (ชนะ ×8 = +${fmt(payout)})`
           :`เดิมพัน ${betSideName} ${fmt(betAmt)}${w==='B'?' (หัก 5% commission)':''}`;
       }else if(w==='T'&&S.betSide!=='T'){
+        // ออก TIE แต่แทง P/B → push คืนเงิน
         pnl=0;resultClass='push';labelTxt='PUSH';
-        detailTxt=`เสมอ — คืนเดิมพัน ${fmt(betAmt)}`;
+        detailTxt=`TIE ออก — คืนเดิมพัน ${fmt(betAmt)}`;
+        updateMirrorWinStreak(false,true);
+      }else if(S.betSide==='T'&&w!=='T'){
+        // แทง TIE แต่ P/B ออก → push คืนเงิน ไม่หักเงิน
+        pnl=0;resultClass='push';labelTxt='PUSH';
+        detailTxt=`แทง TIE — ${w==='P'?'PLAYER':'BANKER'} ออก คืนเดิมพัน ${fmt(betAmt)}`;
+        // rollback betTotal และ betHistory ที่ push ไปก่อนแล้ว
+        S.betTotal--;
+        S.betHistory.pop();
         updateMirrorWinStreak(false,true);
       }else{
         pnl=-betAmt;S.totalLose+=betAmt;S.balance-=betAmt;
@@ -1183,7 +1291,8 @@ function resolveRound(w,p,b,nat){
           S.autoLastResult='win';
           S.autoVolatileLossStreak=0;
           S.autoMartingaleLossStreak=0;
-        }else if(w==='T'&&S.betSide!=='T'){
+        }else if((w==='T'&&S.betSide!=='T')||(S.betSide==='T'&&w!=='T')){
+          // push ทั้ง 2 กรณี — ไม่นับ win ไม่นับ lose
           S.autoLastResult='push';
         }else{
           S.autoLastResult='lose';
@@ -1224,6 +1333,7 @@ function resolveRound(w,p,b,nat){
   updateQTable(w);
   showSuggest();
   renderHistRow();
+  renderDerivedRoads();
   updateOdds();
   saveCurrent();
 }
@@ -1232,7 +1342,7 @@ function dealHand(){
   const p=HT(S.pCards),b=HT(S.bCards);
   const w=p>b?'P':b>p?'B':'T';
   resolveRound(w,p,b,p>=8||b>=8);
-  document.getElementById('btnDeal').disabled=true;
+  const bd=document.getElementById('btnDeal');if(bd)bd.disabled=true;
 }
 
 function quickAdd(w){
@@ -1256,15 +1366,21 @@ function undoLast(){
   // undo bet if last round had one
   if(S.betHistory.length){
     const last=S.betHistory.pop();
-    S.betTotal--;
     if(last.side===last.w){
+      // WIN undo
       let payout=last.amt;
       if(last.w==='T')payout=last.amt*8;
       else if(last.w==='B')payout=Math.floor(last.amt*0.95);
-      S.betWins--;S.totalWin-=payout;S.balance-=payout;
+      S.betTotal--;S.betWins--;S.totalWin-=payout;S.balance-=payout;
     }else if(last.w==='T'&&last.side!=='T'){
+      // แทง P/B แต่ TIE ออก = push — betTotal ถูกนับ ต้องลบ
+      S.betTotal--;
+    }else if(last.side==='T'&&last.w!=='T'){
+      // แทง TIE แต่ P/B ออก = push — betTotal/betHistory ถูก rollback ใน resolveRound แล้ว
+      // pop betHistory ข้างบนคือ undo การ push ที่เราทำเพิ่มใน undo itself → ไม่ต้อง betTotal--
     }else{
-      S.totalLose-=last.amt;S.balance+=last.amt;
+      // LOSE undo
+      S.betTotal--;S.totalLose-=last.amt;S.balance+=last.amt;
     }
     updatePnlBar();
     document.getElementById('betResult').classList.remove('show');
@@ -1284,7 +1400,7 @@ function undoLast(){
   if(S.betHistory.length)S.autoLastResult=null;
   updatePnlBar();
   document.getElementById('quickResultBanner').classList.remove('show');
-  renderHistRow();updateOdds();saveCurrent();
+  renderHistRow();renderDerivedRoads();updateOdds();saveCurrent();
   showSuggest();
 }
 
@@ -1300,6 +1416,7 @@ function updatePnlBar(){
   const bal=document.getElementById('pnlBalance');
   bal.textContent=fmt(S.balance);
   bal.className='pv '+(S.balance>0?'pos':S.balance<0?'neg':'neu');
+  updateCapitalBar(); // FIX9: sync capital bar
   document.getElementById('pnlWinAmt').textContent=fmt(S.totalWin);
   document.getElementById('pnlLoseAmt').textContent=fmt(S.totalLose);
   const total=S.sugHistory.length;
@@ -1610,12 +1727,58 @@ function buildDerivedColorSequence(hist,offset){
   const big=generateLogicalBigRoad(hist);
   const colors=[];
   for(const cell of big.placements){
-    const{c:col,row:r}=cell;
+    const col=cell.col;
+    const r=cell.row;
     if(!canMarkDerivedRoad(col,r,offset))continue;
     const color=derivedRoadColorAt(big.cols,col,r,offset);
     if(color)colors.push(color);
   }
   return colors;
+}
+
+/** Returns {col,row,color}[] placements — Big Road layout:
+ *  same color as prev → go down (max ROWS=3), different color → new column */
+function buildDerivedRoadPlacements(hist,offset){
+  const big=generateLogicalBigRoad(hist);
+  const DR=3; // max rows in derived road
+  const occ=new Set();
+  const key=(c,r)=>c+','+r;
+  const entries=[];
+  let lastColor=null;
+
+  for(const cell of big.placements){
+    const col=cell.col;
+    const r=cell.row;
+    if(!canMarkDerivedRoad(col,r,offset))continue;
+    const color=derivedRoadColorAt(big.cols,col,r,offset);
+    if(!color)continue;
+
+    let dc,dr;
+    if(entries.length===0){
+      dc=0;dr=0;
+    } else if(color===lastColor){
+      // same color: go down in same column if room, else new col (same as big road wrap)
+      const prev=entries[entries.length-1];
+      if(prev.row<DR-1&&!occ.has(key(prev.col,prev.row+1))){
+        dc=prev.col;dr=prev.row+1;
+      } else {
+        // wrap to next column, same row as current bottom
+        dc=prev.col+1;
+        dr=prev.row; // stay at same row level when wrapping
+        while(occ.has(key(dc,dr)))dc++;
+      }
+    } else {
+      // new color: start new column at row 0
+      const prev=entries[entries.length-1];
+      dc=prev.col+1;dr=0;
+      while(occ.has(key(dc,dr)))dc++;
+    }
+
+    occ.add(key(dc,dr));
+    entries.push({col:dc,row:dr,color});
+    lastColor=color;
+  }
+  return entries;
 }
 
 // สี → ตัวเลขสำหรับ Q-Learning / UI (-1=ยังไม่พร้อม, 0=น้ำเงิน, 1=แดง)
@@ -2240,12 +2403,42 @@ function qConfidenceFromGap(qP,qB){
 }
 
 function getQLearningDecision(h,streak,streakSide){
-  // ไม่ให้ TF override QL — TF inject แยกใน runPredictionEngine แล้ว
-  // ถ้า TF inject ที่นี่ด้วย = double count และ bypass pattern votes
   const state=getQLearningState(h,streak,streakSide);
   if(!state)return null;
   const q=getQValues(state);
   const visits=(S.qCount[state]?.P||0)+(S.qCount[state]?.B||0);
+
+  // ── Q-Bootstrap: ป้องกัน random explore เมื่อมีข้อมูลเชิงบริบทชัด ────
+  const qBothZero=(q.P===0&&q.B===0)||(Math.abs(q.P)<0.01&&Math.abs(q.B)<0.01&&visits<3);
+
+  if(qBothZero){
+    // Dragon: ตามมังกรเสมอ
+    if(streak>=3&&streakSide){
+      const drConf=streak>=7?5:streak>=5?4:3;
+      return{
+        state,winner:streakSide,conf:drConf,qP:q.P,qB:q.B,visits,explore:false,
+        reason:`Q-Bootstrap Dragon → ${streakSide} (streak=${streak}) ← ตามมังกร`
+      };
+    }
+    // Chop context: สลับจาก last
+    const pb=h.filter(x=>x!=='T');
+    const ctx=getContext(h);
+    const lastPb=pb.length?pb[pb.length-1]:null;
+    if(ctx==='chop'&&lastPb){
+      const alt=lastPb==='B'?'P':'B';
+      return{
+        state,winner:alt,conf:2,qP:q.P,qB:q.B,visits,explore:false,
+        reason:`Q-Bootstrap Chop → ${alt}`
+      };
+    }
+    // Default: Banker edge (house ได้เปรียบ)
+    return{
+      state,winner:'B',conf:1,qP:q.P,qB:q.B,visits,explore:true,
+      reason:`Q Explore → B (banker default, visits=${visits})`
+    };
+  }
+
+  // ── Normal Q decision ──────────────────────────────────────────────
   const winner=q.P>=q.B?'P':'B';
   const conf=qConfidenceFromGap(q.P,q.B);
   const explore=visits<3||conf<=2;
@@ -2256,106 +2449,187 @@ function getQLearningDecision(h,streak,streakSide){
 }
 
 /**
- * Hybrid Ensemble: โหวตสูตร + Q-Learning + Rule 3 เกลอ
- * ก. Q ต่ำ/เคสใหม่ → เน้น 3 เกลอ (คัดค้านหรือเสริม)
- * ข. Q สูง → เชื่อ Q
+ * ══════════════════════════════════════════════════════════════════
+ * MAJORITY VOTE COUNCIL — ระบบโหวตเสียงข้างมาก (7+ voters)
+ * ══════════════════════════════════════════════════════════════════
+ * Voters:
+ *  1. Pattern Heuristics (weighted)   — หลายสูตรรวมกัน
+ *  2. Q-Learning                       — ประสบการณ์สะสม
+ *  3. TF Neural Net                    — Deep learning
+ *  4. Big Eye Boy (ไข่ปลา)            — 3 เกลอ #1
+ *  5. Small Road (ซาลาเปา)            — 3 เกลอ #2
+ *  6. Cockroach (ไม้ขีด)              — 3 เกลอ #3
+ *  7. Markov Chain                     — Transition matrix
+ *  8. Momentum Bias                    — ทิศทาง trend ปัจจุบัน
+ *  9. Frequency Bias (last 10)         — ความถี่ฝั่ง
+ * ผลลัพธ์: เสียงข้างมากตัดสิน, conf = สัดส่วนโหวต
  */
-function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
-  const derived=dr.consensus;
-  let winner=voteWinner;
-  let conf=3;
-  const parts=[];
+function buildVoterCouncil(h,streak,streakSide,patPreds,ql,tfResult,dr){
+  // returns array of {name, bet, weight, conf, reason}
+  const voters=[];
 
-  // CHOP ROOM OVERRIDE: ถ้า ping-pong/chop vote ชนะชัด → bypass QL
-  // ป้องกัน QL exploit ดัน trend ในห้องที่สลับสม่ำเสมอ
-  const _pbH=h.filter(x=>x!=='T');
-  let _chopOvr=false;
-  if(_pbH.length>=6){
-    const _l8=_pbH.slice(-8);
-    let _a=0;for(let i=1;i<_l8.length;i++)if(_l8[i]!==_l8[i-1])_a++;
-    const _cs=_a/Math.max(1,_l8.length-1);
-    const _vt=(votes.P||0)+(votes.B||0);
-    const _vm=_vt>0?Math.abs((votes.P||0)-(votes.B||0))/_vt:0;
-    // ถ้าห้อง chop ชัด และ vote margin ชัดเจน → chop wins
-    if(_cs>=0.75&&_vm>0.15){
-      _chopOvr=true;
-      parts.push('Chop Override (ping-pong dominant)');
-    }
+  // 1. Pattern Heuristics — รวม preds เป็น 1 voter (weighted sum)
+  const patVotes={P:0,B:0};
+  patPreds.forEach(p=>patVotes[p.bet]=(patVotes[p.bet]||0)+p.weight*(p.conf/5));
+  const patTotal=patVotes.P+patVotes.B;
+  if(patTotal>0){
+    const patBet=patVotes.P>=patVotes.B?'P':'B';
+    const patMargin=Math.abs(patVotes.P-patVotes.B)/patTotal;
+    voters.push({name:'patterns',bet:patBet,
+      weight: patMargin>0.4?3.0:patMargin>0.2?2.0:1.0,
+      conf:patMargin>0.4?5:patMargin>0.2?4:3,
+      reason:'Pattern vote '+patBet+' ('+Math.round(patMargin*100)+'% margin)'});
   }
 
-  if(_chopOvr){
-    // ใช้ voteWinner ตรงๆ ไม่ผ่าน QL
-    winner=voteWinner;
-    conf=4;
-  }else if(ql){
-    parts.push(ql.reason);
-    if(ql.explore){
-      if(derived&&derived.roadsAgree>=1&&(isDerivedFlowStrong(dr.bigEyeBoy.colors)||isDerivedFlowStrong(dr.smallRoad.colors)||isDerivedFlowStrong(dr.cockroach.colors))){
-        if(derived.conf>=4&&derived.roadsAgree>=2){
-          winner=derived.bet;
-          conf=Math.max(conf,derived.conf);
-          parts.push('Derived Override (3เกลอชัด)');
-        }else if(derived.bet!==ql.winner){
-          winner=derived.bet;
-          conf=Math.max(conf,3);
-          parts.push('Derived ช่วยตัดสิน (Q Explore)');
-        }else{
-          winner=ql.winner;
-          conf=Math.max(conf,ql.conf);
-        }
-      }else{
-        winner=ql.winner;
-        conf=Math.max(conf,ql.conf);
+  // 2. Q-Learning voter
+  if(ql&&ql.winner&&(ql.winner==='P'||ql.winner==='B')){
+    const qWt=ql.explore?0.5:(ql.conf>=4?2.0:1.0);
+    voters.push({name:'q_learning',bet:ql.winner,weight:qWt,conf:ql.conf,reason:ql.reason});
+  }
+
+  // 3. TF Neural Net voter
+  if(tfResult&&(tfResult.winner==='P'||tfResult.winner==='B')&&tfResult.conf>=2){
+    const tfWt=(S.tfWeight||1.5)*(tfResult.conf/5)*1.5;
+    voters.push({name:'tf_neural',bet:tfResult.winner,weight:tfWt,conf:tfResult.conf,reason:'TF Neural Net → '+tfResult.winner});
+  }
+
+  // 4-6. 3 เกลอ voters (Big Eye / Small Road / Cockroach)
+  const gelo=[
+    {name:'big_eye',off:DERIVED_OFFSETS.big_eye,label:'ไข่ปลา'},
+    {name:'small_road',off:DERIVED_OFFSETS.small_road,label:'ซาลาเปา'},
+    {name:'cockroach',off:DERIVED_OFFSETS.cockroach,label:'ไม้ขีด'}
+  ];
+  gelo.forEach(g=>{
+    const colors=buildDerivedColorSequence(h,g.off);
+    if(colors.length<2)return;
+    const sig=analyzeDerivedPattern(colors);
+    if(!sig)return;
+    for(const bet of['P','B']){
+      const nextColor=simulateNextDerivedColor(h,bet,g.off);
+      if(nextColor===sig.nextColor){
+        const strong=isDerivedFlowStrong(colors);
+        voters.push({name:g.name,bet,weight:strong?1.8:1.0,conf:strong?4:3,
+          reason:g.label+' → '+bet});
+        break;
       }
-    }else if(ql.conf>=4){
-      winner=ql.winner;
-      conf=Math.max(conf,ql.conf);
-      parts.push('Q Exploit');
-    }else{
-      const blend={P:(votes.P||0)+(ql.winner==='P'?ql.conf*0.4:0),B:(votes.B||0)+(ql.winner==='B'?ql.conf*0.4:0)};
-      if(derived){blend[derived.bet]+=derived.conf*0.5;}
-      winner=blend.P>blend.B?'P':'B';
-      conf=Math.max(conf,ql.conf,derived?derived.conf:0);
-      parts.push('Ensemble Blend');
     }
-  }else if(derived){
-    winner=derived.bet;
-    conf=derived.conf;
-    parts.push(derived.reason);
+  });
+
+  // 7. Markov Chain voter
+  const markovPred=patMarkov(h);
+  if(markovPred){
+    voters.push({name:'markov',bet:markovPred.bet,weight:markovPred.conf>=4?1.5:1.0,
+      conf:markovPred.conf,reason:markovPred.reason});
   }
 
-  // Entropy Skip: Shannon entropy > 0.97 = truly random room
-  // FIX: ยกเว้น pattern ที่แรงพอ — dragon/streak ≥5, ping-pong ชัด, doublepair
-  // เหล่านี้มี edge จริงแม้ entropy สูง เพราะวัดแค่สัดส่วน ไม่ใช่ลำดับ
-  const entropy=shannonEntropy(h);
-  const _pb=h.filter(x=>x!=='T');
-  const _curStreak=(()=>{
-    if(!_pb.length)return 0;
-    const _last=_pb[_pb.length-1];let _s=1;
-    for(let i=_pb.length-2;i>=0&&_pb[i]===_last;i--)_s++;
-    return _s;
-  })();
-  const _hasDragon=_curStreak>=5; // dragon ≥5 ตา → มั่นใจตาม trend
-  const _hasPingPong=(()=>{
-    if(_pb.length<6)return false;
-    const l6=_pb.slice(-6);let a=0;
-    for(let i=1;i<l6.length;i++)if(l6[i]!==l6[i-1])a++;
-    return a>=5; // สลับ 5/5 ตา = ping-pong ชัด
-  })();
-  const _hasDoublePair=hasDoublePairForm(h);
-  const _strongPatternActive=_hasDragon||_hasPingPong||_hasDoublePair;
-  if(entropy>0.97&&!_strongPatternActive){
+  // 8. Momentum Bias voter
+  const momPred=patMomentumBias(h);
+  if(momPred){
+    voters.push({name:'momentum',bet:momPred.bet,weight:momPred.conf>=4?1.5:1.0,
+      conf:momPred.conf,reason:momPred.reason});
+  }
+
+  // 9. Frequency Bias voter
+  const freqPred=patFreq10(h);
+  if(freqPred){
+    voters.push({name:'freq',bet:freqPred.bet,weight:freqPred.conf>=4?1.2:0.8,
+      conf:freqPred.conf,reason:freqPred.reason});
+  }
+
+  return voters;
+}
+
+function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
+  const _pbH=h.filter(x=>x!=='T');
+
+  // ══════════════════════════════════════════════════════
+  // DRAGON OVERRIDE — มังกร ≥ 5 ตา → บังคับตาม ทุกกรณี
+  // ══════════════════════════════════════════════════════
+  let _curStreakLen=0;
+  const _curStreakSide=streakSide||(_pbH.length?_pbH[_pbH.length-1]:null);
+  if(_curStreakSide){
+    for(let i=_pbH.length-1;i>=0&&_pbH[i]===_curStreakSide;i--)_curStreakLen++;
+  }
+  if(_curStreakLen>=5&&_curStreakSide){
+    const drConf=Math.min(5,2+Math.floor(_curStreakLen/2));
     return{
-      winner,conf,
-      reason:parts.join(' · '),
-      source:_chopOvr?'chop_override':(ql?(ql.explore?'q_explore':'q_exploit'):'heuristic'),
-      forceSkip:true,
-      skipReason:'Random Room (Entropy > 0.97)',
-      riskLevel:'high'
+      winner:_curStreakSide,conf:drConf,
+      reason:`🐉 มังกร ${_curStreakSide} ${_curStreakLen} ตา → ตามมังกร [Dragon Override]`,
+      source:'dragon_override',forceSkip:false,skipReason:null
     };
   }
 
-  return{winner,conf,reason:parts.join(' · '),source:_chopOvr?'chop_override':(ql?(ql.explore?'q_explore':'q_exploit'):'heuristic')};
+  // ══════════════════════════════════════════════════════
+  // MAJORITY VOTE — นับคะแนนทุก voter
+  // ══════════════════════════════════════════════════════
+  // votes object มาจาก runPredictionEngine (patterns+tf weighted)
+  // เพิ่ม QL + 3เกลอ + Markov + Momentum + Freq เข้าไปด้วย
+  const councilVotes={P:votes.P||0,B:votes.B||0};
+  const councilLog=[];
+
+  // Q-Learning
+  if(ql&&(ql.winner==='P'||ql.winner==='B')){
+    const qw=ql.explore?0.5:(ql.conf>=4?2.0:1.0);
+    councilVotes[ql.winner]+=qw*ql.conf;
+    councilLog.push('Q→'+ql.winner);
+  }
+
+  // 3 เกลอ
+  const gelo=[
+    {off:DERIVED_OFFSETS.big_eye,label:'ไข่ปลา'},
+    {off:DERIVED_OFFSETS.small_road,label:'ซาลาเปา'},
+    {off:DERIVED_OFFSETS.cockroach,label:'ไม้ขีด'}
+  ];
+  let geloAgreeCount=0;
+  gelo.forEach(g=>{
+    const colors=buildDerivedColorSequence(h,g.off);
+    if(colors.length<2)return;
+    const sig=analyzeDerivedPattern(colors);
+    if(!sig)return;
+    for(const bet of['P','B']){
+      if(simulateNextDerivedColor(h,bet,g.off)===sig.nextColor){
+        const w=isDerivedFlowStrong(colors)?2.0:1.0;
+        councilVotes[bet]+=w*4;
+        councilLog.push(g.label+'→'+bet);
+        geloAgreeCount++;
+        break;
+      }
+    }
+  });
+
+  // Markov
+  const markovP=patMarkov(h);
+  if(markovP){councilVotes[markovP.bet]+=markovP.conf*1.0;councilLog.push('Markov→'+markovP.bet);}
+
+  // Momentum
+  const momP=patMomentumBias(h);
+  if(momP){councilVotes[momP.bet]+=momP.conf*0.8;councilLog.push('Mom→'+momP.bet);}
+
+  // Freq10
+  const freqP=patFreq10(h);
+  if(freqP){councilVotes[freqP.bet]+=freqP.conf*0.6;councilLog.push('Freq→'+freqP.bet);}
+
+  // ── Majority decision ──────────────────────────────────
+  const totalCV=councilVotes.P+councilVotes.B;
+  const winner=councilVotes.P>=councilVotes.B?'P':'B';
+  const margin=totalCV>0?Math.abs(councilVotes.P-councilVotes.B)/totalCV:0;
+  const conf=margin>0.5?5:margin>0.35?4:margin>0.2?3:margin>0.1?2:1;
+  const geloNote=geloAgreeCount>=2?` · 3เกลอ ${geloAgreeCount}/3 เห็นด้วย`:'';
+
+  // Entropy Skip
+  const entropy=shannonEntropy(h);
+  const _curStreak=(()=>{let s=1;for(let i=_pbH.length-2;i>=0&&_pbH[i]===_pbH[_pbH.length-1];i--)s++;return _pbH.length?s:0;})();
+  const _hasPingPong=(()=>{if(_pbH.length<6)return false;const l6=_pbH.slice(-6);let a=0;for(let i=1;i<l6.length;i++)if(l6[i]!==l6[i-1])a++;return a>=5;})();
+  const _strongActive=_curStreak>=5||_hasPingPong||hasDoublePairForm(h);
+  if(entropy>0.97&&!_strongActive){
+    return{winner,conf,
+      reason:'เสียงข้างมาก '+winner+' ('+Math.round(margin*100)+'%)'+geloNote+' · '+councilLog.join(', '),
+      source:'majority_vote',forceSkip:true,skipReason:'Random Room (Entropy > 0.97)'};
+  }
+
+  return{winner,conf,
+    reason:'เสียงข้างมาก '+winner+' ('+Math.round(margin*100)+'%)'+geloNote+' · '+councilLog.join(', '),
+    source:'majority_vote',forceSkip:false,skipReason:null};
 }
 
 function updateQTable(actualOutcome){
@@ -2478,47 +2752,78 @@ function runPredictionEngine(h,streak,streakSide){
     S.lastQLearningAction=null;
   }
 
-  // TF Model candidate — weight controlled by S.tfWeight slider
-  // SUPPRESS: TF เทรนบน random data ไม่รู้จัก ping-pong/chop room
-  // ถ้า alternating pattern ชัด → ลด TF weight หนัก
+  // TF Model candidate
   const tfResult=getTFDecision(h);
   let tfCandidate=null;
   if(tfResult&&tfResult.conf>=2){
     const tfWt=S.tfWeight||1.5;
-
-    // วัด chop strength จาก 8 ตาล่าสุด (non-tie)
     const _pbTf=h.filter(x=>x!=='T');
+
+    // ── Dragon check: ถ้า dragon ≥ 4 → BOOST TF ถ้า TF เห็นด้วย, suppress ถ้าขัด
+    let _drLen=0,_drSide=_pbTf.length?_pbTf[_pbTf.length-1]:null;
+    if(_drSide){for(let i=_pbTf.length-1;i>=0&&_pbTf[i]===_drSide;i--)_drLen++;}
+    const _isDragon=_drLen>=4;
+    const _tfAgreesDragon=_isDragon&&tfResult.winner===_drSide;
+    const _tfContraDragon=_isDragon&&tfResult.winner!==_drSide&&tfResult.winner!=='SKIP';
+
+    // ── Chop: ใช้แค่ current window 8 ตา (ไม่ดู preds เก่า) ───────────
     let _chopStr=0;
     if(_pbTf.length>=6){
       const _l8=_pbTf.slice(-8);
       let _a=0;for(let i=1;i<_l8.length;i++)if(_l8[i]!==_l8[i-1])_a++;
       _chopStr=_a/Math.max(1,_l8.length-1);
     }
-    // ดูว่า ping-pong/chop pattern fire ไหม
-    const _chopFire=preds.filter(p=>(p.name==='pingpong'||p.name==='chop')&&p.conf>=3).length>0;
-    const _isChop=_chopStr>=0.75||_chopFire;
-    const _isPerfect=_chopStr>=0.875; // 7/8 ตาสลับ = perfect ping-pong
+    const _isChop=!_isDragon&&_chopStr>=0.75; // chop ต้องไม่มี dragon
+    const _isPerfect=!_isDragon&&_chopStr>=0.875;
 
-    // คำนวณ effective weight
-    const _strongPat=preds.filter(p=>
-      ['cycle_streak','cycle','streak','dragon','pingpong'].includes(p.name)&&p.conf>=4
+    // ── Strong non-dragon pattern ─────────────────────────────────────
+    const _strongPat=!_isDragon&&preds.filter(p=>
+      ['cycle_streak','cycle','pingpong'].includes(p.name)&&p.conf>=4
     ).length>0;
-    let _effWt=tfWt;
-    if(_isPerfect){_effWt=0.1;}       // suppress เกือบสมบูรณ์
-    else if(_isChop){_effWt=tfWt*0.2;} // ลด 80%
-    else if(_strongPat){_effWt=tfWt*0.15;} // pattern ชัด → suppress TF
 
+    // ── Compute effective TF weight ───────────────────────────────────
+    let _effWt=tfWt;
+    if(_tfContraDragon){_effWt=0.05;}      // TF สวนมังกร → suppress มาก
+    else if(_tfAgreesDragon){_effWt=tfWt*2.0;} // TF ตามมังกร → boost 2×
+    else if(_isPerfect){_effWt=0.1;}
+    else if(_isChop){_effWt=tfWt*0.2;}
+    else if(_strongPat){_effWt=tfWt*0.15;}
+
+    const _isSuppressed=_tfContraDragon||_isChop||_isPerfect||_strongPat;
     tfCandidate={
       name:'tf_model',
       bet:tfResult.winner,
       conf:tfResult.conf,
       weight:_effWt,
-      reason:'TF Model'+(_isPerfect?' [suppress:ping-pong]':_isChop?' [reduced:chop]':_strongPat?' [reduced:strong-pat]':''),
+      reason:'TF Model'+(_tfContraDragon?' [suppress:contra-dragon]':_tfAgreesDragon?' [boost:dragon]':_isPerfect?' [suppress:ping-pong]':_isChop?' [reduced:chop]':_strongPat?' [reduced:strong-pat]':''),
       isFallback:false,
-      chopSuppressed:_isChop||_isPerfect||_strongPat
+      chopSuppressed:_isSuppressed
     };
     preds.push(tfCandidate);
     votes[tfResult.winner]=(votes[tfResult.winner]||0)+tfResult.conf*0.8*(_effWt/3.0);
+  }
+
+  // ══════════════════════════════════════════════════════
+  // DRAGON VOTE BOOST — มังกร ≥ 4 → inject votes หนัก
+  // ทำก่อน hybridEnsembleDecision เพื่อให้ votes สะท้อน dragon
+  // ══════════════════════════════════════════════════════
+  const _pbVote=h.filter(x=>x!=='T');
+  let _drVoteLen=0;
+  const _drVoteSide=_pbVote.length?_pbVote[_pbVote.length-1]:null;
+  if(_drVoteSide)for(let i=_pbVote.length-1;i>=0&&_pbVote[i]===_drVoteSide;i--)_drVoteLen++;
+  if(_drVoteLen>=4&&_drVoteSide){
+    // inject votes ตาม dragon strength
+    const boost=Math.min(20,_drVoteLen*1.5);
+    votes[_drVoteSide]=(votes[_drVoteSide]||0)+boost;
+    // suppress ฝั่งตรงข้าม
+    const opp=_drVoteSide==='B'?'P':'B';
+    votes[opp]=Math.max(0,(votes[opp]||0)*0.15);
+    // suppress patterns ที่ขัดมังกร
+    preds.forEach(p=>{
+      if(p.bet!==_drVoteSide){
+        p.weight=(p.weight||1)*Math.max(0.1,1-(0.15*(_drVoteLen-3)));
+      }
+    });
   }
 
   const hybrid=hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr);
@@ -2544,7 +2849,11 @@ function runPredictionEngine(h,streak,streakSide){
     reason='TF Model ชนะลูกผสม · '+reason;
   }
   if(tfCandidate&&tfCandidate.chopSuppressed){
-    reason='⚠️ Chop Room — TF suppressed · '+reason;
+    if(tfCandidate.reason&&tfCandidate.reason.includes('contra-dragon')){
+      reason='🐉 TF สวนมังกร — suppress · '+reason;
+    }else{
+      reason='⚠️ Chop Room — TF suppressed · '+reason;
+    }
   }
 
   // Propagate entropy skip from hybridEnsembleDecision
@@ -2637,65 +2946,49 @@ function showSuggest(){
   const el=document.getElementById('sugBet');
   const txtEl=document.getElementById('sugTxt');
   box.classList.remove('nobet','hedge-tie');
-  // ── Skip Signal from TF ─────────────────────────────────────────
-  const tfSkip = result.tfResult && result.tfResult.winner === 'SKIP';
-  const voteMarginLow = result.votes &&
-    Math.abs((result.votes.P||0)-(result.votes.B||0)) /
-    Math.max(1,(result.votes.P||0)+(result.votes.B||0)) < 0.08;
-  const shouldSkip = tfSkip || result.conf <= 1 || (voteMarginLow && result.conf <= 3);
-
-  // ── Consecutive Skip Guard ───────────────────────────────────────
-  const _pbNow=S.hist.filter(x=>x!=='T');
-  const _nowStreak=(()=>{
-    if(!_pbNow.length)return 0;
-    const _l=_pbNow[_pbNow.length-1];let _s=1;
-    for(let i=_pbNow.length-2;i>=0&&_pbNow[i]===_l;i--)_s++;
-    return _s;
-  })();
-  const _nowPingPong=(()=>{
-    if(_pbNow.length<6)return false;
-    const l6=_pbNow.slice(-6);let a=0;
-    for(let i=1;i<l6.length;i++)if(l6[i]!==l6[i-1])a++;
-    return a>=5;
-  })();
-  const _strongNow=_nowStreak>=5||_nowPingPong;
   if(!S.consecutiveSkip)S.consecutiveSkip=0;
-  let finalSkip=shouldSkip||result.skip;
 
-  // FIX: CHAOS ≥75 → force skip ทุกกรณี ยกเว้น dragon/ping-pong แรงจริง
-  const _chaosHard=chaos.score>=75;
-  if(_chaosHard&&!_strongNow) finalSkip=true;
+  // ── Majority vote margin ─────────────────────────────────────────
+  const _vP=result.votes?result.votes.P||0:0;
+  const _vB=result.votes?result.votes.B||0:0;
+  const _vTot=_vP+_vB;
+  const _voteMargin=_vTot>0?Math.abs(_vP-_vB)/_vTot:0;
+  const _voteClear=_voteMargin>=0.20; // โหวตชัด ≥20% margin → เชื่อโหวต ไม่ skip
 
-  if(finalSkip&&_strongNow&&S.consecutiveSkip>=1){
-    finalSkip=false;
-  }
+  // ── finalSkip: เฉพาะเมื่อโหวตไม่ชัด (margin < 20%) ─────────────
+  let finalSkip = !_voteClear && result.skip;
+
   if(finalSkip) S.consecutiveSkip++;
   else S.consecutiveSkip=0;
 
-  const mainBet = finalSkip ? 'SKIP' :
-                  (result.bet==='P'||result.bet==='B'?result.bet:'B');
+  // mainBet = ผลโหวต เสียงข้างมากเสมอ ถ้าโหวตชัด
+  const mainBet = _voteClear
+    ? (result.bet==='P'||result.bet==='B'?result.bet:'B')
+    : (finalSkip?'T':(result.bet==='P'||result.bet==='B'?result.bet:'B'));
 
-  if (mainBet === 'SKIP') {
-    el.textContent = 'SKIP';
-    el.className = 'sug-bet skip';
-    box.classList.add('nobet');
-  } else {
-    el.textContent = mainBet==='P'?'PLAYER':'BANKER';
-    el.className='sug-bet '+mainBet;
-    box.classList.remove('nobet');
-  }
-  const mirrorBreak=isMirrorSafetyBreak();
-  if(mirrorBreak){
-    txtEl.className='sug-txt mirror-safety';
-    txtEl.textContent='🤖 จบลูปสมมาตรกระจกเงา -> บอทปรับลดเงินเดิมพันขั้นต่ำเพื่อรอดูทรงไพ่ใหม่ · '+result.reason;
-  }else if(_chaosHard&&finalSkip){
-    txtEl.className='sug-txt';
-    txtEl.textContent=`🚫 CHAOS ${chaos.score}% — ห้องผันผวนสูง ไม่มี edge ที่จะแทง · ${result.reason}`;
+  if(mainBet==='T'){
+    el.textContent='TIE';
+    el.className='sug-bet T';
   }else{
-    txtEl.className='sug-txt';
-    txtEl.textContent=result.reason+(result.gate&&result.gate.conflict?' · มีสัญญาณขัด (ลดขนาดเดิมพัน)':'');
+    el.textContent=mainBet==='P'?'PLAYER':'BANKER';
+    el.className='sug-bet '+mainBet;
   }
+  box.classList.remove('nobet');
+
+  // ── suggest text: สั้น — แค่ผลโหวตและ voters ที่เห็นด้วย ─────────
+  const _voterNames={'patterns':'Pattern','q_learning':'Q','tf_neural':'AI',
+    'big_eye':'ไข่ปลา','small_road':'ซาลาเปา','cockroach':'ไม้ขีด',
+    'markov':'Markov','momentum':'Momentum','freq':'Freq'};
+  // reconstruct voter list from reason string (already compact from council)
+  const _pct=Math.round(_voteMargin*100);
+  const _sideLabel=mainBet==='P'?'PLAYER':mainBet==='B'?'BANKER':'TIE';
+  const _confAgree=result.reason?result.reason.match(/3เกลอ (\d)\/3/):null;
+  const _geloTxt=_confAgree?` · 3เกลอ ${_confAgree[1]}/3`:'';
+  txtEl.className='sug-txt';
+  txtEl.textContent=`${_sideLabel} (โหวต ${_pct}%)${_geloTxt}`;
+
   result.bet=mainBet;
+  if(mainBet==='T') result.skip=false;
 
   const dots=document.getElementById('confDots');dots.innerHTML='';
   for(let i=0;i<5;i++){const d=document.createElement('div');d.className='cd'+(i<result.conf?' f':'');dots.appendChild(d);}
@@ -2718,8 +3011,11 @@ function showSuggest(){
   S.lastSuggestChaos=chaos.score;
   const dynAmt=calcAutoBetAmount(result.conf,chaos.score,result.patternName);
   if(sizeEl){
-    if(finalSkip){
-      sizeEl.textContent='SKIP — ไม่เดิมพัน';
+    if(mainBet==='T'){
+      const chaosWarn=chaos.score>=60?` ⚠️ CHAOS ${chaos.score}%`:'';
+      sizeEl.textContent=S.autoPlay
+        ?`เดิมพัน TIE ${fmt(dynAmt)} (×8 = ${fmt(dynAmt*8)})${chaosWarn}`
+        :`แนะนำ TIE ${fmt(dynAmt)} (×8)${chaosWarn}`;
     }else{
       const patMult=patternBetMultiplier(result.patternName,result.conf);
       const pct=Math.round(patMult*100);
@@ -2729,31 +3025,209 @@ function showSuggest(){
   }
 
   updateAutoBotStatus(result);
-  if(S.betSide==='T')setBetSide(mainBet);
+  if(S.betSide==='T'&&mainBet!=='T')setBetSide(mainBet);
   applyAutoPlayBet(result);
   if(!S.autoPlay){
     const amt=calcAutoBetAmount(result.conf,chaos.score,result.patternName);
     document.getElementById('betAmt').value=amt;
     S.baseBet=amt;
     document.getElementById('betDisplayAmt').textContent=fmt(amt);
-    setBetSide(mainBet);
+    setBetSide(mainBet); // P, B, หรือ T
     S.lastBetPatternName=result.patternName||null;
   }
 
-  // FIX: ถ้า SKIP → ไม่นับใน win rate เลย (pendingSug=null ทำให้ resolveRound ข้ามการนับ)
-  S.pendingSug = mainBet === 'SKIP' ? null : mainBet;
-  S.pendingSugResult = mainBet === 'SKIP' ? null : result;
+  // pendingSug: P/B/T → นับ win rate, null = ไม่นับ (ไม่มีกรณีไหนที่ null แล้ว)
+  S.pendingSug = mainBet; // นับทุก case รวม TIE
+  S.pendingSugResult = result;
 }
 
-// ---- HISTORY ----
+// ---- HISTORY (Big Road layout) ----
 function renderHistRow(){
-  const row=document.getElementById('histRow');row.innerHTML='';
-  S.hist.slice(-25).forEach(w=>{
-    const b=document.createElement('div');b.className='hbead '+w;b.textContent=w;row.appendChild(b);
+  const row=document.getElementById('histRow');
+  row.innerHTML='';
+  if(!S.hist.length)return;
+
+  // Build big road placements — same algo as generateLogicalBigRoad but inline
+  // TIE: stacks as dot on the last P/B cell (shown as separate T cell here)
+  const ROWS=6;
+  // cols[c] = array of {w, row, isTieMark}
+  const cols=[];
+  const occ=new Set();
+  const key=(c,r)=>c+','+r;
+  const has=(c,r)=>c>=0&&r>=0&&r<ROWS&&occ.has(key(c,r));
+
+  let lastPB=null; // last non-tie winner
+
+  function placePB(w){
+    let c,r;
+    if(w!==lastPB){
+      // new column
+      c=cols.length;r=0;
+      if(!cols[c])cols[c]=[];
+    }else{
+      const last=cols[cols.length-1];
+      const lastCell=last[last.length-1];
+      c=lastCell.col;r=lastCell.row;
+      if(r<ROWS-1&&!has(c,r+1))r++;
+      else{
+        c++;
+        while(has(c,r))c++;
+        if(!cols[c])cols[c]=[];
+      }
+    }
+    if(!cols[c])cols[c]=[];
+    cols[c].push({w,col:c,row:r,ties:0});
+    occ.add(key(c,r));
+    lastPB=w;
+  }
+
+  // FIX: TIE attaches to the PREVIOUS P/B cell (not the next one)
+  S.hist.forEach(w=>{
+    if(w==='T'){
+      // attach TIE to the last placed P/B cell
+      if(cols.length){
+        const lastCol=cols[cols.length-1];
+        const lc=lastCol[lastCol.length-1];
+        lc.ties=(lc.ties||0)+1;
+      }
+      return;
+    }
+    placePB(w);
   });
+
+  // Render
+  const road=document.createElement('div');
+  road.className='hist-bigroad';
+
+  cols.forEach(col=>{
+    const colEl=document.createElement('div');
+    colEl.className='hist-br-col';
+    // pad to fill ROWS slots so columns align
+    for(let r=0;r<ROWS;r++){
+      const cell=col.find(x=>x.row===r);
+      const d=document.createElement('div');
+      if(cell){
+        d.className='hist-br-cell '+cell.w;
+        d.textContent=cell.w;
+        // show tie count badge (ties accumulated before this cell + trailing)
+        const tieCount=cell.ties||0;
+        if(tieCount>0){
+          d.style.position='relative';
+          d.style.overflow='visible';
+          const tb=document.createElement('span');
+          tb.textContent=tieCount;
+          tb.style.cssText='position:absolute;bottom:-2px;right:-2px;background:var(--tie);color:#fff;border-radius:50%;width:10px;height:10px;font-size:6px;display:flex;align-items:center;justify-content:center;line-height:1;pointer-events:none;font-family:monospace;font-weight:700';
+          d.appendChild(tb);
+        }
+      }else{
+        // empty slot — invisible spacer
+        d.style.cssText='width:22px;height:22px';
+      }
+      colEl.appendChild(d);
+    }
+    road.appendChild(colEl);
+  });
+
+  row.appendChild(road);
 }
 
-// ---- ROADMAP ----
+// ---- 3 DERIVED ROADS ----
+function renderDerivedRoads(){
+  // 3 เกลอ: Big Eye Boy (offset=1), Small Road (offset=2), Cockroach (offset=3)
+  // Layout: 3 แถว (ROWS=3) เรียงซ้ายบนลงล่าง แล้ว wrap เป็นคอลัมน์ถัดไป
+  // dot: red=วงกลมแดงทึบ, blue=วงแหวนน้ำเงิน (เหมือนของจริง)
+  const ROWS=3;
+  const roads=[
+    {offset:DERIVED_OFFSETS.big_eye},
+    {offset:DERIVED_OFFSETS.small_road},
+    {offset:DERIVED_OFFSETS.cockroach}
+  ];
+  const pb=S.hist.filter(x=>x!=='T');
+  const waiting=document.getElementById('drWaiting');
+  const consensusEl=document.getElementById('drConsensus');
+  const consensusTxt=document.getElementById('drConsensusText');
+
+  // Always show roads immediately (like RECENT road) — no waiting gate
+  if(waiting)waiting.style.display='none';
+  if(consensusEl)consensusEl.style.display='none';
+
+  // CSS class prefix per road type
+  // 0=ไข่ปลา(Big Eye Boy): outline, 1=ซาลาเปา(Small): solid, 2=ไม้ขีด(Cockroach): slash
+  const roadPrefix=['beb','sm','ck'];
+  const roadSymbol=['','','/']; // slash char for cockroach
+
+  roads.forEach((rd,i)=>{
+    const placements=buildDerivedRoadPlacements(S.hist,rd.offset);
+    const colors=buildDerivedColorSequence(S.hist,rd.offset); // for signal/next only
+    const roadEl=document.getElementById('drRoad'+i);
+    const sigEl=document.getElementById('drSig'+i);
+    const nxtEl=document.getElementById('drNext'+i);
+    if(!roadEl)return;
+    const pfx=roadPrefix[i];
+    const sym=roadSymbol[i];
+
+    // Big road layout: render col by col, fill row slots
+    roadEl.innerHTML='';
+    const maxCol=placements.length?placements[placements.length-1].col:2;
+    const totalCols=Math.max(maxCol+1, 5); // show at least 5 cols
+    for(let ci=0;ci<totalCols;ci++){
+      const colEl=document.createElement('div');
+      colEl.className='dr-road-col';
+      for(let ri=0;ri<ROWS;ri++){
+        const d=document.createElement('div');
+        const found=placements.find(p=>p.col===ci&&p.row===ri);
+        if(found){
+          d.className='dr-dot '+pfx+'-'+found.color;
+          if(sym)d.textContent=sym;
+        } else {
+          d.className='dr-dot empty';
+        }
+        colEl.appendChild(d);
+      }
+      roadEl.appendChild(colEl);
+    }
+
+    // Signal badge
+    const last=colors.length?colors[colors.length-1]:null;
+    if(sigEl){
+      if(!last){sigEl.textContent='';sigEl.className='dr-signal';}
+      else{
+        sigEl.textContent=last==='red'?'●':'○';
+        sigEl.className='dr-signal '+last;
+      }
+    }
+
+    // Next prediction
+    let nextBet=null;
+    if(last){
+      for(const bet of['P','B']){
+        const after=buildDerivedColorSequence([...S.hist,bet],rd.offset);
+        if(after.length>colors.length&&after[after.length-1]===last){
+          nextBet=bet;break;
+        }
+      }
+    }
+    if(nxtEl){
+      if(nextBet){nxtEl.textContent='→'+nextBet;nxtEl.className='dr-next '+nextBet;}
+      else{nxtEl.textContent='';nxtEl.className='dr-next';}
+    }
+  });
+
+  // Consensus
+  const dr=getDerivedRoads(S.hist);
+  if(consensusEl&&consensusTxt){
+    if(dr.consensus){
+      consensusEl.style.display='block';
+      const bet=dr.consensus.bet;
+      const col=bet==='P'?'var(--pl)':'var(--bl)';
+      consensusTxt.innerHTML=`🤝 <span style="color:${col};font-weight:700">${bet==='P'?'PLAYER':'BANKER'}</span>`;
+    }else{
+      consensusEl.style.display='none';
+    }
+  }
+}
+
+
 let roadTab=0;
 function setRoadTab(i){
   roadTab=i;
@@ -2814,7 +3288,7 @@ function resetAll(){
     mirrorWinStreak:0,lastBetPatternName:null,consecutiveSkip:0,
     qTable:S.qTable||{},qCount:S.qCount||{},lastQLearningState:null,lastQLearningAction:null};
   ['stRounds','stP','stB','stT'].forEach(id=>document.getElementById(id).textContent='0');
-  updatePnlBar();renderHands();renderHistRow();updateOdds();
+  updatePnlBar();renderHands();renderHistRow();renderDerivedRoads();updateOdds();
   document.getElementById('result').classList.remove('show');
   document.getElementById('betResult').classList.remove('show');
   document.getElementById('suggest').classList.remove('show');
@@ -2850,7 +3324,7 @@ function loadSession(idx){
   syncStreakFromHist();
   S.sugWins=0;S.sugTotal=0;S.sugHistory=[];
   S.pendingSug=null;S.pendingSugResult=null;S.autoLastResult=null;
-  updatePnlBar();updateOdds();renderHistRow();showSuggest();switchTab(0);
+  updatePnlBar();updateOdds();renderHistRow();renderDerivedRoads();showSuggest();switchTab(0);
 }
 function deleteSession(idx){
   const sessions=JSON.parse(localStorage.getItem('bac_sessions')||'[]');
@@ -2928,13 +3402,21 @@ function loadCurrent(){
   setMoneyMgmt(S.moneyMgmt);
   document.getElementById('tfWtSlider').value = S.tfWeight || 1.5;
   document.getElementById('tfWtVal').textContent = (S.tfWeight||1.5).toFixed(1)+'×';
-  updatePnlBar();updateOdds();renderHistRow();showSuggest();
+  updatePnlBar();updateOdds();renderHistRow();renderDerivedRoads();showSuggest();
   setTimeout(()=>{const el=document.getElementById('betDisplayAmt');if(el)el.textContent=fmt(getCurrentBet());},0);
 }
 
 // Init
 loadQTable();
 buildGrid();renderHands();loadCurrent();
+// Sync capital/minBet UI
+setTimeout(()=>{
+  const capEl=document.getElementById('capitalAmt');
+  const minEl=document.getElementById('minBetAmt');
+  if(capEl)capEl.value=S.capital||1000;
+  if(minEl)minEl.value=S.minBet||20;
+  updateCapitalBar();
+},150);
 // Auto-train on startup (ไม่รบกวน UI)
 setTimeout(()=>autoTrainOnStartup(),800);
 
@@ -3138,7 +3620,7 @@ function encodeStateForTF(hist) {
 // SKIP_THRESHOLD ต้องตรงกับ exploit phase ใน startTraining และ _runAutoTrain
 // training exploit: action = SKIP เมื่อ qS >= maxQ - 0.05 หรือ margin < threshold
 // ใช้ 0.10 เพื่อให้ตรงกัน — ลดการ skip ที่มากเกินจาก online learning
-const SKIP_THRESHOLD = 0.10;
+const SKIP_THRESHOLD = 0.05; // FIX: เพิ่มจาก 0.10 → 0.05 ยาก SKIP ขึ้น
 
 function getTFDecision(hist) {
   if (!window._tfModel) return null;
@@ -3158,13 +3640,14 @@ function getTFDecision(hist) {
     const margin = sorted[0] - sorted[1]; // margin between top-2
 
     // ── Skip Signal ─────────────────────────────────
-    // 1. SKIP action wins outright
-    // 2. margin ต่ำ → ไม่ชัดเจน → SKIP
-    if (qSkip >= qB && qSkip >= qP) {
-      return { winner: 'SKIP', conf: 1, qP, qB, qSkip, margin, source: 'tf_skip' };
-    }
-    if (margin < SKIP_THRESHOLD) {
-      return { winner: 'SKIP', conf: 1, qP, qB, qSkip, margin, source: 'tf_lowconf' };
+    // FIX4: SKIP ต้องยากขึ้น — qSkip ต้องชนะ max(qB,qP) ด้วย margin >= 0.3
+    // ก่อนหน้า: qSkip >= qB ก็ SKIP เลย → โมเดลที่ Q(SKIP) พุ่งจะ SKIP ทุกรอบ
+    // FIX8F: ไม่ return SKIP — ถ้า signal ไม่ชัดให้ใช้ Banker (house edge ต่ำสุด)
+    // SKIP เดิมทำให้ AI ไม่แทงเลย → ไม่มีประโยชน์
+    const skipMargin = qSkip - Math.max(qB, qP);
+    if (skipMargin >= 0.3 || margin < SKIP_THRESHOLD) {
+      // ส่งกลับ Banker พร้อม conf ต่ำ = แจ้งว่าไม่ชัดแต่ยังแทง
+      return { winner: 'T', conf: 1, qP, qB, qSkip, margin, source: 'tf_tie_fallback' };
     }
 
     // ── Winner ──────────────────────────────────────
@@ -3809,12 +4292,20 @@ async function startTraining() {
    *  If it was a correct bet → skip cost us a win → -0.2 reward
    *  Chaos amplifies skip reward (ห้องเละ = skip ดีกว่า)
    */
-  function skipReward(actual, hSlice) {
-    const feat = encodeState(hSlice);
-    const entropy = feat[23]; // entropy10 from encodeState
-    const chaos = entropy > 0.9 ? 1.0 : entropy > 0.8 ? 0.7 : entropy > 0.7 ? 0.4 : 0.1;
-    // Skip reward = -(expected win) = small negative in easy rooms, positive in chaos
-    return -0.5 + chaos * 1.0; // ranges from -0.5 (clear room) to +0.5 (full chaos)
+  function skipReward(actual, hSlice, modelPredBet) {
+    // FIX: SKIP ต้องเป็น last resort — ให้ penalty เกือบทุกกรณี
+    // ยกเว้นกรณีที่ถ้าไม่ SKIP จะแพ้หนักมากๆ เท่านั้น
+    if (actual === 'T') return 0; // tie → skip neutral
+    const wouldHaveWon  = modelPredBet === actual;
+    const wouldHaveLost = modelPredBet !== actual;
+    if (wouldHaveWon) {
+      // SKIP ทั้งที่ทำนายถูก = ทำให้เสียโอกาสชัดๆ → penalty หนัก
+      return -8;
+    } else {
+      // SKIP แทนที่จะแพ้ = ประหยัดได้ stake=10 แต่ให้รางวัลแค่ +2
+      // (ไม่ reward เต็ม เพื่อไม่ให้โมเดลเลือก SKIP บ่อย)
+      return 2;
+    }
   }
 
   try {
@@ -3829,16 +4320,18 @@ async function startTraining() {
       // Epsilon-greedy — 3 actions: B / P / SKIP
       let action;
       if (Math.random() < epsilon) {
-        // During exploration: bias toward B/P 80%, SKIP 20% (don't over-learn skip)
+        // FIX: exploration — B/P 95%, SKIP 5% เท่านั้น
+        // SKIP rate สูงใน exploration → โมเดลเรียนรู้ SKIP เร็วเกิน
         const r = Math.random();
-        action = r < 0.4 ? 'B' : r < 0.8 ? 'P' : 'SKIP';
+        action = r < 0.475 ? 'B' : r < 0.95 ? 'P' : 'SKIP';
       } else {
-        // Exploit: ใช้ SKIP_THRESHOLD เดียวกับ getTFDecision()
-        const qB2 = qVals[0], qP2 = qVals[1], qS2 = qVals[2] || -Infinity;
-        const sorted2 = [qB2, qP2, qS2].sort((a, b) => b - a);
-        const margin2 = sorted2[0] - sorted2[1];
-        if (qS2 >= qB2 && qS2 >= qP2) action = 'SKIP';
-        else if (margin2 < SKIP_THRESHOLD) action = 'SKIP';
+        // FIX6: consistent กับ getTFDecision — SKIP margin >= 0.3
+        const qB2 = qVals[0], qP2 = qVals[1], qS2 = qVals[2] !== undefined ? qVals[2] : -Infinity;
+        const skipM2 = qS2 - Math.max(qB2, qP2);
+        const margin2 = Math.abs(qP2 - qB2);
+        // FIX8H: ใน exploit ถ้า SKIP signal → B แทน (ฝึกให้แทงจริง)
+        if (skipM2 >= 0.3) action = 'T';
+        else if (margin2 < SKIP_THRESHOLD) action = 'T';
         else action = qP2 >= qB2 ? 'P' : 'B';
       }
 
@@ -3846,9 +4339,13 @@ async function startTraining() {
       const pnl = pnlFor(action, actual);
       cumulativePnl += pnl;
 
-      // Reward — use skip reward for SKIP action
-      const rawSkip = action === 'SKIP' ? skipReward(actual, hSlice) : pnl;
-      const reward = Math.max(-1.5, Math.min(1.5, rawSkip)); // clip rewards ป้องกัน explosion
+      // FIX3: ส่ง predicted bet ให้ skipReward ตัดสินว่า skip ถูกต้องไหม
+      const _predBet = (() => {
+        const qv = model.predict(tf.tensor2d([state])).arraySync()[0];
+        return qv[0] >= qv[1] ? 'B' : 'P';
+      })();
+      const rawSkip = action === 'SKIP' ? skipReward(actual, hSlice, _predBet) : pnl;
+      const reward = Math.max(-12, Math.min(12, rawSkip)); // FIX7: ขยาย clip ให้รองรับ skipReward -8/+2
       const nextState = encodeState(history.slice(0, i + 1));
       memory.push({ state, nextState, action, reward, done: i === trainEnd });
 
@@ -3870,7 +4367,7 @@ async function startTraining() {
           const rawTarget = s.reward + (s.done ? 0 : gamma * bestNext);
           // ── Clip target to [-3, +3] ป้องกัน Q explosion ──
           const aIdx = ACTIONS.indexOf(s.action);
-          tr[aIdx] = Math.max(-3, Math.min(3, rawTarget));
+          tr[aIdx] = Math.max(-15, Math.min(15, rawTarget)); // FIX7: ขยาย Q target clip
           return tr;
         });
         await model.fit(states, tf.tensor2d(targets), { epochs: 1, verbose: 0 });
@@ -3918,8 +4415,9 @@ async function startTraining() {
   const _pickAction = (qv) => {
     const qB = qv[0], qP = qv[1], qS = qv.length >= 3 ? qv[2] : -Infinity;
     const margin = Math.abs(qP - qB);
-    if (qS >= qB && qS >= qP) return 'SKIP';
-    if (margin < SKIP_THRESHOLD) return 'SKIP';
+    // FIX8G: ไม่ return SKIP — low-margin → Banker fallback
+    const skipMargin = qS - Math.max(qB, qP);
+    if (skipMargin >= 0.3 || margin < SKIP_THRESHOLD) return 'T'; // Tie fallback
     return qP >= qB ? 'P' : 'B';
   };
     msgEl.textContent = 'ทดสอบผลบนข้อมูลจริง...';
