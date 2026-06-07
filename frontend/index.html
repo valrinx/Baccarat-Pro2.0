@@ -455,6 +455,7 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   <div class="sstat"><div class="v" id="stB">0</div><div class="l">BANKER</div></div>
   <div class="sstat"><div class="v" id="stT">0</div><div class="l">TIE</div></div>
   <div class="sstat"><button class="btn-rst" onclick="openModal()" title="ล้างทั้งหมด">↺</button><div class="l">RESET</div></div>
+  <div class="sstat"><button class="btn-rst" onclick="newShoe()" title="เริ่ม Shoe ใหม่" style="font-size:10px">👟</button><div class="l">SHOE</div></div>
 </div>
 
 <!-- P&L BAR -->
@@ -1091,90 +1092,53 @@ function calcAutoBetAmount(conf,chaosScore,patternName){
   const chaos=chaosScore!=null?chaosScore:computeChaosScore(S.hist).score;
   const lossStreak=countRecentLossStreak();
 
-  // ── Cut-Loss Rules ────────────────────────────────────────────────────
-  // แพ้ ≥3 ตาติด → ลดเหลือ minimum รอ pattern ใหม่
-  if(lossStreak>=3){
-    S.autoRoundStake=getMinBet();
-    return getMinBet();
-  }
-  // แพ้ 2 ตา + chaos สูง → ลดเหลือ 25%
+  // ── ข้อ 9: Bankroll-Aware scaling ──────────────────────────────
+  const brHealth=getBankrollHealth();
+  // ปรับ unit ตาม bankroll health
+  let scaledUnit=unit;
+  if(brHealth.level==='danger') scaledUnit=Math.max(getMinBet(),unit*0.5);
+  else if(brHealth.level==='low') scaledUnit=Math.max(getMinBet(),unit*0.75);
+  else if(brHealth.level==='good') scaledUnit=Math.min(unit*1.15,clampBet(unit*1.5));
+
+  // ── Cut-Loss Rules ───────────────────────────────────────────────
+  if(lossStreak>=3){ S.autoRoundStake=getMinBet(); return getMinBet(); }
   if(lossStreak>=2&&chaos>=60){
-    const amt=clampBet(unit*0.25);
-    S.autoRoundStake=amt;
-    return amt;
+    const amt=clampBet(scaledUnit*0.25);
+    S.autoRoundStake=amt; return amt;
   }
+  if(isMirrorSafetyBreak()){ S.autoRoundStake=getMinBet(); return getMinBet(); }
 
-  // ── Mirror Safety ─────────────────────────────────────────────────────
-  if(isMirrorSafetyBreak()){
-    S.autoRoundStake=getMinBet();
-    return getMinBet();
-  }
-
-  // ── Volatile/High Chaos → Flat minimum ───────────────────────────────
   const volatile=isVolatileZone(conf,chaos);
-  if(volatile||chaos>=75){
-    S.autoRoundStake=getMinBet();
-    return getMinBet();
-  }
+  if(volatile||chaos>=75){ S.autoRoundStake=getMinBet(); return getMinBet(); }
 
-  // ── Pattern-Scaled Bet ────────────────────────────────────────────────
+  // ── Pattern-Scaled Bet ────────────────────────────────────────────
   const patMult=patternBetMultiplier(patternName||S.lastBetPatternName,conf);
-  let amt=clampBet(unit*patMult);
+  // ข้อ 9: ปรับ multiplier ตาม confidence threshold ของ bankroll
+  const adjMult=patMult/brHealth.confMultiplier;
+  let amt=clampBet(scaledUnit*Math.max(0.1,adjMult));
 
-  // ── Martingale (ถ้าเปิด) — มี cut-loss cap ────────────────────────────
+  // ── Martingale ───────────────────────────────────────────────────
   if(S.autoPlay&&S.moneyMgmt==='martingale'&&S.autoLastResult==='lose'){
-    if(isMartingaleBlocked(conf,chaos)){
-      amt=MIN_BET;
-      S.autoRoundStake=MIN_BET;
-      return MIN_BET;
-    }
-    // cap ที่ 3 ไม้ max
+    if(isMartingaleBlocked(conf,chaos)){ amt=MIN_BET; S.autoRoundStake=MIN_BET; return MIN_BET; }
     const _capLeft=Math.max(0,getCapital()+S.balance);
-    if((S.autoMartingaleLossStreak||0)>=3){
-      // แพ้ 3 ไม้ติด → reset กลับ minBet เริ่มใหม่
-      S.autoRoundStake=getMinBet();
-      S.autoMartingaleLossStreak=0;
-      return getMinBet();
-    }
+    if((S.autoMartingaleLossStreak||0)>=3){ S.autoRoundStake=getMinBet(); S.autoMartingaleLossStreak=0; return getMinBet(); }
     const _prevStake=S.autoRoundStake||unit;
-    const proposed=clampBet(Math.min(unit*4,_prevStake*2));
-    // ทบแล้วจะเกินทุน → reset minBet (bust protection)
-    if(proposed>_capLeft){
-      S.autoMartingaleLossStreak=0;
-      S.autoRoundStake=getMinBet();
-      return getMinBet();
-    }
+    const proposed=clampBet(Math.min(scaledUnit*4,_prevStake*2));
+    if(proposed>_capLeft){ S.autoMartingaleLossStreak=0; S.autoRoundStake=getMinBet(); return getMinBet(); }
     amt=proposed;
   }
 
-  // ── Capital Guard — ปกป้องทุน ────────────────────────────────
+  // ── Capital Guard ────────────────────────────────────────────────
   const capitalRemain=Math.max(0,getCapital()+S.balance);
   const minB=getMinBet();
-
-  // ถ้าทุนหมดหรือใกล้หมด → หยุด
-  if(capitalRemain<=0){
-    S.autoRoundStake=0;
-    return 0;
-  }
-  // ถ้า bet > ทุนที่เหลือ → ใช้ minBet (ไม่ bust)
-  if(amt>capitalRemain){
-    S.autoRoundStake=minB;
-    return minB;
-  }
-  // ถ้า martingale ทบแล้วจะเกินทุน → reset minBet ทันที
+  if(capitalRemain<=0){ S.autoRoundStake=0; return 0; }
+  if(amt>capitalRemain){ S.autoRoundStake=minB; return minB; }
   if(S.moneyMgmt==='martingale'&&S.autoLastResult==='lose'){
     const nextDouble=(S.autoRoundStake||minB)*2;
-    if(nextDouble>capitalRemain){
-      // ทบแล้วจะ bust — เริ่มใหม่ที่ minBet
-      S.autoMartingaleLossStreak=0;
-      S.autoRoundStake=minB;
-      return minB;
-    }
+    if(nextDouble>capitalRemain){ S.autoMartingaleLossStreak=0; S.autoRoundStake=minB; return minB; }
   }
-  // ทุนน้อยกว่า 5× minBet → ล็อก minBet รอฟื้น
   if(capitalRemain<minB*5){
     S.autoRoundStake=minB;
-    // แสดงใน UI ว่า reset แล้ว
     const statEl=document.getElementById('capitalStatusLbl');
     if(statEl){statEl.textContent='🔄 ทุนต่ำ → reset minBet';statEl.style.color='var(--gold)';}
     return minB;
@@ -1266,13 +1230,21 @@ function resolveRound(w,p,b,nat){
   if(S.pendingVoterBets&&(w==='P'||w==='B')){
     if(!S.voterStats)S.voterStats={};
     Object.entries(S.pendingVoterBets).forEach(([name,bet])=>{
-      if(!bet||bet==='T')return; // ไม่มี bet หรือ skip
+      if(!bet||bet==='T')return;
       if(!S.voterStats[name])S.voterStats[name]={wins:0,total:0};
       S.voterStats[name].total++;
       if(bet===w)S.voterStats[name].wins++;
     });
+    // ข้อ 8: Meta-learning — อัปเดต context-aware stats ด้วย
+    updateMetaVoterStats(S.pendingVoterBets,w);
     S.pendingVoterBets=null;
   }
+
+  // ── อัปเดต shoe memory ────────────────────────────────────────────
+  if(w==='P'||w==='B'||w==='T')shoePush(w);
+
+  // ── Pattern Decay ทุก 5 ตา ───────────────────────────────────────
+  if(S.hist.length>0&&S.hist.length%5===0)applyPatternDecay();
 
   if(S.pendingSug!==null){
     // นับ suggest accuracy รวม TIE
@@ -1698,7 +1670,6 @@ function loadPatternWeights(){
     const d=localStorage.getItem('bac_pw');
     if(d)return JSON.parse(d);
   }catch(e){}
-  // default weights — all equal
   const w={};PATTERNS.forEach(p=>w[p]={wins:1,total:2});return w;
 }
 function savePatternWeights(pw){
@@ -1732,7 +1703,162 @@ function getWeight(pw,name,ctx){
   return globalW;
 }
 
-// ---- Derived Roads (Big Eye / Small / Cockroach) ----
+/**
+ * ─────────────────────────────────────────────────────────────────
+ * ข้อ 3: Pattern Decay — weight เก่าค่อยๆ ลดลง
+ * ─────────────────────────────────────────────────────────────────
+ * เรียกทุก N ตา เพื่อ fade ค่า pattern weights เก่า
+ * ทำให้ AI ลืม pattern ที่ไม่ได้ใช้งานนานและ adapt ห้องใหม่ได้เร็วขึ้น
+ */
+function applyPatternDecay(){
+  try{
+    const pw=loadPatternWeights();
+    const DECAY=0.97; // ลด 3% ต่อการเรียก (เรียกทุก 5 ตา)
+    const MIN_TOTAL=2;
+    let changed=false;
+    Object.keys(pw).forEach(k=>{
+      const s=pw[k];
+      if(s.total>MIN_TOTAL){
+        s.total=Math.max(MIN_TOTAL,Math.round(s.total*DECAY));
+        s.wins=Math.min(s.total,Math.round(s.wins*DECAY));
+        changed=true;
+      }
+    });
+    if(changed)savePatternWeights(pw);
+  }catch(e){}
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────
+ * ข้อ 5: Multi-timeframe Pattern Weight
+ * ─────────────────────────────────────────────────────────────────
+ * ผสม 3 หน้าต่าง:
+ *   SHORT  (5 ตาล่าสุด ใน shoe)  — น้ำหนัก 50%: momentum ปัจจุบัน
+ *   MEDIUM (15 ตาล่าสุด ใน shoe) — น้ำหนัก 30%: pattern ของห้องนี้
+ *   LONG   (global stats)         — น้ำหนัก 20%: statistical baseline
+ *
+ * ถ้า shoe ยังน้อยกว่า threshold → fallback ไป global
+ */
+function getShoePatternWeight(patternName){
+  const pw=loadPatternWeights();
+  const ctx=getContext(S.hist);
+  const globalW=getWeight(pw,patternName,ctx);
+
+  // SHORT: 5 ตาล่าสุดใน shoe
+  const shortW=(()=>{
+    const sh=shoe.patStats[patternName];
+    if(!sh||sh.total<2)return null;
+    return sh.wins/sh.total;
+  })();
+
+  // MEDIUM: 15 ตาล่าสุดใน shoe (ใช้ shoe.patStats ที่ cap ที่ 20)
+  const medW=(()=>{
+    if(shoe.roundsInShoe<8)return null;
+    const sh=shoe.patStats[patternName];
+    if(!sh||sh.total<5)return null;
+    return sh.wins/sh.total;
+  })();
+
+  // ── ผสม weighted ─────────────────────────────────────────────
+  if(shortW!==null&&medW!==null){
+    return shortW*0.5 + medW*0.3 + globalW*0.2;
+  }
+  if(medW!==null){
+    return medW*0.6 + globalW*0.4;
+  }
+  if(shortW!==null){
+    return shortW*0.7 + globalW*0.3;
+  }
+  return globalW;
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────
+ * getVoterWeight — คำนวณน้ำหนักของ voter จาก historical win rate
+ * ─────────────────────────────────────────────────────────────────
+ * ถ้า voter มีสถิติพอ (≥10 ตา) → ใช้ win rate ปรับ weight
+ * ถ้ายังไม่มีข้อมูล → weight = 1.0 (neutral)
+ *
+ * Scale:  WR ≥ 60% → 1.5×   WR ≥ 55% → 1.2×
+ *         WR ≥ 50% → 1.0×   WR ≥ 45% → 0.8×
+ *         WR < 45% → 0.6×
+ */
+function getVoterWeight(voterName){
+  const st=S.voterStats&&S.voterStats[voterName];
+  if(!st||st.total<10)return 1.0;
+  const wr=st.wins/st.total;
+  if(wr>=0.60)return 1.5;
+  if(wr>=0.55)return 1.2;
+  if(wr>=0.50)return 1.0;
+  if(wr>=0.45)return 0.8;
+  return 0.6;
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────
+ * Session (Shoe) Memory
+ * ─────────────────────────────────────────────────────────────────
+ * เก็บประวัติย่อของ shoe ปัจจุบัน (reset ได้) แยกจาก S.hist ที่
+ * สะสมทั้ง session — ใช้เป็น "short-term context" ให้ AI เรียนรู้
+ * style ของห้องปัจจุบันแยกจาก long-term global memory
+ *
+ * Fields:
+ *   shoe.hist       — ประวัติ shoe นี้ (P/B/T)
+ *   shoe.patStats   — win/total ของแต่ละ pattern ใน shoe นี้
+ *   shoe.startIdx   — index ใน S.hist ที่เริ่ม shoe นี้
+ */
+const shoe={
+  hist:[],
+  patStats:{},  // {patternName: {wins,total}}
+  startIdx:0,
+  roundsInShoe:0
+};
+
+function shoeReset(){
+  shoe.hist=[];
+  shoe.patStats={};
+  shoe.startIdx=S.hist.length;
+  shoe.roundsInShoe=0;
+}
+
+function shoePush(outcome){
+  shoe.hist.push(outcome);
+  shoe.roundsInShoe++;
+}
+
+/**
+ * getShoePatternWeight — weight ของ pattern ใน shoe นี้
+ * ถ้า shoe มีข้อมูล ≥ 8 ตา → ผสม short-term (0.7) + long-term (0.3)
+ * ถ้ายังน้อย → ใช้ long-term อย่างเดียว
+ */
+function getShoePatternWeight(patternName){
+  const globalPw=loadPatternWeights();
+  const globalSt=globalPw[patternName]||{wins:1,total:2};
+  const globalWr=globalSt.wins/globalSt.total;
+
+  if(shoe.roundsInShoe<8)return globalWr;
+
+  const shoreSt=shoe.patStats[patternName];
+  if(!shoreSt||shoreSt.total<3)return globalWr;
+  const shoeWr=shoreSt.wins/shoreSt.total;
+  return shoeWr*0.7+globalWr*0.3; // shoe มีน้ำหนักมากกว่า
+}
+
+/** อัปเดต shoe pattern stats หลังรู้ผลแต่ละตา */
+function updateShoePatternStats(predResult,actual){
+  if(!predResult||!predResult.allPreds)return;
+  predResult.allPreds.forEach(p=>{
+    if(!p.bet||!p.name)return;
+    if(!shoe.patStats[p.name])shoe.patStats[p.name]={wins:0,total:0};
+    shoe.patStats[p.name].total++;
+    if(p.bet===actual)shoe.patStats[p.name].wins++;
+    // cap ที่ 20 ตา ใน shoe
+    if(shoe.patStats[p.name].total>20){
+      shoe.patStats[p.name].total=20;
+      if(shoe.patStats[p.name].wins>20)shoe.patStats[p.name].wins=20;
+    }
+  });
+}
 function generateLogicalBigRoad(hist){
   const pb=(hist||S.hist).filter(x=>x!=='T');
   const cols=[],placements=[];
@@ -2372,6 +2498,166 @@ function patMathematicalEdge(h,opts){
   return{bet,name:'mathedge',reason:highChaos?warn+' · '+base:base,conf,isFallback:true};
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// ข้อ 7: Anomaly Detection
+// ══════════════════════════════════════════════════════════════════════
+/**
+ * detectShoeAnomaly — ตรวจว่า shoe นี้มี statistical anomaly หรือไม่
+ *
+ * คืนค่า:
+ *   { anomaly: bool, type: string, bias: 'P'|'B'|null, strength: 0-1, note: string }
+ *
+ * Anomaly types:
+ *   'banker_flood'  — Banker ออก > 65% ใน 20 ตาล่าสุด (ผิดปกติ)
+ *   'player_flood'  — Player ออก > 65% ใน 20 ตาล่าสุด
+ *   'chop_lock'     — สลับ > 90% ใน 12 ตาล่าสุด (ping-pong lock)
+ *   'streak_lock'   — streak ยาว > 8 ตาติดกัน (dragon lock)
+ *   none            — ปกติ
+ */
+function detectShoeAnomaly(){
+  const pb=(shoe.hist.length>=10?shoe.hist:S.hist).filter(x=>x!=='T');
+  if(pb.length<10)return{anomaly:false,type:'none',bias:null,strength:0,note:''};
+
+  const last20=pb.slice(-20);
+  const bCount=last20.filter(x=>x==='B').length;
+  const pCount=last20.length-bCount;
+  const bRate=bCount/last20.length;
+  const pRate=pCount/last20.length;
+
+  // Banker/Player flood
+  if(bRate>0.65){
+    return{anomaly:true,type:'banker_flood',bias:'B',
+      strength:Math.min(1,(bRate-0.65)/0.2),
+      note:`BANKER ออก ${Math.round(bRate*100)}% ใน ${last20.length} ตาล่าสุด`};
+  }
+  if(pRate>0.65){
+    return{anomaly:true,type:'player_flood',bias:'P',
+      strength:Math.min(1,(pRate-0.65)/0.2),
+      note:`PLAYER ออก ${Math.round(pRate*100)}% ใน ${last20.length} ตาล่าสุด`};
+  }
+
+  // Chop lock
+  const last12=pb.slice(-12);
+  let altCnt=0;
+  for(let i=1;i<last12.length;i++)if(last12[i]!==last12[i-1])altCnt++;
+  const altRate=last12.length>1?altCnt/(last12.length-1):0;
+  if(altRate>0.90){
+    return{anomaly:true,type:'chop_lock',bias:null,
+      strength:Math.min(1,(altRate-0.90)/0.1),
+      note:`Chop lock — สลับ ${Math.round(altRate*100)}% ใน 12 ตา`};
+  }
+
+  // Streak lock
+  const lastSide=pb[pb.length-1];
+  let streakLen=0;
+  for(let i=pb.length-1;i>=0&&pb[i]===lastSide;i--)streakLen++;
+  if(streakLen>8){
+    return{anomaly:true,type:'streak_lock',bias:lastSide,
+      strength:Math.min(1,(streakLen-8)/6),
+      note:`Dragon lock — ${lastSide} ติด ${streakLen} ตา`};
+  }
+
+  return{anomaly:false,type:'none',bias:null,strength:0,note:''};
+}
+
+/**
+ * applyAnomalyPrior — ปรับ council votes ด้วย anomaly signal
+ * ถ้าตรวจพบ anomaly ที่ชัดเจน → inject votes เพิ่มให้ฝั่งที่ถูกต้อง
+ */
+function applyAnomalyPrior(councilVotes,anomaly){
+  if(!anomaly||!anomaly.anomaly)return councilVotes;
+  const boost=anomaly.strength*1.5; // max +1.5 votes
+  const out={...councilVotes};
+  switch(anomaly.type){
+    case'banker_flood': out.B=(out.B||0)+boost; break;
+    case'player_flood': out.P=(out.P||0)+boost; break;
+    case'chop_lock':
+      // chop lock → boost ฝั่งตรงข้ามกับตาล่าสุด (reversion)
+      const pb2=S.hist.filter(x=>x!=='T');
+      const lastSide2=pb2.length?pb2[pb2.length-1]:null;
+      if(lastSide2==='P')out.B=(out.B||0)+boost;
+      else if(lastSide2==='B')out.P=(out.P||0)+boost;
+      break;
+    case'streak_lock':
+      // streak lock → ตามมังกร
+      if(anomaly.bias)out[anomaly.bias]=(out[anomaly.bias]||0)+boost;
+      break;
+  }
+  return out;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// ข้อ 8: Meta-learning — trust voter ที่ถูกในห้องนี้มากขึ้น
+// ══════════════════════════════════════════════════════════════════════
+/**
+ * getMetaVoterBoost — คืน boost multiplier สำหรับ voter ใน context ปัจจุบัน
+ *
+ * ใช้ shoe-level stats แยกตาม room context (chop/trend/dragon)
+ * voter ที่ชนะในห้อง type นี้ → boost สูง
+ * voter ที่แพ้ในห้อง type นี้ → debuff
+ */
+function getMetaVoterBoost(voterName){
+  if(!S.voterStats)return 1.0;
+  const ctx=getContext(S.hist);
+  const ctxKey=voterName+':ctx:'+ctx;
+  const st=S.voterStats[ctxKey];
+  if(!st||st.total<5)return 1.0; // ยังไม่มีข้อมูลพอ → neutral
+
+  const wr=st.wins/st.total;
+  if(wr>=0.65)return 1.4;
+  if(wr>=0.58)return 1.2;
+  if(wr>=0.48)return 1.0;
+  if(wr>=0.40)return 0.8;
+  return 0.6;
+}
+
+// ── อัปเดต meta voter stats หลังรู้ผล ───────────────────────────────
+function updateMetaVoterStats(voterBets,actual){
+  if(!voterBets||(actual!=='P'&&actual!=='B'))return;
+  if(!S.voterStats)S.voterStats={};
+  const ctx=getContext(S.hist);
+  Object.entries(voterBets).forEach(([name,bet])=>{
+    if(!bet||bet==='T')return;
+    const ctxKey=name+':ctx:'+ctx;
+    if(!S.voterStats[ctxKey])S.voterStats[ctxKey]={wins:0,total:0};
+    S.voterStats[ctxKey].total++;
+    if(bet===actual)S.voterStats[ctxKey].wins++;
+    // cap
+    if(S.voterStats[ctxKey].total>30)S.voterStats[ctxKey].total=30;
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// ข้อ 9: Bankroll-Aware Prediction
+// ══════════════════════════════════════════════════════════════════════
+/**
+ * getBankrollHealth — คืนสถานะทุน
+ * Returns: { pct: 0-1, level: 'danger'|'low'|'ok'|'good', confMultiplier, skipBoost }
+ *
+ * confMultiplier — ปรับ confidence threshold สำหรับการแทง
+ *   danger: ต้องการ confidence สูงมาก (threshold สูงขึ้น)
+ *   good:   สามารถรับ confidence ต่ำลงได้ (threshold ลดลง)
+ *
+ * skipBoost — เพิ่มโอกาส SKIP เมื่อทุนต่ำ
+ */
+function getBankrollHealth(){
+  const cap=getCapital();
+  const remain=Math.max(0,cap+S.balance);
+  const pct=cap>0?remain/cap:1;
+
+  let level,confMultiplier,skipBoost;
+  if(pct<=0.25){
+    level='danger'; confMultiplier=1.5; skipBoost=15; // ต้องการ confidence 50% สูงขึ้น
+  }else if(pct<=0.50){
+    level='low';    confMultiplier=1.2; skipBoost=8;
+  }else if(pct>=1.20){
+    level='good';   confMultiplier=0.85; skipBoost=-5; // กำไรแล้ว → เปิดกว้างขึ้นนิด
+  }else{
+    level='ok';     confMultiplier=1.0; skipBoost=0;
+  }
+  return{pct,level,confMultiplier,skipBoost};
+}
+
 // ---- Q-Learning + 3 เกลอ Feature Engineering ----
 const Q_ACTIONS=['P','B'];
 
@@ -2498,12 +2784,13 @@ function getQLearningDecision(h,streak,streakSide){
  * ผลลัพธ์: เสียงข้างมากตัดสิน, conf = สัดส่วนโหวต
  */
 function buildVoterCouncil(h,streak,streakSide,patPreds,ql,tfResult,dr){
-  // returns array of exactly 9 voters, inactive ones have bet=null
-  const W=1;
-
-  // ── helper: push voter, null bet = ไม่มีข้อมูล/เงื่อนไขไม่ผ่าน ──
+  // returns array of exactly 9 voters
+  // weight = getVoterWeight() — ปรับตาม historical win rate ของแต่ละ voter
   const voters=[];
-  const push=(name,bet,conf,reason)=>voters.push({name,bet,weight:bet?W:0,conf:conf||0,reason:reason||''});
+  const push=(name,bet,conf,reason)=>{
+    const w=bet?getVoterWeight(name):0;
+    voters.push({name,bet,weight:w,conf:conf||0,reason:reason||''});
+  };
 
   // 1. Pattern Heuristics
   const patVotes={P:0,B:0};
@@ -2605,28 +2892,32 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
   }
 
   // ══════════════════════════════════════════════════════
-  // MAJORITY VOTE — นับ 1 เสียงต่อ voter เท่ากันทุกคน
+  // MAJORITY VOTE — weighted โดย historical win rate ของแต่ละ voter
   // ══════════════════════════════════════════════════════
-  // เริ่มจาก pattern vote 1 เสียง (ไม่ใช้ weighted sum จาก runPredictionEngine)
   const patBet=votes.P>=votes.B?'P':'B';
   const councilVotes={P:0,B:0};
-  councilVotes[patBet]+=1; // 1. Pattern — 1 เสียง
-  const councilLog=[`Pattern→${patBet}`];
 
-  // 2. Q-Learning — 1 เสียง
+  // 1. Pattern — ใช้ shoe-aware weight
+  const patW=getVoterWeight('patterns');
+  councilVotes[patBet]+=patW;
+  const councilLog=[`Pattern→${patBet}(${patW.toFixed(1)})`];
+
+  // 2. Q-Learning
   if(ql&&(ql.winner==='P'||ql.winner==='B')){
-    councilVotes[ql.winner]+=1;
-    councilLog.push('Q→'+ql.winner);
+    const qW=getVoterWeight('q_learning');
+    councilVotes[ql.winner]+=qW;
+    councilLog.push('Q→'+ql.winner+'('+qW.toFixed(1)+')');
   }
 
-  // 3. TF Neural — ดูจาก tfResult ใน votes (inject ก่อนแล้ว)
-  // ไม่ได้ส่ง tfResult เข้ามา — ข้ามไป (จะนับผ่าน patBet แล้ว)
+  // 3. TF Neural (inject ผ่าน votes แล้ว แต่เพิ่ม weight ตรงนี้ด้วย)
+  // ดึงจาก tfResult ที่ส่งเข้ามาใน context
+  // (tfResult ไม่ได้ส่งตรงนี้ — ใช้ผ่าน votes แล้ว ข้ามไป)
 
-  // 4-6. 3 เกลอ — 1 เสียงต่อตัว
+  // 4-6. 3 เกลอ
   const gelo=[
-    {off:DERIVED_OFFSETS.big_eye,label:'ไข่ปลา'},
-    {off:DERIVED_OFFSETS.small_road,label:'ซาลาเปา'},
-    {off:DERIVED_OFFSETS.cockroach,label:'ไม้ขีด'}
+    {off:DERIVED_OFFSETS.big_eye,   label:'ไข่ปลา',   name:'big_eye'},
+    {off:DERIVED_OFFSETS.small_road,label:'ซาลาเปา',  name:'small_road'},
+    {off:DERIVED_OFFSETS.cockroach, label:'ไม้ขีด',   name:'cockroach'}
   ];
   let geloAgreeCount=0;
   gelo.forEach(g=>{
@@ -2636,32 +2927,74 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
     if(!sig)return;
     for(const bet of['P','B']){
       if(simulateNextDerivedColor(h,bet,g.off)===sig.nextColor){
-        councilVotes[bet]+=1;
-        councilLog.push(g.label+'→'+bet);
+        const gW=getVoterWeight(g.name);
+        councilVotes[bet]+=gW;
+        councilLog.push(g.label+'→'+bet+'('+gW.toFixed(1)+')');
         geloAgreeCount++;
         break;
       }
     }
   });
 
-  // 7. Markov — 1 เสียง
+  // 7. Markov
   const markovP=patMarkov(h);
-  if(markovP){councilVotes[markovP.bet]+=1;councilLog.push('Markov→'+markovP.bet);}
+  if(markovP){
+    const mW=getVoterWeight('markov');
+    councilVotes[markovP.bet]+=mW;
+    councilLog.push('Markov→'+markovP.bet+'('+mW.toFixed(1)+')');
+  }
 
-  // 8. Momentum — 1 เสียง
+  // 8. Momentum
   const momP=patMomentumBias(h);
-  if(momP){councilVotes[momP.bet]+=1;councilLog.push('Mom→'+momP.bet);}
+  if(momP){
+    const moW=getVoterWeight('momentum');
+    councilVotes[momP.bet]+=moW;
+    councilLog.push('Mom→'+momP.bet+'('+moW.toFixed(1)+')');
+  }
 
-  // 9. Freq10 — 1 เสียง
+  // 9. Freq10
   const freqP=patFreq10(h);
-  if(freqP){councilVotes[freqP.bet]+=1;councilLog.push('Freq→'+freqP.bet);}
+  if(freqP){
+    const fW=getVoterWeight('freq');
+    councilVotes[freqP.bet]+=fW;
+    councilLog.push('Freq→'+freqP.bet+'('+fW.toFixed(1)+')');
+  }
 
-  // ── Majority decision — นับเสียงข้างมาก ──────────────────
-  const totalCV=councilVotes.P+councilVotes.B;
-  const winner=councilVotes.P>councilVotes.B?'P':councilVotes.B>councilVotes.P?'B':patBet; // ถ้าเท่ากัน ใช้ pattern
-  const margin=totalCV>0?Math.abs(councilVotes.P-councilVotes.B)/totalCV:0;
+  // ── ข้อ 8: Meta-learning boost — voter ที่ดีใน context นี้ ──────
+  // เพิ่ม weight ให้ voter ที่มีประวัติดีใน room type นี้
+  const _metaVoters=['patterns','q_learning','tf_neural','big_eye','small_road','cockroach','markov','momentum','freq'];
+  _metaVoters.forEach(name=>{
+    const boost=getMetaVoterBoost(name);
+    if(boost===1.0)return;
+    // ดูว่า voter นี้โหวตอะไร จาก councilLog
+    const logEntry=councilLog.find(l=>l.startsWith(name.replace('_',' '))||l.includes(name));
+    // ใช้ชื่อตาม map ที่ใช้ใน log
+    const nameMap={patterns:'Pattern',q_learning:'Q',tf_neural:'TF',
+      big_eye:'ไข่ปลา',small_road:'ซาลาเปา',cockroach:'ไม้ขีด',
+      markov:'Markov',momentum:'Mom',freq:'Freq'};
+    const logKey=nameMap[name];
+    if(!logKey)return;
+    const entry=councilLog.find(l=>l.startsWith(logKey+'→'));
+    if(!entry)return;
+    const side=entry.includes('→P')?'P':entry.includes('→B')?'B':null;
+    if(!side)return;
+    // เพิ่ม/ลด vote ตาม meta boost
+    const delta=(boost-1.0)*0.5; // max ±0.2
+    councilVotes[side]=(councilVotes[side]||0)+delta;
+  });
+
+  // ── ข้อ 7: Anomaly Detection — inject prior ─────────────────────
+  const _anomaly=detectShoeAnomaly();
+  const _councilVotesAdjusted=applyAnomalyPrior({...councilVotes},_anomaly);
+
+  // ── Weighted majority decision ──────────────────────────────────
+  const totalCV=_councilVotesAdjusted.P+_councilVotesAdjusted.B;
+  const winner=_councilVotesAdjusted.P>_councilVotesAdjusted.B?'P':
+               _councilVotesAdjusted.B>_councilVotesAdjusted.P?'B':patBet;
+  const margin=totalCV>0?Math.abs(_councilVotesAdjusted.P-_councilVotesAdjusted.B)/totalCV:0;
   const conf=margin>0.5?5:margin>0.35?4:margin>0.2?3:margin>0.1?2:1;
   const geloNote=geloAgreeCount>=2?` · 3เกลอ ${geloAgreeCount}/3 เห็นด้วย`:'';
+  const anomalyNote=_anomaly.anomaly?` ⚠️ ${_anomaly.note}`:'';
 
   // Entropy Skip
   const entropy=shannonEntropy(h);
@@ -2670,13 +3003,15 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
   const _strongActive=_curStreak>=5||_hasPingPong||hasDoublePairForm(h);
   if(entropy>0.97&&!_strongActive){
     return{winner,conf,
-      reason:'เสียงข้างมาก '+winner+' ('+Math.round(margin*100)+'%)'+geloNote+' · '+councilLog.join(', '),
-      source:'majority_vote',forceSkip:true,skipReason:'Random Room (Entropy > 0.97)'};
+      reason:'เสียงข้างมาก '+winner+' ('+Math.round(margin*100)+'%)'+geloNote+anomalyNote+' · '+councilLog.join(', '),
+      source:'majority_vote',forceSkip:true,skipReason:'Random Room (Entropy > 0.97)',
+      anomaly:_anomaly};
   }
 
   return{winner,conf,
-    reason:'เสียงข้างมาก '+winner+' ('+Math.round(margin*100)+'%)'+geloNote+' · '+councilLog.join(', '),
-    source:'majority_vote',forceSkip:false,skipReason:null};
+    reason:'เสียงข้างมาก '+winner+' ('+Math.round(margin*100)+'%)'+geloNote+anomalyNote+' · '+councilLog.join(', '),
+    source:'majority_vote',forceSkip:false,skipReason:null,
+    anomaly:_anomaly};
 }
 
 function updateQTable(actualOutcome){
@@ -2767,10 +3102,9 @@ function runPredictionEngine(h,streak,streakSide){
     const dragonPred=preds.find(x=>x.isDragon);
     if(dragonPred&&p.bet!==dragonPred.bet&&
       ['pingpong','antistreak','big_eye','small_road','cockroach'].includes(p.name)){
-      // ลด weight ลง 80% แทนไม่ใส่เลย
-      preds.push({...p,weight:getWeight(pw,p.name,getContext(h))*bonus*0.2});
+      preds.push({...p,weight:getShoePatternWeight(p.name)*bonus*0.2});
     }else{
-      preds.push({...p,weight:getWeight(pw,p.name,getContext(h))*bonus});
+      preds.push({...p,weight:getShoePatternWeight(p.name)*bonus});
     }
   });
 
@@ -2778,11 +3112,11 @@ function runPredictionEngine(h,streak,streakSide){
   const hasStrong=preds.some(p=>STRONG_PATTERN_NAMES.includes(p.name)&&p.conf>=4);
   if(!hasStrong&&chaosPre.score>=65){
     const edge=patMathematicalEdge(h,{chaos:chaosPre});
-    preds.push({...edge,weight:getWeight(pw,edge.name,getContext(h))});
+    preds.push({...edge,weight:getShoePatternWeight(edge.name)});
   }
   if(!preds.length){
     const edge=patMathematicalEdge(h,{chaos:chaosPre});
-    preds.push({...edge,weight:getWeight(pw,edge.name,getContext(h))});
+    preds.push({...edge,weight:getShoePatternWeight(edge.name)});
   }
 
   const votes={P:0,B:0};
@@ -2929,7 +3263,8 @@ function runPredictionEngine(h,streak,streakSide){
     qLearning:ql,
     tfResult,
     derivedRoads:dr,
-    decisionSource:hybrid.source
+    decisionSource:hybrid.source,
+    anomaly:hybrid.anomaly||null
   };
 }
 
@@ -2956,6 +3291,8 @@ function updatePatternWeights(predResult,actualResult){
     }
   });
   savePatternWeights(pw);
+  // ── อัปเดต shoe-level pattern stats ด้วย ──────────────────────────
+  updateShoePatternStats(predResult,actualResult);
 }
 // ---- main showSuggest (UI) ----
 function renderVotePanel(result){
@@ -2977,14 +3314,23 @@ function renderVotePanel(result){
       })
     :[];
 
-  // นับเสียงจริง (เฉพาะที่มี bet)
-  const cntP=voters.filter(v=>v.bet==='P').length;
-  const cntB=voters.filter(v=>v.bet==='B').length;
+  // นับเสียงจริง (weighted)
+  const cntP=voters.reduce((s,v)=>s+(v.bet==='P'?v.weight||0:0),0);
+  const cntB=voters.reduce((s,v)=>s+(v.bet==='B'?v.weight||0:0),0);
   const cntTot=cntP+cntB||1;
   const majorityWinner=cntP>cntB?'P':cntB>cntP?'B':(result.bet==='P'?'P':'B');
+  // นับ voter count (ตัวที่โหวต) สำหรับแสดงใน badge
+  const cntPraw=voters.filter(v=>v.bet==='P').length;
+  const cntBraw=voters.filter(v=>v.bet==='B').length;
   const isSkip=result.skip||false;
   const majorityLabel=isSkip?'SKIP':majorityWinner==='P'?'PLAYER':'BANKER';
   const majorityClass=isSkip?'vote-dim':majorityWinner==='P'?'vote-pl':'vote-bl';
+
+  // anomaly badge
+  const anomaly=result.anomaly||null;
+  const anomalyBadge=anomaly&&anomaly.anomaly
+    ?`<span style="font-size:7px;color:var(--gold);opacity:.8;display:block;margin-top:2px">⚠️ ${anomaly.note}</span>`
+    :'';
 
   const cntBarB=Math.round(cntB/cntTot*100);
   const cntBarP=Math.round(cntP/cntTot*100);
@@ -3020,16 +3366,17 @@ function renderVotePanel(result){
     <div class="vote-header">
       <span class="vote-title">◆ AI VOTE</span>
       <span class="vote-winner ${majorityClass}">${majorityLabel}</span>
-      <span class="vote-conf-badge">${Math.max(cntP,cntB)}/${voters.length} เสียง</span>
+      <span class="vote-conf-badge">${cntPraw+cntBraw>0?Math.max(cntPraw,cntBraw):0}/${voters.length} เสียง</span>
     </div>
+    ${anomalyBadge}
     <div class="vote-tally-wrap">
       <div class="vote-tally-track">
-        <div class="vote-tally-bar" style="width:${cntBarB}%;background:var(--bl)"></div>
-        <div class="vote-tally-bar" style="width:${cntBarP}%;background:var(--pl)"></div>
+        <div class="vote-tally-bar" style="width:${Math.round(cntB/cntTot*100)}%;background:var(--bl)"></div>
+        <div class="vote-tally-bar" style="width:${Math.round(cntP/cntTot*100)}%;background:var(--pl)"></div>
       </div>
       <div class="vote-tally-labels">
-        <span style="color:var(--bl)">B ${cntB} เสียง</span>
-        <span style="color:var(--pl)">P ${cntP} เสียง</span>
+        <span style="color:var(--bl)">B ${cntB.toFixed(1)}pt</span>
+        <span style="color:var(--pl)">P ${cntP.toFixed(1)}pt</span>
       </div>
     </div>
     <div class="vote-rows">${voterRows}</div>
@@ -3078,12 +3425,13 @@ function showSuggest(){
   box.classList.remove('nobet','hedge-tie');
   if(!S.consecutiveSkip)S.consecutiveSkip=0;
 
-  // ── Council vote: 1 คน = 1 เสียงเท่ากัน ─────────────────────────
+  // ── Council vote (weighted โดย voterStats) ─────────────────────
   let _councilP=0,_councilB=0;
   if(result.councilVoters&&result.councilVoters.length){
     result.councilVoters.forEach(v=>{
-      if(v.bet==='P')_councilP++;
-      else if(v.bet==='B')_councilB++;
+      const w=v.weight||0;
+      if(v.bet==='P')_councilP+=w;
+      else if(v.bet==='B')_councilB+=w;
     });
   }
   const _councilTotal=_councilP+_councilB;
@@ -3095,35 +3443,54 @@ function showSuggest(){
   const _pb=S.hist.filter(x=>x!=='T');
 
   // ── ตรวจ pattern type ────────────────────────────────────────────
-  // CHOP: สลับ ≥75% ใน 8 ตาล่าสุด
   const _last8pb=_pb.slice(-8);
   let _altCnt=0;
   for(let i=1;i<_last8pb.length;i++)if(_last8pb[i]!==_last8pb[i-1])_altCnt++;
   const _isPureChop=_last8pb.length>=6&&(_altCnt/(_last8pb.length-1))>=0.75;
 
-  // DRAGON: streak ≥ 4
   const _drSide=_pb.length?_pb[_pb.length-1]:null;
   let _drLen=0;
   if(_drSide)for(let i=_pb.length-1;i>=0&&_pb[i]===_drSide;i--)_drLen++;
   const _isDragon=_drLen>=4;
 
-  // STRONG PATTERN: engine ตรวจเจอ pattern ชัดเจน conf ≥ 4
   const _hasStrong=!!(result.allPreds&&result.allPreds.some(p=>
     ['dragon','pingpong','doublepair','sandwich_mirror','cycle','quad','triple'].includes(p.name)&&p.conf>=4
   ));
 
-  // COUNCIL CLEAR: เสียงข้างมาก ≥ 6/9 (66%+)
   const _councilClear=_councilTotal>0&&Math.max(_councilP,_councilB)/_councilTotal>=0.67;
 
-  // ── SKIP logic — ฉลาดขึ้น แยกตาม room type ─────────────────────
-  // เล่นได้ถึงแม้ chaos สูง ถ้ามี:  chop ชัด / dragon / strong pattern / council ชัด
+  // ── ข้อ 1: Adaptive Skip Threshold ──────────────────────────────
+  // ปรับ threshold ตาม session performance
+  const _recentBets=S.sugHistory.slice(-5);
+  const _recentWins=_recentBets.filter(x=>x.hit).length;
+  const _recentLoss=_recentBets.length-_recentWins;
+  let _hardThresh=90,_softThresh=75,_marginThresh=0.29;
+  if(_recentBets.length>=3){
+    if(_recentWins>=3){ _hardThresh=95; _softThresh=82; _marginThresh=0.20; }
+    else if(_recentLoss>=3){ _hardThresh=80; _softThresh=65; _marginThresh=0.40; }
+  }
+  // ปรับตาม shoe performance
+  const _shoeWins=Object.values(shoe.patStats).reduce((s,x)=>s+x.wins,0);
+  const _shoeTot=Object.values(shoe.patStats).reduce((s,x)=>s+x.total,0);
+  if(_shoeTot>=10){
+    const _shoeWR=_shoeWins/_shoeTot;
+    if(_shoeWR>=0.58){_hardThresh+=5;_softThresh+=5;}
+    else if(_shoeWR<=0.42){_hardThresh-=5;_softThresh-=5;}
+  }
+
+  // ── ข้อ 9: Bankroll-Aware threshold adjustment ───────────────────
+  const _bankroll=getBankrollHealth();
+  _hardThresh=Math.max(70,_hardThresh-_bankroll.skipBoost);
+  _softThresh=Math.max(60,_softThresh-_bankroll.skipBoost);
+  if(_bankroll.level==='danger')_marginThresh=Math.min(0.55,_marginThresh+0.15);
+  if(_bankroll.level==='good')  _marginThresh=Math.max(0.15,_marginThresh-0.08);
+
   const _playDespiteChaos=_isPureChop||_isDragon||_hasStrong||_councilClear;
-  const _hardSkip=_chaosScore>=90&&!_playDespiteChaos;           // chaos 90+ ไม่มีอะไรช่วยเลย
-  const _softSkip=_chaosScore>=75&&!_playDespiteChaos&&_councilMargin<0.29; // chaos 75-89 + เสียงแตก
+  const _hardSkip=_chaosScore>=_hardThresh&&!_playDespiteChaos;
+  const _softSkip=_chaosScore>=_softThresh&&!_playDespiteChaos&&_councilMargin<_marginThresh;
   const finalSkip=_hardSkip||_softSkip||(result.skip&&_councilTotal===0);
 
-  // room mode label
-  const _roomMode=_isPureChop?'CHOP':_isDragon?'DRAGON':_hasStrong?'PATTERN':_chaosScore>=75?'VOLATILE':'NORMAL';
+  const _roomMode=_isPureChop?'CHOP':_isDragon?'DRAGON':_hasStrong?'PATTERN':_chaosScore>=_softThresh?'VOLATILE':'NORMAL';
 
   if(finalSkip) S.consecutiveSkip++;
   else S.consecutiveSkip=0;
@@ -3148,11 +3515,16 @@ function showSuggest(){
   const _geloTxt=_geloVoters>=2?` · 3เกลอ ${_geloVoters}/3`:'';
   txtEl.className='sug-txt';
   if(finalSkip){
-    const why=_hardSkip?`CHAOS ${_chaosScore}% ไม่มี pattern`:_softSkip?`CHAOS ${_chaosScore}% + เสียงแตก`:'ไม่มีข้อมูลพอ';
+    const why=_hardSkip?`CHAOS ${_chaosScore}% (threshold ${_hardThresh}%)`:
+              _softSkip?`CHAOS ${_chaosScore}% + เสียงแตก`:'ไม่มีข้อมูลพอ';
     txtEl.textContent=`งดเดิมพัน — ${why}`;
   }else{
+    // Multi-timeframe signal summary
+    const _shoeCtx=shoe.roundsInShoe>=5?` shoe:${shoe.roundsInShoe}ตา`:'';
     const modeTag=_roomMode!=='NORMAL'?` [${_roomMode}]`:'';
-    txtEl.textContent=`${_sideLabel} ${Math.max(_councilP,_councilB)}/${_councilTotal} เสียง (${_pct}%)${_geloTxt}${modeTag}`;
+    const _adaptTag=_recentWins>=3?' 🔥':_recentLoss>=3?' ⚠️':'';
+    const _brTag=_bankroll.level==='danger'?' 💸':_bankroll.level==='low'?' 🔴':'';
+    txtEl.textContent=`${_sideLabel} ${Math.max(_councilP,_councilB).toFixed(1)}pt/${_councilTotal.toFixed(1)}pt (${_pct}%)${_geloTxt}${modeTag}${_adaptTag}${_brTag}`;
   }
 
   const dots=document.getElementById('confDots');dots.innerHTML='';
@@ -3478,6 +3850,22 @@ function renderBigRoad(){
 }
 
 // ---- RESET ----
+function newShoe(){
+  // เริ่ม shoe ใหม่ — ไม่ล้างประวัติหรือ P&L ทั้งหมด เพียงแต่ reset shoe memory
+  shoeReset();
+  // แสดง badge
+  const badge=document.getElementById('shoeBadge');
+  if(!badge){
+    const b=document.createElement('div');
+    b.id='shoeBadge';
+    b.style.cssText='position:fixed;bottom:56px;left:8px;z-index:999;background:rgba(10,20,14,.92);border:1px solid rgba(201,168,76,.25);border-radius:6px;padding:4px 8px;font-size:9px;color:var(--green-pos);pointer-events:none;transition:opacity .4s';
+    b.textContent='👟 Shoe ใหม่ — memory reset';
+    document.body.appendChild(b);
+    setTimeout(()=>{b.style.opacity='0';setTimeout(()=>b.remove(),500);},2500);
+  }
+  if(S.hist.length)showSuggest();
+}
+
 function resetAll(){
   try{
     const pw=loadPatternWeights();
@@ -3504,6 +3892,7 @@ function resetAll(){
       big_eye:{wins:0,total:0},small_road:{wins:0,total:0},cockroach:{wins:0,total:0},
       markov:{wins:0,total:0},momentum:{wins:0,total:0},freq:{wins:0,total:0}
     }};
+  shoeReset();
   ['stRounds','stP','stB','stT'].forEach(id=>document.getElementById(id).textContent='0');
   updatePnlBar();renderHands();renderHistRow();renderDerivedRoads();updateOdds();
   document.getElementById('result').classList.remove('show');
