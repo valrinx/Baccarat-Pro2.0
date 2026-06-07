@@ -25,7 +25,14 @@ export function createAppController() {
     risk: 'LOW',
     recommendation: 'WAIT FOR SIGNAL',
     aiStats: { mode: 'BOOTING', samples: 0, accuracy: 0, skipRate: 0 },
-    status: 'BOOTING'
+    status: 'BOOTING',
+    vote: {
+      winner: 'SKIP',
+      confidence: 0,
+      tally: { BANKER: 0, PLAYER: 0, SKIP: 0 },
+      votes: [],
+      isTie: false
+    }
   };
 
   function persist() {
@@ -98,6 +105,51 @@ export function createAppController() {
         : '<div class="placeholder-box">No saved sessions yet</div>';
     }
     if (serviceStatus) serviceStatus.textContent = state.status;
+
+    // ── AI Vote Panel ────────────────────────────────────────────────────────
+    const votePanel = document.getElementById('votePanel');
+    if (votePanel && state.vote?.votes?.length) {
+      const { tally, votes, winner, confidence, isTie } = state.vote;
+      const total = (tally.BANKER ?? 0) + (tally.PLAYER ?? 0) + (tally.SKIP ?? 0) || 1;
+
+      const voterRows = votes.map((v) => {
+        const colorClass = v.action === 'BANKER' ? 'bl' : v.action === 'PLAYER' ? 'pl' : 'dim';
+        return `
+          <div class="vote-row">
+            <span class="vote-src">${v.label}</span>
+            <span class="vote-action vote-${colorClass}">${v.action}</span>
+            <span class="vote-wt">${v.weight}pt</span>
+            <span class="vote-conf">${v.confidence}%</span>
+          </div>`;
+      }).join('');
+
+      const tallyBar = (score, cssVar) => {
+        const pct = Math.round((score / total) * 100);
+        return `<div class="vote-tally-bar" style="width:${pct}%;background:${cssVar}"></div>`;
+      };
+
+      const winnerClass = winner === 'BANKER' ? 'bl' : winner === 'PLAYER' ? 'pl' : 'dim';
+      votePanel.innerHTML = `
+        <div class="vote-header">
+          <span class="vote-title">◆ AI VOTE</span>
+          <span class="vote-winner vote-${winnerClass}">${isTie ? 'TIE → SKIP' : winner}</span>
+          <span class="vote-conf-badge">${confidence}%</span>
+        </div>
+        <div class="vote-tally-wrap">
+          <div class="vote-tally-track">
+            ${tallyBar(tally.BANKER ?? 0, 'var(--bl)')}
+            ${tallyBar(tally.PLAYER ?? 0, 'var(--pl)')}
+            ${tallyBar(tally.SKIP ?? 0, 'var(--dim)')}
+          </div>
+          <div class="vote-tally-labels">
+            <span style="color:var(--bl)">B ${tally.BANKER ?? 0}pt</span>
+            <span style="color:var(--pl)">P ${tally.PLAYER ?? 0}pt</span>
+            <span style="color:var(--dim)">S ${tally.SKIP ?? 0}pt</span>
+          </div>
+        </div>
+        <div class="vote-rows">${voterRows}</div>
+      `;
+    }
   }
 
   function refreshFromGame() {
@@ -118,6 +170,7 @@ export function createAppController() {
     state.chaos = state.ai.chaos;
     state.risk = state.ai.riskLevel;
     state.recommendation = state.ai.recommendation;
+    state.vote = aiResult.vote ?? state.vote;
     state.aiStats = {
       mode: aiResult.explored ? 'DQN EXPLORATION' : 'DQN POLICY',
       samples: state.game.history.length,
