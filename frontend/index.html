@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Baccarat Pro — Q-Learning AI</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Baccarat Pro — Q-Learning AI v2.7.6</title>
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Sarabun:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
 <style>
@@ -369,27 +372,32 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 .train-dash-msg .err{color:var(--red-neg)}
 
 /* 3 DERIVED ROADS PANEL */
-.dr-block{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 5px 4px;overflow:hidden}
-.dr-lbl{font-family:'Cinzel',serif;font-size:7px;letter-spacing:.06em;color:var(--gold-dim);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ===== 3 เกลอ DERIVED ROADS ===== */
+.dr-block{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 6px 5px;overflow:hidden;display:flex;flex-direction:column}
+.dr-lbl{font-family:'Cinzel',serif;font-size:7px;letter-spacing:.06em;color:var(--gold-dim);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:3px}
 .dr-signal{font-size:7px;font-weight:700;padding:1px 4px;border-radius:3px;margin-left:2px}
 .dr-signal.red{color:#ef4444;background:rgba(239,68,68,.12)}
 .dr-signal.blue{color:#4a8fd4;background:rgba(42,92,170,.15)}
 .dr-next{font-size:7px;font-family:'Cinzel',serif;margin-left:2px}
 .dr-next.P{color:var(--pl)}.dr-next.B{color:var(--bl)}
-.dr-road-wrap{overflow-x:auto;overflow-y:hidden}
+/* road scroll container */
+.dr-road-wrap{overflow-x:auto;overflow-y:hidden;flex:1}
+.dr-road-wrap::-webkit-scrollbar{height:3px}
+.dr-road-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+/* grid: columns flex, each col = 6 rows stacked */
 .dr-road{display:flex;flex-direction:row;gap:2px;width:max-content;align-items:flex-start}
 .dr-road-col{display:flex;flex-direction:column;gap:2px}
-/* Base dot — 11×11, shared by all 3 roads */
-.dr-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;box-sizing:border-box;display:flex;align-items:center;justify-content:center}
-.dr-dot.empty{background:transparent;border:1px solid rgba(255,255,255,0.06)}
-/* ไข่ปลา (Big Eye Boy): outline only — red outline / blue outline */
-.dr-dot.beb-red{background:transparent;border:1.5px solid #ef4444}
-.dr-dot.beb-blue{background:transparent;border:1.5px solid #4a8fd4}
-/* ซาลาเปา (Small Road): solid fill — red / blue */
+/* dot base — 14×14 */
+.dr-dot{width:14px;height:14px;flex-shrink:0;box-sizing:border-box;display:flex;align-items:center;justify-content:center;border-radius:50%}
+.dr-dot.empty{background:transparent;border:1px solid rgba(255,255,255,0.07)}
+/* ไข่ปลา (Big Eye Boy): hollow circle — red outline / blue outline */
+.dr-dot.beb-red{background:transparent;border:2px solid #ef4444}
+.dr-dot.beb-blue{background:transparent;border:2px solid #4a8fd4}
+/* ซาลาเปา (Small Road): solid filled circle */
 .dr-dot.sm-red{background:#ef4444;border:none}
 .dr-dot.sm-blue{background:#4a8fd4;border:none}
-/* ไม้ขีด (Cockroach): diagonal slash — red / blue */
-.dr-dot.ck-red,.dr-dot.ck-blue{background:transparent;border:none;border-radius:0;font-size:10px;line-height:1;font-weight:700}
+/* ไม้ขีด (Cockroach): slash "/" shape */
+.dr-dot.ck-red,.dr-dot.ck-blue{background:transparent;border:none;border-radius:2px;font-size:13px;line-height:14px;font-weight:900;letter-spacing:-1px}
 .dr-dot.ck-red{color:#ef4444}
 .dr-dot.ck-blue{color:#4a8fd4}
 
@@ -408,12 +416,33 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 .mbtn-ok{flex:1;padding:9px;background:linear-gradient(135deg,#6b1a1a,#aa2a2a);
   border:1px solid rgba(212,74,74,.4);border-radius:7px;color:#fff;
   font-family:'Cinzel',serif;font-size:9px;font-weight:700;letter-spacing:.1em;cursor:pointer}
+
+/* ===== AI VOTE PANEL ===== */
+.vote-panel{margin:8px 14px 0;background:var(--surface2);border:1px solid rgba(201,168,76,.25);border-radius:8px;padding:10px 12px;animation:fadeUp .25s ease-out}
+.vote-panel:empty{display:none}
+.vote-header{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.vote-title{font-family:'Cinzel',serif;font-size:8px;letter-spacing:.18em;color:var(--gold-dim);flex:1}
+.vote-winner{font-family:'Cinzel',serif;font-size:13px;font-weight:700;letter-spacing:.1em}
+.vote-pl{color:var(--pl)}.vote-bl{color:var(--bl)}.vote-dim{color:var(--dim)}
+.vote-conf-badge{font-family:'Cinzel',serif;font-size:9px;padding:2px 7px;border-radius:4px;border:1px solid rgba(201,168,76,.3);color:var(--gold);background:rgba(201,168,76,.07)}
+.vote-tally-wrap{margin-bottom:8px}
+.vote-tally-track{height:6px;background:rgba(255,255,255,.04);border-radius:3px;overflow:hidden;display:flex;margin-bottom:3px}
+.vote-tally-bar{height:100%;transition:width .4s;min-width:2px}
+.vote-tally-labels{display:flex;justify-content:space-between;font-family:'Cinzel',serif;font-size:8px}
+.vote-rows{display:flex;flex-direction:column;gap:4px}
+.vote-row{display:flex;align-items:center;gap:6px;padding:5px 8px;background:rgba(0,0,0,.2);border-radius:5px;border:1px solid var(--border);font-size:9px}
+.vote-src{font-family:'Cinzel',serif;font-size:8px;letter-spacing:.08em;color:var(--dim);min-width:52px}
+.vote-action{font-family:'Cinzel',serif;font-size:10px;font-weight:700;flex:1}
+.vote-dot{font-size:12px;line-height:1;min-width:16px;text-align:center}
+.vote-conf{font-family:'Cinzel',serif;font-size:9px;color:var(--gold);min-width:30px;text-align:right}
+.vote-agree{border-color:rgba(201,168,76,.25)!important}
+.vote-disagree{opacity:.55}
 </style>
 </head>
 <body>
 
 <div class="hdr">
-  <div class="logo">BACCARAT PRO 2.7.5</div>
+  <div class="logo">BACCARAT PRO 2.8</div>
   <div class="logo-sub">CALCULATOR · TRACKER · SYSTEM</div>
 </div>
 
@@ -726,6 +755,9 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   <div class="slbl" style="padding:8px 14px 0">RECENT</div>
   <div class="hist-row" id="histRow"></div>
 
+  <!-- AI VOTE PANEL -->
+  <div id="votePanel" class="vote-panel"></div>
+
   <!-- 3 DERIVED ROADS PANEL -->
   <div id="derivedRoadsPanel" style="padding:6px 14px 4px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
@@ -734,19 +766,19 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
         <span id="drConsensusText" style="font-family:'Cinzel',serif;font-size:8px;font-weight:700"></span>
       </div>
     </div>
-    <!-- 3 roads side by side -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px">
+    <!-- 3 roads side by side — equal width -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
       <div class="dr-block">
         <div class="dr-lbl">ไข่ปลา <span class="dr-signal" id="drSig0"></span><span class="dr-next" id="drNext0"></span></div>
-        <div class="dr-road-wrap"><div class="dr-road" id="drRoad0"></div></div>
+        <div class="dr-road-wrap" style="height:106px"><div class="dr-road" id="drRoad0"></div></div>
       </div>
       <div class="dr-block">
         <div class="dr-lbl">ซาลาเปา <span class="dr-signal" id="drSig1"></span><span class="dr-next" id="drNext1"></span></div>
-        <div class="dr-road-wrap"><div class="dr-road" id="drRoad1"></div></div>
+        <div class="dr-road-wrap" style="height:106px"><div class="dr-road" id="drRoad1"></div></div>
       </div>
       <div class="dr-block">
         <div class="dr-lbl">ไม้ขีด <span class="dr-signal" id="drSig2"></span><span class="dr-next" id="drNext2"></span></div>
-        <div class="dr-road-wrap"><div class="dr-road" id="drRoad2"></div></div>
+        <div class="dr-road-wrap" style="height:106px"><div class="dr-road" id="drRoad2"></div></div>
       </div>
     </div>
     <div id="drWaiting" style="text-align:center;font-size:9px;color:var(--dim);padding:6px 0;display:none">
@@ -1683,24 +1715,16 @@ function generateLogicalBigRoad(hist){
   for(const w of pb){
     let c,r;
     if(w!==lastW){
-      c=cols.length;
-      r=0;
+      c=cols.length;r=0;
       if(!cols[c])cols[c]=[];
     }else{
       const tail=placements[placements.length-1];
       c=tail.col;r=tail.row;
       if(r<5&&!has(c,r+1))r++;
-      else{
-        c++;
-        while(has(c,r))c++;
-        if(!cols[c])cols[c]=[];
-      }
+      else{c++;while(has(c,r))c++;if(!cols[c])cols[c]=[];}
     }
     const cell={w,col:c,row:r};
-    cols[c].push(cell);
-    placements.push(cell);
-    occ.add(key(c,r));
-    lastW=w;
+    cols[c].push(cell);placements.push(cell);occ.add(key(c,r));lastW=w;
   }
   return{pb,cols,occ,placements};
 }
@@ -1709,76 +1733,57 @@ function colHeightBR(cols,colIdx){
   return cols[colIdx]?cols[colIdx].length:0;
 }
 
+/**
+ * derivedRoadColor — กฎมาตรฐานบาคาร่าจริง
+ *
+ * ทุก cell ใน Big Road เมื่อถูก "มาร์ก" จะสร้าง 1 dot ใน derived road
+ * กฎตัดสินสี:
+ *   - r === 0 (แถวบน = เริ่มคอลัมน์ใหม่):
+ *       เทียบความสูงของ col[c-offset] กับ col[c-offset-1]
+ *       เท่ากัน = แดง, ต่างกัน = น้ำเงิน
+ *   - r >= 1 (แถวล่าง = ยาวต่อในคอลัมน์เดิม):
+ *       ดูว่า col[c-offset] มี cell ที่ row r ด้วยหรือเปล่า
+ *       มี = แดง (ยาวเท่ากัน), ไม่มี = น้ำเงิน (คอลัมน์ reference สั้นกว่า)
+ */
 function derivedRoadColorAt(cols,c,r,offset){
-  const cRef=c-offset,cPrev=c-offset-1;
-  if(cPrev<0)return null;
-  if(r===0)return colHeightBR(cols,cRef)===colHeightBR(cols,cPrev)?'red':'blue';
-  const hasCell=cols[cRef]&&cols[cRef].some(cell=>cell.row===r);
-  return hasCell?'red':'blue';
+  const cRef=c-offset, cPrev=c-offset-1;
+  if(cPrev<0||cRef<0)return null;
+  if(r===0){
+    const h1=colHeightBR(cols,cRef);
+    const h2=colHeightBR(cols,cPrev);
+    return h1===h2?'red':'blue';
+  }
+  // r >= 1: col reference มี cell ที่ row r ด้วยไหม?
+  const hasAtR=cols[cRef]&&cols[cRef].some(cell=>cell.row===r);
+  return hasAtR?'red':'blue';
 }
 
 function canMarkDerivedRoad(c,r,offset){
-  if(r>=1&&c>=offset)return true;
-  if(r===0&&c>offset)return true;
-  return false;
+  // Big Eye: offset=1 → ต้องมีอย่างน้อย 2 คอลัมน์ก่อนหน้า (c > offset)
+  // Small:   offset=2 → c > offset
+  // Cockroach: offset=3 → c > offset
+  if(r===0)return c>offset;
+  return c>=offset;
 }
 
+/**
+ * buildDerivedColorSequence — ลำดับสีทั้งหมดของ derived road
+ * ใช้สำหรับ pattern analysis และ signal
+ */
 function buildDerivedColorSequence(hist,offset){
   const big=generateLogicalBigRoad(hist);
   const colors=[];
   for(const cell of big.placements){
-    const col=cell.col;
-    const r=cell.row;
-    if(!canMarkDerivedRoad(col,r,offset))continue;
-    const color=derivedRoadColorAt(big.cols,col,r,offset);
+    if(!canMarkDerivedRoad(cell.col,cell.row,offset))continue;
+    const color=derivedRoadColorAt(big.cols,cell.col,cell.row,offset);
     if(color)colors.push(color);
   }
   return colors;
 }
 
-/** Returns {col,row,color}[] placements — Big Road layout:
- *  same color as prev → go down (max ROWS=3), different color → new column */
+/** buildDerivedRoadPlacements — เดิม (ROWS=3) ยังคงไว้ใช้ใน buildVoterCouncil */
 function buildDerivedRoadPlacements(hist,offset){
-  const big=generateLogicalBigRoad(hist);
-  const DR=3; // max rows in derived road
-  const occ=new Set();
-  const key=(c,r)=>c+','+r;
-  const entries=[];
-  let lastColor=null;
-
-  for(const cell of big.placements){
-    const col=cell.col;
-    const r=cell.row;
-    if(!canMarkDerivedRoad(col,r,offset))continue;
-    const color=derivedRoadColorAt(big.cols,col,r,offset);
-    if(!color)continue;
-
-    let dc,dr;
-    if(entries.length===0){
-      dc=0;dr=0;
-    } else if(color===lastColor){
-      // same color: go down in same column if room, else new col (same as big road wrap)
-      const prev=entries[entries.length-1];
-      if(prev.row<DR-1&&!occ.has(key(prev.col,prev.row+1))){
-        dc=prev.col;dr=prev.row+1;
-      } else {
-        // wrap to next column, same row as current bottom
-        dc=prev.col+1;
-        dr=prev.row; // stay at same row level when wrapping
-        while(occ.has(key(dc,dr)))dc++;
-      }
-    } else {
-      // new color: start new column at row 0
-      const prev=entries[entries.length-1];
-      dc=prev.col+1;dr=0;
-      while(occ.has(key(dc,dr)))dc++;
-    }
-
-    occ.add(key(dc,dr));
-    entries.push({col:dc,row:dr,color});
-    lastColor=color;
-  }
-  return entries;
+  return buildDerivedRoadPlacementsFull(hist,offset,6);
 }
 
 // สี → ตัวเลขสำหรับ Q-Learning / UI (-1=ยังไม่พร้อม, 0=น้ำเงิน, 1=แดง)
@@ -2466,31 +2471,30 @@ function getQLearningDecision(h,streak,streakSide){
  */
 function buildVoterCouncil(h,streak,streakSide,patPreds,ql,tfResult,dr){
   // returns array of {name, bet, weight, conf, reason}
+  // weight = 1 ทุกคน — เสียงเท่ากันหมด ใช้เสียงข้างมากตัดสิน
   const voters=[];
+  const W=1; // fixed equal weight
 
-  // 1. Pattern Heuristics — รวม preds เป็น 1 voter (weighted sum)
+  // 1. Pattern Heuristics — รวม preds เป็น 1 voter
   const patVotes={P:0,B:0};
-  patPreds.forEach(p=>patVotes[p.bet]=(patVotes[p.bet]||0)+p.weight*(p.conf/5));
+  patPreds.forEach(p=>{if(p.bet==='P'||p.bet==='B')patVotes[p.bet]++;});
   const patTotal=patVotes.P+patVotes.B;
   if(patTotal>0){
     const patBet=patVotes.P>=patVotes.B?'P':'B';
     const patMargin=Math.abs(patVotes.P-patVotes.B)/patTotal;
-    voters.push({name:'patterns',bet:patBet,
-      weight: patMargin>0.4?3.0:patMargin>0.2?2.0:1.0,
-      conf:patMargin>0.4?5:patMargin>0.2?4:3,
+    const conf=patMargin>0.4?5:patMargin>0.2?4:3;
+    voters.push({name:'patterns',bet:patBet,weight:W,conf,
       reason:'Pattern vote '+patBet+' ('+Math.round(patMargin*100)+'% margin)'});
   }
 
-  // 2. Q-Learning voter
-  if(ql&&ql.winner&&(ql.winner==='P'||ql.winner==='B')){
-    const qWt=ql.explore?0.5:(ql.conf>=4?2.0:1.0);
-    voters.push({name:'q_learning',bet:ql.winner,weight:qWt,conf:ql.conf,reason:ql.reason});
+  // 2. Q-Learning voter — เฉพาะเมื่อไม่ได้ explore
+  if(ql&&(ql.winner==='P'||ql.winner==='B')){
+    voters.push({name:'q_learning',bet:ql.winner,weight:W,conf:ql.conf,reason:ql.reason});
   }
 
-  // 3. TF Neural Net voter
+  // 3. TF Neural Net voter — เฉพาะเมื่อ model พร้อม
   if(tfResult&&(tfResult.winner==='P'||tfResult.winner==='B')&&tfResult.conf>=2){
-    const tfWt=(S.tfWeight||1.5)*(tfResult.conf/5)*1.5;
-    voters.push({name:'tf_neural',bet:tfResult.winner,weight:tfWt,conf:tfResult.conf,reason:'TF Neural Net → '+tfResult.winner});
+    voters.push({name:'tf_neural',bet:tfResult.winner,weight:W,conf:tfResult.conf,reason:'TF Neural Net → '+tfResult.winner});
   }
 
   // 4-6. 3 เกลอ voters (Big Eye / Small Road / Cockroach)
@@ -2508,7 +2512,7 @@ function buildVoterCouncil(h,streak,streakSide,patPreds,ql,tfResult,dr){
       const nextColor=simulateNextDerivedColor(h,bet,g.off);
       if(nextColor===sig.nextColor){
         const strong=isDerivedFlowStrong(colors);
-        voters.push({name:g.name,bet,weight:strong?1.8:1.0,conf:strong?4:3,
+        voters.push({name:g.name,bet,weight:W,conf:strong?4:3,
           reason:g.label+' → '+bet});
         break;
       }
@@ -2518,22 +2522,19 @@ function buildVoterCouncil(h,streak,streakSide,patPreds,ql,tfResult,dr){
   // 7. Markov Chain voter
   const markovPred=patMarkov(h);
   if(markovPred){
-    voters.push({name:'markov',bet:markovPred.bet,weight:markovPred.conf>=4?1.5:1.0,
-      conf:markovPred.conf,reason:markovPred.reason});
+    voters.push({name:'markov',bet:markovPred.bet,weight:W,conf:markovPred.conf,reason:markovPred.reason});
   }
 
   // 8. Momentum Bias voter
   const momPred=patMomentumBias(h);
   if(momPred){
-    voters.push({name:'momentum',bet:momPred.bet,weight:momPred.conf>=4?1.5:1.0,
-      conf:momPred.conf,reason:momPred.reason});
+    voters.push({name:'momentum',bet:momPred.bet,weight:W,conf:momPred.conf,reason:momPred.reason});
   }
 
   // 9. Frequency Bias voter
   const freqPred=patFreq10(h);
   if(freqPred){
-    voters.push({name:'freq',bet:freqPred.bet,weight:freqPred.conf>=4?1.2:0.8,
-      conf:freqPred.conf,reason:freqPred.reason});
+    voters.push({name:'freq',bet:freqPred.bet,weight:W,conf:freqPred.conf,reason:freqPred.reason});
   }
 
   return voters;
@@ -2560,21 +2561,24 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
   }
 
   // ══════════════════════════════════════════════════════
-  // MAJORITY VOTE — นับคะแนนทุก voter
+  // MAJORITY VOTE — นับ 1 เสียงต่อ voter เท่ากันทุกคน
   // ══════════════════════════════════════════════════════
-  // votes object มาจาก runPredictionEngine (patterns+tf weighted)
-  // เพิ่ม QL + 3เกลอ + Markov + Momentum + Freq เข้าไปด้วย
-  const councilVotes={P:votes.P||0,B:votes.B||0};
-  const councilLog=[];
+  // เริ่มจาก pattern vote 1 เสียง (ไม่ใช้ weighted sum จาก runPredictionEngine)
+  const patBet=votes.P>=votes.B?'P':'B';
+  const councilVotes={P:0,B:0};
+  councilVotes[patBet]+=1; // 1. Pattern — 1 เสียง
+  const councilLog=[`Pattern→${patBet}`];
 
-  // Q-Learning
+  // 2. Q-Learning — 1 เสียง
   if(ql&&(ql.winner==='P'||ql.winner==='B')){
-    const qw=ql.explore?0.5:(ql.conf>=4?2.0:1.0);
-    councilVotes[ql.winner]+=qw*ql.conf;
+    councilVotes[ql.winner]+=1;
     councilLog.push('Q→'+ql.winner);
   }
 
-  // 3 เกลอ
+  // 3. TF Neural — ดูจาก tfResult ใน votes (inject ก่อนแล้ว)
+  // ไม่ได้ส่ง tfResult เข้ามา — ข้ามไป (จะนับผ่าน patBet แล้ว)
+
+  // 4-6. 3 เกลอ — 1 เสียงต่อตัว
   const gelo=[
     {off:DERIVED_OFFSETS.big_eye,label:'ไข่ปลา'},
     {off:DERIVED_OFFSETS.small_road,label:'ซาลาเปา'},
@@ -2588,8 +2592,7 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
     if(!sig)return;
     for(const bet of['P','B']){
       if(simulateNextDerivedColor(h,bet,g.off)===sig.nextColor){
-        const w=isDerivedFlowStrong(colors)?2.0:1.0;
-        councilVotes[bet]+=w*4;
+        councilVotes[bet]+=1;
         councilLog.push(g.label+'→'+bet);
         geloAgreeCount++;
         break;
@@ -2597,21 +2600,21 @@ function hybridEnsembleDecision(h,streak,streakSide,votes,voteWinner,ql,dr){
     }
   });
 
-  // Markov
+  // 7. Markov — 1 เสียง
   const markovP=patMarkov(h);
-  if(markovP){councilVotes[markovP.bet]+=markovP.conf*1.0;councilLog.push('Markov→'+markovP.bet);}
+  if(markovP){councilVotes[markovP.bet]+=1;councilLog.push('Markov→'+markovP.bet);}
 
-  // Momentum
+  // 8. Momentum — 1 เสียง
   const momP=patMomentumBias(h);
-  if(momP){councilVotes[momP.bet]+=momP.conf*0.8;councilLog.push('Mom→'+momP.bet);}
+  if(momP){councilVotes[momP.bet]+=1;councilLog.push('Mom→'+momP.bet);}
 
-  // Freq10
+  // 9. Freq10 — 1 เสียง
   const freqP=patFreq10(h);
-  if(freqP){councilVotes[freqP.bet]+=freqP.conf*0.6;councilLog.push('Freq→'+freqP.bet);}
+  if(freqP){councilVotes[freqP.bet]+=1;councilLog.push('Freq→'+freqP.bet);}
 
-  // ── Majority decision ──────────────────────────────────
+  // ── Majority decision — นับเสียงข้างมาก ──────────────────
   const totalCV=councilVotes.P+councilVotes.B;
-  const winner=councilVotes.P>=councilVotes.B?'P':'B';
+  const winner=councilVotes.P>councilVotes.B?'P':councilVotes.B>councilVotes.P?'B':patBet; // ถ้าเท่ากัน ใช้ pattern
   const margin=totalCV>0?Math.abs(councilVotes.P-councilVotes.B)/totalCV:0;
   const conf=margin>0.5?5:margin>0.35?4:margin>0.2?3:margin>0.1?2:1;
   const geloNote=geloAgreeCount>=2?` · 3เกลอ ${geloAgreeCount}/3 เห็นด้วย`:'';
@@ -2860,16 +2863,21 @@ function runPredictionEngine(h,streak,streakSide){
   const forceSkip=hybrid.forceSkip||false;
   const skipReason=hybrid.skipReason||null;
 
+  // ── Build council voters for vote panel display ──────────────────────────
+  // สร้าง 9 voters ที่มีชื่อชัดเจน พร้อม bet/weight/conf
+  const councilVoters=buildVoterCouncil(h,streak,streakSide,preds,ql,tfResult,dr);
+
   return{
     skip:forceSkip,
     hedgeTie:false,
-    bet:forceSkip?'N':winner, // no-op bet when skipping
+    bet:forceSkip?'N':winner,
     reason:forceSkip?(skipReason+' · '+reason):reason,
     conf:forceSkip?1:confFinal,
     patternName:forceSkip?'entropy_skip':(tfCandidate&&winner===tfCandidate.bet&&!tfCandidate.chopSuppressed&&tfCandidate.weight>=1.0?'tf_model':(ql?'q_hybrid':best.name)),
     weight:best.weight,
     allPreds:preds,
     votes,
+    councilVoters,
     chaos:gate.chaos,
     riskLabel:forceSkip?'Entropy สูง — Random Room':gate.riskLabel,
     riskLevel:forceSkip?'high':gate.riskLevel,
@@ -2906,6 +2914,83 @@ function updatePatternWeights(predResult,actualResult){
   savePatternWeights(pw);
 }
 // ---- main showSuggest (UI) ----
+function renderVotePanel(result){
+  const panel=document.getElementById('votePanel');
+  if(!panel)return;
+  if(!result||!S.hist.length){panel.innerHTML='';return;}
+
+  const vP=result.votes?result.votes.P||0:0;
+  const vB=result.votes?result.votes.B||0:0;
+  const vTot=vP+vB||1;
+  const realWinner=vP>=vB?'P':'B';
+  const pct=Math.round(Math.abs(vP-vB)/vTot*100);
+  const isSkip=result.skip||false;
+  const winnerLabel=isSkip?'SKIP':realWinner==='P'?'PLAYER':'BANKER';
+  const winnerClass=isSkip?'vote-dim':realWinner==='P'?'vote-pl':'vote-bl';
+
+  // ── ใช้ councilVoters (9 ตัว) ถ้ามี ไม่เช่นนั้น fallback allPreds ────
+  const VOTER_LABELS={
+    patterns:'Pattern',q_learning:'Q-Learn',tf_neural:'TF AI 🤖',
+    tf_model:'TF AI 🤖',big_eye:'ไข่ปลา',small_road:'ซาลาเปา',
+    cockroach:'ไม้ขีด',markov:'Markov',markov2:'Markov',
+    momentum:'Momentum',momentum_bias:'Momentum',freq10:'Freq10',freq:'Freq10'
+  };
+
+  let voters=[];
+  if(result.councilVoters&&result.councilVoters.length){
+    // 9 voters จาก buildVoterCouncil — เรียงตาม weight desc
+    voters=[...result.councilVoters].sort((a,b)=>(b.weight||0)-(a.weight||0));
+  }
+
+  const voterRows=voters.map(v=>{
+    if(!v.bet||v.bet==='N'||v.bet==='SKIP')return'';
+    const colorClass=v.bet==='P'?'vote-pl':v.bet==='B'?'vote-bl':'vote-dim';
+    const label=VOTER_LABELS[v.name]||v.name;
+    const conf=v.conf||0;
+    const betLabel=v.bet==='P'?'PLAYER':'BANKER';
+    const agreeClass=v.bet===realWinner?'vote-agree':'vote-disagree';
+    return `<div class="vote-row ${agreeClass}">
+      <span class="vote-src">${label}</span>
+      <span class="vote-action ${colorClass}">${betLabel}</span>
+      <span class="vote-dot ${colorClass}">●</span>
+      <span class="vote-conf">${conf}/5</span>
+    </div>`;
+  }).filter(Boolean).join('');
+
+  const pBarPct=Math.round(vP/vTot*100);
+  const bBarPct=Math.round(vB/vTot*100);
+  const voterCount=voters.filter(v=>v.bet==='P'||v.bet==='B').length;
+
+  // นับเสียง 1:1 จาก councilVoters
+  const cntP=voters.filter(v=>v.bet==='P').length;
+  const cntB=voters.filter(v=>v.bet==='B').length;
+  const cntTot=cntP+cntB||1;
+  const cntBarP=Math.round(cntP/cntTot*100);
+  const cntBarB=Math.round(cntB/cntTot*100);
+  const majorityWinner=cntP>cntB?'P':cntB>cntP?'B':realWinner;
+  const majorityLabel=isSkip?'SKIP':majorityWinner==='P'?'PLAYER':'BANKER';
+  const majorityClass=isSkip?'vote-dim':majorityWinner==='P'?'vote-pl':'vote-bl';
+
+  panel.innerHTML=`
+    <div class="vote-header">
+      <span class="vote-title">◆ AI VOTE</span>
+      <span class="vote-winner ${majorityClass}">${majorityLabel}</span>
+      <span class="vote-conf-badge">${cntP+cntB > 0 ? Math.max(cntP,cntB) : 0}/${cntTot} เสียง</span>
+    </div>
+    <div class="vote-tally-wrap">
+      <div class="vote-tally-track">
+        <div class="vote-tally-bar" style="width:${cntBarB}%;background:var(--bl)"></div>
+        <div class="vote-tally-bar" style="width:${cntBarP}%;background:var(--pl)"></div>
+      </div>
+      <div class="vote-tally-labels">
+        <span style="color:var(--bl)">B ${cntB} เสียง</span>
+        <span style="color:var(--pl)">P ${cntP} เสียง</span>
+      </div>
+    </div>
+    <div class="vote-rows">${voterRows||'<span style="font-size:9px;color:var(--dim)">รอข้อมูลเพิ่มเติม...</span>'}</div>
+  `;
+}
+
 function showSuggest(){
   const box=document.getElementById('suggest');
   if(S.hist.length<1){box.classList.remove('show');return;}
@@ -2948,47 +3033,82 @@ function showSuggest(){
   box.classList.remove('nobet','hedge-tie');
   if(!S.consecutiveSkip)S.consecutiveSkip=0;
 
-  // ── Majority vote margin ─────────────────────────────────────────
-  const _vP=result.votes?result.votes.P||0:0;
-  const _vB=result.votes?result.votes.B||0:0;
-  const _vTot=_vP+_vB;
-  const _voteMargin=_vTot>0?Math.abs(_vP-_vB)/_vTot:0;
-  const _voteClear=_voteMargin>=0.20; // โหวตชัด ≥20% margin → เชื่อโหวต ไม่ skip
+  // ── Council vote: 1 คน = 1 เสียงเท่ากัน ─────────────────────────
+  let _councilP=0,_councilB=0;
+  if(result.councilVoters&&result.councilVoters.length){
+    result.councilVoters.forEach(v=>{
+      if(v.bet==='P')_councilP++;
+      else if(v.bet==='B')_councilB++;
+    });
+  }
+  const _councilTotal=_councilP+_councilB;
+  const _councilWinner=_councilTotal>0
+    ?(_councilP>_councilB?'P':_councilB>_councilP?'B':(result.bet==='P'||result.bet==='B'?result.bet:'B'))
+    :(result.bet==='P'||result.bet==='B'?result.bet:'B');
+  const _councilMargin=_councilTotal>0?Math.abs(_councilP-_councilB)/_councilTotal:0;
+  const _chaosScore=chaos.score||0;
+  const _pb=S.hist.filter(x=>x!=='T');
 
-  // ── finalSkip: เฉพาะเมื่อโหวตไม่ชัด (margin < 20%) ─────────────
-  let finalSkip = !_voteClear && result.skip;
+  // ── ตรวจ pattern type ────────────────────────────────────────────
+  // CHOP: สลับ ≥75% ใน 8 ตาล่าสุด
+  const _last8pb=_pb.slice(-8);
+  let _altCnt=0;
+  for(let i=1;i<_last8pb.length;i++)if(_last8pb[i]!==_last8pb[i-1])_altCnt++;
+  const _isPureChop=_last8pb.length>=6&&(_altCnt/(_last8pb.length-1))>=0.75;
+
+  // DRAGON: streak ≥ 4
+  const _drSide=_pb.length?_pb[_pb.length-1]:null;
+  let _drLen=0;
+  if(_drSide)for(let i=_pb.length-1;i>=0&&_pb[i]===_drSide;i--)_drLen++;
+  const _isDragon=_drLen>=4;
+
+  // STRONG PATTERN: engine ตรวจเจอ pattern ชัดเจน conf ≥ 4
+  const _hasStrong=!!(result.allPreds&&result.allPreds.some(p=>
+    ['dragon','pingpong','doublepair','sandwich_mirror','cycle','quad','triple'].includes(p.name)&&p.conf>=4
+  ));
+
+  // COUNCIL CLEAR: เสียงข้างมาก ≥ 6/9 (66%+)
+  const _councilClear=_councilTotal>0&&Math.max(_councilP,_councilB)/_councilTotal>=0.67;
+
+  // ── SKIP logic — ฉลาดขึ้น แยกตาม room type ─────────────────────
+  // เล่นได้ถึงแม้ chaos สูง ถ้ามี:  chop ชัด / dragon / strong pattern / council ชัด
+  const _playDespiteChaos=_isPureChop||_isDragon||_hasStrong||_councilClear;
+  const _hardSkip=_chaosScore>=90&&!_playDespiteChaos;           // chaos 90+ ไม่มีอะไรช่วยเลย
+  const _softSkip=_chaosScore>=75&&!_playDespiteChaos&&_councilMargin<0.29; // chaos 75-89 + เสียงแตก
+  const finalSkip=_hardSkip||_softSkip||(result.skip&&_councilTotal===0);
+
+  // room mode label
+  const _roomMode=_isPureChop?'CHOP':_isDragon?'DRAGON':_hasStrong?'PATTERN':_chaosScore>=75?'VOLATILE':'NORMAL';
 
   if(finalSkip) S.consecutiveSkip++;
   else S.consecutiveSkip=0;
 
-  // mainBet = ผลโหวต เสียงข้างมากเสมอ ถ้าโหวตชัด
-  const mainBet = _voteClear
-    ? (result.bet==='P'||result.bet==='B'?result.bet:'B')
-    : (finalSkip?'T':(result.bet==='P'||result.bet==='B'?result.bet:'B'));
+  // mainBet = เสียงข้างมากจาก council / SKIP ถ้าเงื่อนไขครบ
+  const mainBet=finalSkip?'T':_councilWinner;
 
-  if(mainBet==='T'){
-    el.textContent='TIE';
-    el.className='sug-bet T';
+  // ── Render label ─────────────────────────────────────────────────
+  if(finalSkip){
+    el.textContent='SKIP';
+    el.className='sug-bet skip';
   }else{
     el.textContent=mainBet==='P'?'PLAYER':'BANKER';
     el.className='sug-bet '+mainBet;
   }
   box.classList.remove('nobet');
 
-  // ── suggest text: สั้น — แค่ผลโหวตและ voters ที่เห็นด้วย ─────────
-  const _voterNames={'patterns':'Pattern','q_learning':'Q','tf_neural':'AI',
-    'big_eye':'ไข่ปลา','small_road':'ซาลาเปา','cockroach':'ไม้ขีด',
-    'markov':'Markov','momentum':'Momentum','freq':'Freq'};
-  // reconstruct voter list from reason string (already compact from council)
-  const _pct=Math.round(_voteMargin*100);
-  const _sideLabel=mainBet==='P'?'PLAYER':mainBet==='B'?'BANKER':'TIE';
-  const _confAgree=result.reason?result.reason.match(/3เกลอ (\d)\/3/):null;
-  const _geloTxt=_confAgree?` · 3เกลอ ${_confAgree[1]}/3`:'';
+  // ── Suggest text ─────────────────────────────────────────────────
+  const _pct=_councilTotal>0?Math.round(Math.max(_councilP,_councilB)/_councilTotal*100):0;
+  const _sideLabel=finalSkip?'SKIP':mainBet==='P'?'PLAYER':'BANKER';
+  const _geloVoters=(result.councilVoters||[]).filter(v=>['big_eye','small_road','cockroach'].includes(v.name)&&v.bet===mainBet).length;
+  const _geloTxt=_geloVoters>=2?` · 3เกลอ ${_geloVoters}/3`:'';
   txtEl.className='sug-txt';
-  txtEl.textContent=`${_sideLabel} (โหวต ${_pct}%)${_geloTxt}`;
-
-  result.bet=mainBet;
-  if(mainBet==='T') result.skip=false;
+  if(finalSkip){
+    const why=_hardSkip?`CHAOS ${_chaosScore}% ไม่มี pattern`:_softSkip?`CHAOS ${_chaosScore}% + เสียงแตก`:'ไม่มีข้อมูลพอ';
+    txtEl.textContent=`งดเดิมพัน — ${why}`;
+  }else{
+    const modeTag=_roomMode!=='NORMAL'?` [${_roomMode}]`:'';
+    txtEl.textContent=`${_sideLabel} ${Math.max(_councilP,_councilB)}/${_councilTotal} เสียง (${_pct}%)${_geloTxt}${modeTag}`;
+  }
 
   const dots=document.getElementById('confDots');dots.innerHTML='';
   for(let i=0;i<5;i++){const d=document.createElement('div');d.className='cd'+(i<result.conf?' f':'');dots.appendChild(d);}
@@ -3008,37 +3128,37 @@ function showSuggest(){
     }
   }
   S.lastSuggestConf=result.conf;
-  S.lastSuggestChaos=chaos.score;
-  const dynAmt=calcAutoBetAmount(result.conf,chaos.score,result.patternName);
+  S.lastSuggestChaos=_chaosScore;
+  const dynAmt=calcAutoBetAmount(result.conf,_chaosScore,result.patternName);
   if(sizeEl){
-    if(mainBet==='T'){
-      const chaosWarn=chaos.score>=60?` ⚠️ CHAOS ${chaos.score}%`:'';
-      sizeEl.textContent=S.autoPlay
-        ?`เดิมพัน TIE ${fmt(dynAmt)} (×8 = ${fmt(dynAmt*8)})${chaosWarn}`
-        :`แนะนำ TIE ${fmt(dynAmt)} (×8)${chaosWarn}`;
+    if(finalSkip){
+      sizeEl.textContent=`งดเดิมพัน — ${_roomMode} CHAOS ${_chaosScore}%`;
     }else{
       const patMult=patternBetMultiplier(result.patternName,result.conf);
       const pct=Math.round(patMult*100);
-      const chaosWarn=chaos.score>=60?` ⚠️ CHAOS ${chaos.score}%`:'';
+      const chaosWarn=_chaosScore>=60?` ⚠️ CHAOS ${_chaosScore}%`:'';
       sizeEl.textContent=S.autoPlay?`เดิมพัน ${fmt(dynAmt)} (${pct}%)${chaosWarn}`:`แนะนำ ${fmt(dynAmt)} (${pct}%)${chaosWarn}`;
     }
   }
 
-  updateAutoBotStatus(result);
-  if(S.betSide==='T'&&mainBet!=='T')setBetSide(mainBet);
+  updateAutoBotStatus(result,finalSkip,mainBet);
+  if(!finalSkip&&S.betSide==='T')setBetSide(mainBet);
   applyAutoPlayBet(result);
-  if(!S.autoPlay){
-    const amt=calcAutoBetAmount(result.conf,chaos.score,result.patternName);
+  if(!S.autoPlay&&!finalSkip){
+    const amt=calcAutoBetAmount(result.conf,_chaosScore,result.patternName);
     document.getElementById('betAmt').value=amt;
     S.baseBet=amt;
     document.getElementById('betDisplayAmt').textContent=fmt(amt);
-    setBetSide(mainBet); // P, B, หรือ T
+    setBetSide(mainBet);
     S.lastBetPatternName=result.patternName||null;
   }
 
-  // pendingSug: P/B/T → นับ win rate, null = ไม่นับ (ไม่มีกรณีไหนที่ null แล้ว)
-  S.pendingSug = mainBet; // นับทุก case รวม TIE
-  S.pendingSugResult = result;
+  // pendingSug: นับ win rate เฉพาะเมื่อไม่ skip
+  S.pendingSug=finalSkip?null:mainBet;
+  S.pendingSugResult=finalSkip?null:result;
+
+  // ── AI Vote Panel ────────────────────────────────────────────────────────
+  renderVotePanel(result);
 }
 
 // ---- HISTORY (Big Road layout) ----
@@ -3133,53 +3253,45 @@ function renderHistRow(){
 
 // ---- 3 DERIVED ROADS ----
 function renderDerivedRoads(){
-  // 3 เกลอ: Big Eye Boy (offset=1), Small Road (offset=2), Cockroach (offset=3)
-  // Layout: 3 แถว (ROWS=3) เรียงซ้ายบนลงล่าง แล้ว wrap เป็นคอลัมน์ถัดไป
-  // dot: red=วงกลมแดงทึบ, blue=วงแหวนน้ำเงิน (เหมือนของจริง)
-  const ROWS=3;
+  const ROWS=6;
+  // v2.7.6 — layout fixed: stack DOWN same color, new col on color change
   const roads=[
-    {offset:DERIVED_OFFSETS.big_eye},
-    {offset:DERIVED_OFFSETS.small_road},
-    {offset:DERIVED_OFFSETS.cockroach}
+    {offset:DERIVED_OFFSETS.big_eye,   pfx:'beb', sym:''},
+    {offset:DERIVED_OFFSETS.small_road,pfx:'sm',  sym:''},
+    {offset:DERIVED_OFFSETS.cockroach, pfx:'ck',  sym:'/'}
   ];
-  const pb=S.hist.filter(x=>x!=='T');
+
   const waiting=document.getElementById('drWaiting');
   const consensusEl=document.getElementById('drConsensus');
   const consensusTxt=document.getElementById('drConsensusText');
-
-  // Always show roads immediately (like RECENT road) — no waiting gate
   if(waiting)waiting.style.display='none';
   if(consensusEl)consensusEl.style.display='none';
 
-  // CSS class prefix per road type
-  // 0=ไข่ปลา(Big Eye Boy): outline, 1=ซาลาเปา(Small): solid, 2=ไม้ขีด(Cockroach): slash
-  const roadPrefix=['beb','sm','ck'];
-  const roadSymbol=['','','/']; // slash char for cockroach
-
   roads.forEach((rd,i)=>{
-    const placements=buildDerivedRoadPlacements(S.hist,rd.offset);
-    const colors=buildDerivedColorSequence(S.hist,rd.offset); // for signal/next only
     const roadEl=document.getElementById('drRoad'+i);
-    const sigEl=document.getElementById('drSig'+i);
-    const nxtEl=document.getElementById('drNext'+i);
+    const sigEl =document.getElementById('drSig'+i);
+    const nxtEl =document.getElementById('drNext'+i);
     if(!roadEl)return;
-    const pfx=roadPrefix[i];
-    const sym=roadSymbol[i];
 
-    // Big road layout: render col by col, fill row slots
+    // ── Build placements ─────────────────────────────────────────
+    // ใช้ buildDerivedRoadPlacements ที่ wrap ด้วย ROWS=6
+    const raw=buildDerivedRoadPlacementsFull(S.hist,rd.offset,ROWS);
+    const colors=buildDerivedColorSequence(S.hist,rd.offset);
+
+    // ── Render grid ──────────────────────────────────────────────
     roadEl.innerHTML='';
-    const maxCol=placements.length?placements[placements.length-1].col:2;
-    const totalCols=Math.max(maxCol+1, 5); // show at least 5 cols
+    const maxCol=raw.length?raw[raw.length-1].col:0;
+    const totalCols=Math.max(maxCol+1,8); // min 8 cols
     for(let ci=0;ci<totalCols;ci++){
       const colEl=document.createElement('div');
       colEl.className='dr-road-col';
       for(let ri=0;ri<ROWS;ri++){
+        const cell=raw.find(p=>p.col===ci&&p.row===ri);
         const d=document.createElement('div');
-        const found=placements.find(p=>p.col===ci&&p.row===ri);
-        if(found){
-          d.className='dr-dot '+pfx+'-'+found.color;
-          if(sym)d.textContent=sym;
-        } else {
+        if(cell){
+          d.className='dr-dot '+rd.pfx+'-'+cell.color;
+          if(rd.sym)d.textContent=rd.sym;
+        }else{
           d.className='dr-dot empty';
         }
         colEl.appendChild(d);
@@ -3187,7 +3299,7 @@ function renderDerivedRoads(){
       roadEl.appendChild(colEl);
     }
 
-    // Signal badge
+    // ── Signal badge (สีล่าสุด) ──────────────────────────────────
     const last=colors.length?colors[colors.length-1]:null;
     if(sigEl){
       if(!last){sigEl.textContent='';sigEl.className='dr-signal';}
@@ -3197,7 +3309,7 @@ function renderDerivedRoads(){
       }
     }
 
-    // Next prediction
+    // ── ทำนายรอบถัดไป ────────────────────────────────────────────
     let nextBet=null;
     if(last){
       for(const bet of['P','B']){
@@ -3213,7 +3325,7 @@ function renderDerivedRoads(){
     }
   });
 
-  // Consensus
+  // ── Consensus badge ──────────────────────────────────────────
   const dr=getDerivedRoads(S.hist);
   if(consensusEl&&consensusTxt){
     if(dr.consensus){
@@ -3225,6 +3337,50 @@ function renderDerivedRoads(){
       consensusEl.style.display='none';
     }
   }
+}
+
+/**
+ * buildDerivedRoadPlacementsFull — วาง dots ใน derived road ถูกต้องตามมาตรฐาน
+ *
+ * กฎ layout:
+ *   - สีเดียวกันต่อเนื่อง → stack ลงแถวในคอลัมน์เดิม (เหมือน Big Road)
+ *   - ถ้าแถวเต็ม (≥ ROWS) → wrap ขวาแถวเดิม
+ *   - สีเปลี่ยน → คอลัมน์ใหม่ แถว 0 เสมอ
+ */
+function buildDerivedRoadPlacementsFull(hist,offset,ROWS){
+  const colors=buildDerivedColorSequence(hist,offset);
+  if(!colors.length)return[];
+
+  const occ=new Set();
+  const key=(c,r)=>c+','+r;
+  const entries=[];
+  let curCol=0,curRow=0,lastColor=null;
+
+  for(const color of colors){
+    let dc,dr;
+    if(entries.length===0){
+      dc=0;dr=0;
+    }else if(color===lastColor){
+      // สีเดียว: ลงแถวถัดไป
+      const prev=entries[entries.length-1];
+      if(prev.row<ROWS-1&&!occ.has(key(prev.col,prev.row+1))){
+        dc=prev.col;dr=prev.row+1;
+      }else{
+        // wrap: คอลัมน์ถัดไป แถว 0 (ไม่ใช่แถวเดิม)
+        dc=prev.col+1;dr=0;
+        while(occ.has(key(dc,dr)))dc++;
+      }
+    }else{
+      // สีต่าง: คอลัมน์ใหม่ แถว 0
+      const prev=entries[entries.length-1];
+      dc=prev.col+1;dr=0;
+      while(occ.has(key(dc,dr)))dc++;
+    }
+    occ.add(key(dc,dr));
+    entries.push({col:dc,row:dr,color});
+    lastColor=color;
+  }
+  return entries;
 }
 
 
