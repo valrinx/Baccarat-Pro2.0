@@ -433,10 +433,12 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 .vote-row{display:flex;align-items:center;gap:6px;padding:5px 8px;background:rgba(0,0,0,.2);border-radius:5px;border:1px solid var(--border);font-size:9px}
 .vote-src{font-family:'Cinzel',serif;font-size:8px;letter-spacing:.08em;color:var(--dim);min-width:52px}
 .vote-action{font-family:'Cinzel',serif;font-size:10px;font-weight:700;flex:1}
+.vote-wr{font-family:'Cinzel',serif;font-size:9px;min-width:34px;text-align:right}
 .vote-dot{font-size:12px;line-height:1;min-width:16px;text-align:center}
 .vote-conf{font-family:'Cinzel',serif;font-size:9px;color:var(--gold);min-width:30px;text-align:right}
 .vote-agree{border-color:rgba(201,168,76,.25)!important}
 .vote-disagree{opacity:.55}
+.vote-inactive{opacity:.4;background:rgba(0,0,0,.1)!important}
 </style>
 </head>
 <body>
@@ -882,7 +884,7 @@ let S={
   pCards:[],bCards:[],
   hist:[],pC:0,bC:0,tC:0,
   betSide:null,baseBet:DEFAULT_BASE_BET,baseUnit:DEFAULT_BASE_BET,
-  capital:1000,minBet:20,  // ทุนทั้งหมดและขั้นต่ำ
+  capital:1000,minBet:20,
   winStreak:0,streakSide:'',streak:0,
   balance:0,totalWin:0,totalLose:0,hedgeLose:0,hedgeWin:0,betWins:0,betTotal:0,
   betHistory:[],
@@ -895,9 +897,23 @@ let S={
   vstForceSkip:false,vstSkipCount:0,
   vstRecoveryLeft:0,
   mirrorWinStreak:0,lastBetPatternName:null,
-  tfWeight:1.5, // TF model influence multiplier (0–5) — lowered from 3.0 to prevent TF overriding good pattern signals
+  tfWeight:1.5,
   qTable:{},qCount:{},learningRate:0.2,discountFactor:0.8,
-  lastQLearningState:null,lastQLearningAction:null
+  lastQLearningState:null,lastQLearningAction:null,
+  // ── voter stats: บันทึก win/total ของแต่ละ voter ──────────────
+  voterStats:{
+    patterns:{wins:0,total:0},
+    q_learning:{wins:0,total:0},
+    tf_neural:{wins:0,total:0},
+    big_eye:{wins:0,total:0},
+    small_road:{wins:0,total:0},
+    cockroach:{wins:0,total:0},
+    markov:{wins:0,total:0},
+    momentum:{wins:0,total:0},
+    freq:{wins:0,total:0}
+  },
+  // snapshot ของ voter bets รอบก่อน (สำหรับเปรียบเทียบกับผลจริง)
+  pendingVoterBets:null
 };
 
 // ---- TABS ----
@@ -1246,6 +1262,18 @@ function applyAutoPlayBet(result){
 
 // ---- DEAL & QUICK ----
 function resolveRound(w,p,b,nat){
+  // ── อัปเดต voter stats ก่อนอื่น ─────────────────────────────────
+  if(S.pendingVoterBets&&(w==='P'||w==='B')){
+    if(!S.voterStats)S.voterStats={};
+    Object.entries(S.pendingVoterBets).forEach(([name,bet])=>{
+      if(!bet||bet==='T')return; // ไม่มี bet หรือ skip
+      if(!S.voterStats[name])S.voterStats[name]={wins:0,total:0};
+      S.voterStats[name].total++;
+      if(bet===w)S.voterStats[name].wins++;
+    });
+    S.pendingVoterBets=null;
+  }
+
   if(S.pendingSug!==null){
     // นับ suggest accuracy รวม TIE
     // pendingSug==='T' → นับเฉพาะเมื่อ w==='T' (ถูก) หรือ w!=='T' (ผิด)
@@ -2139,7 +2167,7 @@ function shannonEntropy(h){
 function patMarkov(h){
   // 2nd-order Markov chain: P(next | prev2, prev1)
   const pb=h.filter(x=>x!=='T');
-  if(pb.length<20)return null;
+  if(pb.length<10)return null;
   const trans={};
   for(let i=0;i<pb.length-2;i++){
     const key=pb[i]+pb[i+1];
@@ -2470,12 +2498,14 @@ function getQLearningDecision(h,streak,streakSide){
  * ผลลัพธ์: เสียงข้างมากตัดสิน, conf = สัดส่วนโหวต
  */
 function buildVoterCouncil(h,streak,streakSide,patPreds,ql,tfResult,dr){
-  // returns array of {name, bet, weight, conf, reason}
-  // weight = 1 ทุกคน — เสียงเท่ากันหมด ใช้เสียงข้างมากตัดสิน
-  const voters=[];
-  const W=1; // fixed equal weight
+  // returns array of exactly 9 voters, inactive ones have bet=null
+  const W=1;
 
-  // 1. Pattern Heuristics — รวม preds เป็น 1 voter
+  // ── helper: push voter, null bet = ไม่มีข้อมูล/เงื่อนไขไม่ผ่าน ──
+  const voters=[];
+  const push=(name,bet,conf,reason)=>voters.push({name,bet,weight:bet?W:0,conf:conf||0,reason:reason||''});
+
+  // 1. Pattern Heuristics
   const patVotes={P:0,B:0};
   patPreds.forEach(p=>{if(p.bet==='P'||p.bet==='B')patVotes[p.bet]++;});
   const patTotal=patVotes.P+patVotes.B;
@@ -2483,58 +2513,72 @@ function buildVoterCouncil(h,streak,streakSide,patPreds,ql,tfResult,dr){
     const patBet=patVotes.P>=patVotes.B?'P':'B';
     const patMargin=Math.abs(patVotes.P-patVotes.B)/patTotal;
     const conf=patMargin>0.4?5:patMargin>0.2?4:3;
-    voters.push({name:'patterns',bet:patBet,weight:W,conf,
-      reason:'Pattern vote '+patBet+' ('+Math.round(patMargin*100)+'% margin)'});
+    push('patterns',patBet,conf,'Pattern vote '+patBet);
+  }else{
+    push('patterns',null,0,'ไม่มี pattern');
   }
 
-  // 2. Q-Learning voter — เฉพาะเมื่อไม่ได้ explore
+  // 2. Q-Learning
   if(ql&&(ql.winner==='P'||ql.winner==='B')){
-    voters.push({name:'q_learning',bet:ql.winner,weight:W,conf:ql.conf,reason:ql.reason});
+    push('q_learning',ql.winner,ql.conf,ql.reason);
+  }else{
+    push('q_learning',null,0,'Q กำลังเรียนรู้');
   }
 
-  // 3. TF Neural Net voter — เฉพาะเมื่อ model พร้อม
+  // 3. TF Neural Net
   if(tfResult&&(tfResult.winner==='P'||tfResult.winner==='B')&&tfResult.conf>=2){
-    voters.push({name:'tf_neural',bet:tfResult.winner,weight:W,conf:tfResult.conf,reason:'TF Neural Net → '+tfResult.winner});
+    push('tf_neural',tfResult.winner,tfResult.conf,'TF Neural Net → '+tfResult.winner);
+  }else if(!window._tfModel){
+    push('tf_neural',null,0,'ยังไม่ได้ train');
+  }else{
+    push('tf_neural',null,0,'สัญญาณไม่ชัด');
   }
 
-  // 4-6. 3 เกลอ voters (Big Eye / Small Road / Cockroach)
+  // 4-6. 3 เกลอ voters
   const gelo=[
-    {name:'big_eye',off:DERIVED_OFFSETS.big_eye,label:'ไข่ปลา'},
+    {name:'big_eye',  off:DERIVED_OFFSETS.big_eye,   label:'ไข่ปลา'},
     {name:'small_road',off:DERIVED_OFFSETS.small_road,label:'ซาลาเปา'},
-    {name:'cockroach',off:DERIVED_OFFSETS.cockroach,label:'ไม้ขีด'}
+    {name:'cockroach',off:DERIVED_OFFSETS.cockroach,  label:'ไม้ขีด'}
   ];
   gelo.forEach(g=>{
     const colors=buildDerivedColorSequence(h,g.off);
-    if(colors.length<2)return;
+    if(colors.length<2){push(g.name,null,0,'รอข้อมูล');return;}
     const sig=analyzeDerivedPattern(colors);
-    if(!sig)return;
+    if(!sig){push(g.name,null,0,'pattern ไม่ชัด');return;}
+    let voted=false;
     for(const bet of['P','B']){
       const nextColor=simulateNextDerivedColor(h,bet,g.off);
       if(nextColor===sig.nextColor){
         const strong=isDerivedFlowStrong(colors);
-        voters.push({name:g.name,bet,weight:W,conf:strong?4:3,
-          reason:g.label+' → '+bet});
-        break;
+        push(g.name,bet,strong?4:3,g.label+' → '+bet);
+        voted=true;break;
       }
     }
+    if(!voted)push(g.name,null,0,'ผลเสมอกัน');
   });
 
-  // 7. Markov Chain voter
+  // 7. Markov Chain
   const markovPred=patMarkov(h);
   if(markovPred){
-    voters.push({name:'markov',bet:markovPred.bet,weight:W,conf:markovPred.conf,reason:markovPred.reason});
+    push('markov',markovPred.bet,markovPred.conf,markovPred.reason);
+  }else{
+    push('markov',null,0,'รอข้อมูล ≥20 ตา');
   }
 
-  // 8. Momentum Bias voter
+  // 8. Momentum Bias
   const momPred=patMomentumBias(h);
   if(momPred){
-    voters.push({name:'momentum',bet:momPred.bet,weight:W,conf:momPred.conf,reason:momPred.reason});
+    push('momentum',momPred.bet,momPred.conf,momPred.reason);
+  }else{
+    push('momentum',null,0,'ทิศทางไม่ชัด');
   }
 
-  // 9. Frequency Bias voter
+  // 9. Frequency Bias
   const freqPred=patFreq10(h);
   if(freqPred){
-    voters.push({name:'freq',bet:freqPred.bet,weight:W,conf:freqPred.conf,reason:freqPred.reason});
+    push('freq',freqPred.bet,freqPred.conf,freqPred.reason);
+  }else{
+    push('freq',null,0,'รอข้อมูล ≥8 ตา');
   }
 
   return voters;
@@ -2919,63 +2963,64 @@ function renderVotePanel(result){
   if(!panel)return;
   if(!result||!S.hist.length){panel.innerHTML='';return;}
 
-  const vP=result.votes?result.votes.P||0:0;
-  const vB=result.votes?result.votes.B||0:0;
-  const vTot=vP+vB||1;
-  const realWinner=vP>=vB?'P':'B';
-  const pct=Math.round(Math.abs(vP-vB)/vTot*100);
-  const isSkip=result.skip||false;
-  const winnerLabel=isSkip?'SKIP':realWinner==='P'?'PLAYER':'BANKER';
-  const winnerClass=isSkip?'vote-dim':realWinner==='P'?'vote-pl':'vote-bl';
-
-  // ── ใช้ councilVoters (9 ตัว) ถ้ามี ไม่เช่นนั้น fallback allPreds ────
   const VOTER_LABELS={
     patterns:'Pattern',q_learning:'Q-Learn',tf_neural:'TF AI 🤖',
-    tf_model:'TF AI 🤖',big_eye:'ไข่ปลา',small_road:'ซาลาเปา',
-    cockroach:'ไม้ขีด',markov:'Markov',markov2:'Markov',
-    momentum:'Momentum',momentum_bias:'Momentum',freq10:'Freq10',freq:'Freq10'
+    big_eye:'ไข่ปลา',small_road:'ซาลาเปา',cockroach:'ไม้ขีด',
+    markov:'Markov',momentum:'Momentum',freq:'Freq10'
   };
 
-  let voters=[];
-  if(result.councilVoters&&result.councilVoters.length){
-    // 9 voters จาก buildVoterCouncil — เรียงตาม weight desc
-    voters=[...result.councilVoters].sort((a,b)=>(b.weight||0)-(a.weight||0));
-  }
+  // ใช้ councilVoters 9 ตัวเสมอ — เรียงตาม: มีเสียงก่อน, แล้ว conf
+  const voters=result.councilVoters&&result.councilVoters.length
+    ?[...result.councilVoters].sort((a,b)=>{
+        const ad=a.bet?1:0,bd=b.bet?1:0;
+        return bd!==ad?bd-ad:(b.conf||0)-(a.conf||0);
+      })
+    :[];
 
-  const voterRows=voters.map(v=>{
-    if(!v.bet||v.bet==='N'||v.bet==='SKIP')return'';
-    const colorClass=v.bet==='P'?'vote-pl':v.bet==='B'?'vote-bl':'vote-dim';
-    const label=VOTER_LABELS[v.name]||v.name;
-    const conf=v.conf||0;
-    const betLabel=v.bet==='P'?'PLAYER':'BANKER';
-    const agreeClass=v.bet===realWinner?'vote-agree':'vote-disagree';
-    return `<div class="vote-row ${agreeClass}">
-      <span class="vote-src">${label}</span>
-      <span class="vote-action ${colorClass}">${betLabel}</span>
-      <span class="vote-dot ${colorClass}">●</span>
-      <span class="vote-conf">${conf}/5</span>
-    </div>`;
-  }).filter(Boolean).join('');
-
-  const pBarPct=Math.round(vP/vTot*100);
-  const bBarPct=Math.round(vB/vTot*100);
-  const voterCount=voters.filter(v=>v.bet==='P'||v.bet==='B').length;
-
-  // นับเสียง 1:1 จาก councilVoters
+  // นับเสียงจริง (เฉพาะที่มี bet)
   const cntP=voters.filter(v=>v.bet==='P').length;
   const cntB=voters.filter(v=>v.bet==='B').length;
   const cntTot=cntP+cntB||1;
-  const cntBarP=Math.round(cntP/cntTot*100);
-  const cntBarB=Math.round(cntB/cntTot*100);
-  const majorityWinner=cntP>cntB?'P':cntB>cntP?'B':realWinner;
+  const majorityWinner=cntP>cntB?'P':cntB>cntP?'B':(result.bet==='P'?'P':'B');
+  const isSkip=result.skip||false;
   const majorityLabel=isSkip?'SKIP':majorityWinner==='P'?'PLAYER':'BANKER';
   const majorityClass=isSkip?'vote-dim':majorityWinner==='P'?'vote-pl':'vote-bl';
+
+  const cntBarB=Math.round(cntB/cntTot*100);
+  const cntBarP=Math.round(cntP/cntTot*100);
+
+  const voterRows=voters.map(v=>{
+    const label=VOTER_LABELS[v.name]||v.name;
+    const conf=v.conf||0;
+    // ดึง winrate จาก S.voterStats
+    const st=S.voterStats&&S.voterStats[v.name];
+    const wr=st&&st.total>=3?Math.round(st.wins/st.total*100):null;
+    const wrTxt=wr!==null?`${wr}%`:'—';
+    const wrColor=wr===null?'var(--dim)':wr>=55?'var(--green-pos)':wr>=45?'var(--gold)':'var(--red-neg)';
+
+    if(!v.bet||v.bet==='N'||v.bet==='SKIP'){
+      return `<div class="vote-row vote-inactive">
+        <span class="vote-src">${label}</span>
+        <span class="vote-action" style="flex:1;font-size:8px;color:var(--dim);opacity:.45">—</span>
+        <span class="vote-wr" style="color:${wrColor};opacity:${wr!==null?1:.3}">${wrTxt}</span>
+        <span class="vote-conf" style="opacity:.3">—</span>
+      </div>`;
+    }
+    const cc=v.bet==='P'?'vote-pl':'vote-bl';
+    const agree=v.bet===majorityWinner?'vote-agree':'vote-disagree';
+    return `<div class="vote-row ${agree}">
+      <span class="vote-src">${label}</span>
+      <span class="vote-action ${cc}">${v.bet==='P'?'P':'B'}</span>
+      <span class="vote-wr" style="color:${wrColor}">${wrTxt}</span>
+      <span class="vote-conf">${conf}/5</span>
+    </div>`;
+  }).join('');
 
   panel.innerHTML=`
     <div class="vote-header">
       <span class="vote-title">◆ AI VOTE</span>
       <span class="vote-winner ${majorityClass}">${majorityLabel}</span>
-      <span class="vote-conf-badge">${cntP+cntB > 0 ? Math.max(cntP,cntB) : 0}/${cntTot} เสียง</span>
+      <span class="vote-conf-badge">${Math.max(cntP,cntB)}/${voters.length} เสียง</span>
     </div>
     <div class="vote-tally-wrap">
       <div class="vote-tally-track">
@@ -2987,7 +3032,7 @@ function renderVotePanel(result){
         <span style="color:var(--pl)">P ${cntP} เสียง</span>
       </div>
     </div>
-    <div class="vote-rows">${voterRows||'<span style="font-size:9px;color:var(--dim)">รอข้อมูลเพิ่มเติม...</span>'}</div>
+    <div class="vote-rows">${voterRows}</div>
   `;
 }
 
@@ -3156,6 +3201,16 @@ function showSuggest(){
   // pendingSug: นับ win rate เฉพาะเมื่อไม่ skip
   S.pendingSug=finalSkip?null:mainBet;
   S.pendingSugResult=finalSkip?null:result;
+
+  // ── snapshot voter bets รอบนี้ สำหรับ track winrate ─────────────
+  if(result.councilVoters&&result.councilVoters.length){
+    S.pendingVoterBets={};
+    result.councilVoters.forEach(v=>{
+      S.pendingVoterBets[v.name]=v.bet||null;
+    });
+  }else{
+    S.pendingVoterBets=null;
+  }
 
   // ── AI Vote Panel ────────────────────────────────────────────────────────
   renderVotePanel(result);
@@ -3442,7 +3497,13 @@ function resetAll(){
     autoLastResult:null,autoRoundStake:0,autoVolatileLossStreak:0,autoMartingaleLossStreak:0,
     vstForceSkip:false,vstSkipCount:0,vstRecoveryLeft:0,
     mirrorWinStreak:0,lastBetPatternName:null,consecutiveSkip:0,
-    qTable:S.qTable||{},qCount:S.qCount||{},lastQLearningState:null,lastQLearningAction:null};
+    qTable:S.qTable||{},qCount:S.qCount||{},lastQLearningState:null,lastQLearningAction:null,
+    pendingVoterBets:null,
+    voterStats:{
+      patterns:{wins:0,total:0},q_learning:{wins:0,total:0},tf_neural:{wins:0,total:0},
+      big_eye:{wins:0,total:0},small_road:{wins:0,total:0},cockroach:{wins:0,total:0},
+      markov:{wins:0,total:0},momentum:{wins:0,total:0},freq:{wins:0,total:0}
+    }};
   ['stRounds','stP','stB','stT'].forEach(id=>document.getElementById(id).textContent='0');
   updatePnlBar();renderHands();renderHistRow();renderDerivedRoads();updateOdds();
   document.getElementById('result').classList.remove('show');
@@ -3524,7 +3585,8 @@ function saveCurrent(){
     mirrorWinStreak:S.mirrorWinStreak||0,
     qTable:S.qTable||{},qCount:S.qCount||{},
     isTrainingMode:!!isTrainingMode,
-    tfWeight:S.tfWeight||3.0
+    tfWeight:S.tfWeight||3.0,
+    voterStats:S.voterStats||{}
   }));
   saveQTable();
   saveTrainingMode();
@@ -3547,7 +3609,8 @@ function loadCurrent(){
     mirrorWinStreak:o.mirrorWinStreak||0,lastBetPatternName:null,
     qTable:o.qTable&&Object.keys(o.qTable).length?o.qTable:(S.qTable||{}),
     qCount:o.qCount&&Object.keys(o.qCount).length?o.qCount:(S.qCount||{}),
-    tfWeight:typeof o.tfWeight==='number'?o.tfWeight:1.5
+    tfWeight:typeof o.tfWeight==='number'?o.tfWeight:1.5,
+    voterStats:o.voterStats&&Object.keys(o.voterStats).length?o.voterStats:S.voterStats
   });
   if(typeof o.isTrainingMode!=='undefined')isTrainingMode=!!o.isTrainingMode;
   ['stRounds','stP','stB','stT'].forEach((id,i)=>
