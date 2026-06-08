@@ -455,7 +455,6 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   <div class="sstat"><div class="v" id="stB">0</div><div class="l">BANKER</div></div>
   <div class="sstat"><div class="v" id="stT">0</div><div class="l">TIE</div></div>
   <div class="sstat"><button class="btn-rst" onclick="openModal()" title="ล้างทั้งหมด">↺</button><div class="l">RESET</div></div>
-  <div class="sstat"><button class="btn-rst" onclick="newShoe()" title="เริ่ม Shoe ใหม่" style="font-size:10px">👟</button><div class="l">SHOE</div></div>
 </div>
 
 <!-- P&L BAR -->
@@ -816,7 +815,7 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
 <div class="modal" id="modal">
   <div class="mbox">
     <div class="mt">ล้างทั้งหมด?</div>
-    <div class="ms">สถิติ ประวัติ และ P&amp;L จะหายไปทั้งหมด</div>
+    <div class="ms">สถิติ ประวัติ P&amp;L และ Shoe Memory จะหายไปทั้งหมด</div>
     <div class="mbtns">
       <button class="mbtn-c" onclick="closeModal()">ยกเลิก</button>
       <button class="mbtn-ok" onclick="resetAll()">ล้างเลย</button>
@@ -1091,16 +1090,28 @@ function calcAutoBetAmount(conf,chaosScore,patternName){
   const unit=getBaseUnit();
   const chaos=chaosScore!=null?chaosScore:computeChaosScore(S.hist).score;
   const lossStreak=countRecentLossStreak();
+  const isMart=S.autoPlay&&S.moneyMgmt==='martingale';
 
-  // ── ข้อ 9: Bankroll-Aware scaling ──────────────────────────────
+  // ── Bankroll-Aware scaling ────────────────────────────────────────
   const brHealth=getBankrollHealth();
-  // ปรับ unit ตาม bankroll health
   let scaledUnit=unit;
   if(brHealth.level==='danger') scaledUnit=Math.max(getMinBet(),unit*0.5);
   else if(brHealth.level==='low') scaledUnit=Math.max(getMinBet(),unit*0.75);
   else if(brHealth.level==='good') scaledUnit=Math.min(unit*1.15,clampBet(unit*1.5));
 
-  // ── Cut-Loss Rules ───────────────────────────────────────────────
+  // ── Martingale path — จัดการทั้งหมดใน _calcSmartMartingale ─────────
+  // ไม่ให้ cut-loss rules ขวางก่อนถึง martingale
+  if(isMart&&S.autoLastResult==='lose'){
+    const martAmt=_calcSmartMartingale(scaledUnit,scaledUnit,conf,chaos,lossStreak);
+    const capitalRemain=Math.max(0,getCapital()+S.balance);
+    const minB=getMinBet();
+    if(capitalRemain<=0){ S.autoRoundStake=0; return 0; }
+    const safe=Math.min(martAmt,capitalRemain);
+    S.autoRoundStake=Math.max(minB,safe);
+    return S.autoRoundStake;
+  }
+
+  // ── Flat / non-martingale path — cut-loss ยังใช้งาน ─────────────────
   if(lossStreak>=3){ S.autoRoundStake=getMinBet(); return getMinBet(); }
   if(lossStreak>=2&&chaos>=60){
     const amt=clampBet(scaledUnit*0.25);
@@ -1111,32 +1122,16 @@ function calcAutoBetAmount(conf,chaosScore,patternName){
   const volatile=isVolatileZone(conf,chaos);
   if(volatile||chaos>=75){ S.autoRoundStake=getMinBet(); return getMinBet(); }
 
-  // ── Pattern-Scaled Bet ────────────────────────────────────────────
+  // ── Pattern-Scaled base bet ────────────────────────────────────────
   const patMult=patternBetMultiplier(patternName||S.lastBetPatternName,conf);
-  // ข้อ 9: ปรับ multiplier ตาม confidence threshold ของ bankroll
   const adjMult=patMult/brHealth.confMultiplier;
   let amt=clampBet(scaledUnit*Math.max(0.1,adjMult));
 
-  // ── Martingale ───────────────────────────────────────────────────
-  if(S.autoPlay&&S.moneyMgmt==='martingale'&&S.autoLastResult==='lose'){
-    if(isMartingaleBlocked(conf,chaos)){ amt=MIN_BET; S.autoRoundStake=MIN_BET; return MIN_BET; }
-    const _capLeft=Math.max(0,getCapital()+S.balance);
-    if((S.autoMartingaleLossStreak||0)>=3){ S.autoRoundStake=getMinBet(); S.autoMartingaleLossStreak=0; return getMinBet(); }
-    const _prevStake=S.autoRoundStake||unit;
-    const proposed=clampBet(Math.min(scaledUnit*4,_prevStake*2));
-    if(proposed>_capLeft){ S.autoMartingaleLossStreak=0; S.autoRoundStake=getMinBet(); return getMinBet(); }
-    amt=proposed;
-  }
-
-  // ── Capital Guard ────────────────────────────────────────────────
+  // ── Capital Guard ─────────────────────────────────────────────────
   const capitalRemain=Math.max(0,getCapital()+S.balance);
   const minB=getMinBet();
   if(capitalRemain<=0){ S.autoRoundStake=0; return 0; }
   if(amt>capitalRemain){ S.autoRoundStake=minB; return minB; }
-  if(S.moneyMgmt==='martingale'&&S.autoLastResult==='lose'){
-    const nextDouble=(S.autoRoundStake||minB)*2;
-    if(nextDouble>capitalRemain){ S.autoMartingaleLossStreak=0; S.autoRoundStake=minB; return minB; }
-  }
   if(capitalRemain<minB*5){
     S.autoRoundStake=minB;
     const statEl=document.getElementById('capitalStatusLbl');
@@ -1145,6 +1140,66 @@ function calcAutoBetAmount(conf,chaosScore,patternName){
   }
   S.autoRoundStake=amt;
   return amt;
+}
+
+/**
+ * _calcSmartMartingale — คำนวณ bet ทบแบบฉลาด
+ *
+ * หลักการ:
+ *   1. ถ้า AI มั่นใจสูง (conf ≥ 4) + chaos ต่ำ → ทบ ×1.5 (ไม่เต็ม ×2)
+ *   2. ถ้า AI มั่นใจปานกลาง (conf 3) → ทบ ×1.25 (ระวัง)
+ *   3. ถ้า AI ไม่มั่นใจ (conf ≤ 2) → ไม่ทบ ใช้ base bet
+ *   4. ถ้าแพ้ติด ≥ 2 + chaos สูง → reset กลับ min ทันที
+ *   5. cap สะสม = 25% ของทุนคงเหลือ (ป้องกัน bust)
+ *   6. หลังชนะ → soft recovery ลดลงทีละขั้น ไม่ reset ทันที
+ */
+function _calcSmartMartingale(baseBet,scaledUnit,conf,chaos,lossStreak){
+  const minB=getMinBet();
+  const streak=lossStreak!=null?lossStreak:(S.autoMartingaleLossStreak||0);
+  const capitalRemain=Math.max(0,getCapital()+S.balance);
+  const prevStake=S.autoRoundStake&&S.autoRoundStake>0?S.autoRoundStake:scaledUnit;
+
+  // ── Bust protection: cap ที่ 25% ของทุนคงเหลือ ────────────────────
+  const maxAllowed=Math.max(minB,Math.floor(capitalRemain*0.25));
+
+  // ── Multiplier ตาม confidence + chaos ─────────────────────────────
+  // conf ≤ 2 หรือ chaos ≥ 90 → ไม่ทบเลย ใช้ base เท่านั้น
+  if(conf<=1||chaos>=90){
+    S.autoMartingaleLossStreak=0;
+    S.autoRoundStake=minB;
+    return minB;
+  }
+
+  let mult;
+  if(conf>=4&&chaos<40)       mult=1.5;
+  else if(conf>=4&&chaos<60)  mult=1.25;
+  else if(conf>=4&&chaos<80)  mult=1.1;   // chaos กลางสูง → ทบเล็กน้อย
+  else if(conf>=4)            mult=1.0;   // chaos ≥80 → hold ไม่เพิ่ม
+  else if(conf>=3&&chaos<50)  mult=1.25;
+  else if(conf>=3&&chaos<70)  mult=1.1;
+  else if(conf>=3)            mult=1.0;   // chaos สูง → hold
+  else if(conf>=2)            mult=1.0;   // conf ต่ำ → hold ไม่ reset
+  else { S.autoMartingaleLossStreak=0; S.autoRoundStake=minB; return minB; }
+
+  // ── Loss streak ชะลอ multiplier ────────────────────────────────────
+  if(streak>=4)      mult=Math.max(1.0,mult*0.6);
+  else if(streak>=2) mult=Math.max(1.0,mult*0.8);
+
+  // ── คำนวณ proposed stake ──────────────────────────────────────────
+  // mult=1.0 → เพิ่ม +1 minBet (ไม่ใช่คูณ 1.0 ซึ่งไม่มีผล)
+  let proposed;
+  if(mult<=1.0){
+    proposed=prevStake+minB; // เพิ่มทีละ 1 unit เสมอ
+  }else{
+    proposed=Math.round(prevStake*mult);
+  }
+  proposed=Math.min(proposed,maxAllowed);   // bust guard 25% cap
+  proposed=Math.min(proposed,scaledUnit*4); // hard cap ×4
+  proposed=Math.max(proposed,baseBet,minB); // ไม่ต่ำกว่า base
+
+  S.autoMartingaleLossStreak=streak+1;
+  S.autoRoundStake=proposed;
+  return proposed;
 }
 function updateAutoBotStatus(result,finalSkip,mainBet){
   const el=document.getElementById('autoBotStatus');
@@ -1181,7 +1236,16 @@ function updateAutoBotStatus(result,finalSkip,mainBet){
   if(highChaos)st='ห้องผันผวน — Flat Base Unit '+fmt(getBaseUnit());
   else if(vol)st='โซนผันผวน — Flat Base Unit';
   else if(martBlk)st='เบรกนิรภัย — ห้ามทบมาติงเกล';
-  else if(S.moneyMgmt==='martingale'&&S.autoLastResult==='lose')st='เสียตาก่อน — มาติงเกล ×2 สู้คืน (สูงสุด 3 ไม้)';
+  else if(S.moneyMgmt==='martingale'&&S.autoLastResult==='lose'){
+    const lossStreak=S.autoMartingaleLossStreak||0;
+    const nextStake=S.autoRoundStake||getBaseUnit();
+    const conf=result?result.conf:S.lastSuggestConf;
+    const mult=conf>=4&&chaos<40?1.5:conf>=4&&chaos<60?1.25:conf>=3&&chaos<50?1.25:1.0;
+    const multTxt=mult>=1.5?'×1.5':mult>=1.25?'×1.25':'×1.0 (hold)';
+    st=`Smart Marti แพ้ ${lossStreak} ไม้ → ทบ ${multTxt} [${fmt(nextStake)}]`;
+  }else if(S.moneyMgmt==='martingale'&&S.autoLastResult==='win'&&S.autoRoundStake>getBaseUnit()){
+    st=`Soft Recovery → ${fmt(S.autoRoundStake)} (ค่อยๆ กลับ base ${fmt(getBaseUnit())})`;
+  }
   else if(result&&result.conf<=1)st='โซนผันผวน — เดิมพัน 10% เซฟทุน';
   else if(result&&result.conf>=4)st='สัญญาณแรง — เดิมพันตาม pattern';
   else if(result&&result.conf>=2)st='สัญญาณปานกลาง — เดิมพัน 50%';
@@ -1323,8 +1387,18 @@ function resolveRound(w,p,b,nat){
           S.autoLastResult='win';
           S.autoVolatileLossStreak=0;
           S.autoMartingaleLossStreak=0;
+          // ── Soft Recovery: ลด stake ทีละขั้น ไม่ reset กลับ min ทันที ──
+          // ชนะแล้ว → ลด stake ลง 50% ของส่วนต่างจาก base
+          // เช่น stake=100, base=20 → ชนะ → stake = 20 + (100-20)*0.5 = 60
+          // ชนะอีกครั้ง → stake = 20 + (60-20)*0.5 = 40 → ค่อยๆ กลับ base
+          if(S.moneyMgmt==='martingale'&&S.autoRoundStake){
+            const base=getBaseUnit();
+            const excess=S.autoRoundStake-base;
+            if(excess>0){
+              S.autoRoundStake=Math.max(base,Math.round(base+excess*0.5));
+            }
+          }
         }else if((w==='T'&&S.betSide!=='T')||(S.betSide==='T'&&w!=='T')){
-          // push ทั้ง 2 กรณี — ไม่นับ win ไม่นับ lose
           S.autoLastResult='push';
         }else{
           S.autoLastResult='lose';
