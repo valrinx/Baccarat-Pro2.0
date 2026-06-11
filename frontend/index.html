@@ -1449,6 +1449,7 @@ function resolveRound(w,p,b,nat){
   renderDerivedRoads();
   updateOdds();
   saveCurrent();
+  syncBackendAnalytics(w);
 }
 
 function dealHand(){
@@ -4109,6 +4110,44 @@ function renderSessions(){
 }
 
 // ---- PERSIST ----
+async function syncBackendAnalytics(lastOutcome){
+  try{
+    const payload={
+      history:[...S.hist],
+      roadmap:typeof S.roadmap!=='undefined'?S.roadmap:null,
+      outcome:lastOutcome||null,
+      regime:S.lastRegime||'MIXED'
+    };
+    await fetch('/api/predict', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
+    });
+    await fetch('/api/record', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        game:{
+          history:[...S.hist],
+          stats:{player:S.pC,banker:S.bC,tie:S.tC}
+        },
+        prediction:{action:S.pendingSug||'SKIP',confidence:S.pendingSugConfidence||0},
+        pnl:S.balance,
+        modelName:'dqn-main',
+        continuous:!!isTrainingMode,
+        regime:S.lastRegime||'MIXED',
+        regimeConfidence:S.lastRegimeConfidence||0,
+        wasCorrect:!!S.lastRoundCorrect,
+        skipped:!!S.lastRoundSkipped,
+        experts: Object.keys(S.voterStats||{}).map((name)=>({name}))
+      })
+    });
+    await loadRegimeDashboard();
+  }catch(err){
+    console.warn('syncBackendAnalytics failed', err);
+  }
+}
+
 function saveCurrent(){
   localStorage.setItem('bac_cur',JSON.stringify({
     hist:S.hist,pC:S.pC,bC:S.bC,tC:S.tC,
