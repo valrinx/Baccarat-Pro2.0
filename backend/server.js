@@ -4,6 +4,9 @@ import { fileURLToPath } from 'url';
 import { registerHealthRoute } from './api/health.js';
 import { registerTrainRoute } from './api/train.js';
 import { registerModelRoute } from './api/model.js';
+import { registerPredictRoute } from './api/predict.js';
+import { registerRecordRoute } from './api/record.js';
+import { registerSessionRoute } from './api/session.js';
 import { createTrainingService } from './ai/trainingService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -21,6 +24,9 @@ app.use(express.static(path.join(__dirname, '..', 'frontend')));
 registerHealthRoute(app);
 registerTrainRoute(app, services);
 registerModelRoute(app);
+registerPredictRoute(app);
+registerRecordRoute(app, services);
+registerSessionRoute(app);
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));
