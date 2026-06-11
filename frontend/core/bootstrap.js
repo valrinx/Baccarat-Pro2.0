@@ -1,7 +1,7 @@
 import { createAppController } from './controller.js';
 
-export function bootstrapApp() {
+export async function bootstrapApp() {
   const controller = createAppController();
-  controller.init();
+  await controller.init();
   window.BaccaratPro = controller;
 }
