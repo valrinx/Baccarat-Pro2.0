@@ -20,6 +20,18 @@ export function createDqnAgent({ stateSize = 10, actionSize = 3, epsilon = 1, ep
   const model = createQNetwork(stateSize, actionSize);
   let targetModel = cloneModel(model);
 
+  const regimeProfiles = {
+    TREND: { epsilonMult: 0.72, skipBoost: -0.08, bankerBias: 0.02 },
+    CHOP: { epsilonMult: 0.88, skipBoost: 0.08, bankerBias: 0 },
+    VOLATILE: { epsilonMult: 1.18, skipBoost: 0.22, bankerBias: -0.02 },
+    MIXED: { epsilonMult: 1.0, skipBoost: 0.02, bankerBias: 0 },
+    WEAK_SIGNAL: { epsilonMult: 1.3, skipBoost: 0.28, bankerBias: 0 }
+  };
+
+  function getRegimeProfile(regime = 'MIXED') {
+    return regimeProfiles[regime] || regimeProfiles.MIXED;
+  }
+
   async function syncTarget() {
     targetModel.setWeights(model.getWeights().map((w) => w.clone()));
   }
@@ -39,7 +51,10 @@ export function createDqnAgent({ stateSize = 10, actionSize = 3, epsilon = 1, ep
       const targetRow = [...row];
       const bestNext = Math.max(...nextValues[i]);
       const actionIndex = actions.indexOf(sample.action);
-      targetRow[actionIndex] = sample.reward + (sample.done ? 0 : gamma * bestNext);
+      const regimeProfile = getRegimeProfile(sample.regime);
+      const regimeReward = sample.reward * (sample.regime === 'VOLATILE' ? 0.9 : 1);
+      const calibratedReward = regimeReward + regimeProfile.skipBoost * (sample.action === 'SKIP' ? 1 : 0);
+      targetRow[actionIndex] = calibratedReward + (sample.done ? 0 : gamma * bestNext);
       return targetRow;
     });
 
@@ -50,18 +65,25 @@ export function createDqnAgent({ stateSize = 10, actionSize = 3, epsilon = 1, ep
     return batch.length;
   }
 
-  function act(stateVector, explore = true) {
+  function act(stateVector, explore = true, context = {}) {
     const qValues = model.predict(tf.tensor2d([stateVector])).arraySync()[0];
-    if (explore && Math.random() < epsilon) {
+    const profile = getRegimeProfile(context.regime);
+    const adjustedEpsilon = Math.max(epsilonMin, Math.min(0.95, epsilon * profile.epsilonMult));
+    const skipAdjusted = qValues.map((v, i) => (i === 2 ? v + profile.skipBoost : v));
+
+    if (explore && Math.random() < adjustedEpsilon) {
       const randomIndex = Math.floor(Math.random() * actionSize);
-      return { action: actions[randomIndex], qValues, explored: true };
+      return { action: actions[randomIndex], qValues, explored: true, regime: context.regime ?? 'MIXED' };
     }
-    const index = argMax(qValues);
-    return { action: actions[index], qValues, explored: false };
+    const index = argMax(skipAdjusted);
+    return { action: actions[index], qValues, explored: false, regime: context.regime ?? 'MIXED' };
   }
 
   function remember(experience) {
-    memory.push(experience);
+    memory.push({
+      ...experience,
+      regime: experience?.regime ?? 'MIXED'
+    });
   }
 
   async function replay(batchSize = 32) {

@@ -7,6 +7,7 @@ import { registerModelRoute } from './api/model.js';
 import { registerPredictRoute } from './api/predict.js';
 import { registerRecordRoute } from './api/record.js';
 import { registerSessionRoute } from './api/session.js';
+import { registerAnalyticsRoute } from './api/analytics.js';
 import { createTrainingService } from './ai/trainingService.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -27,6 +28,7 @@ registerModelRoute(app);
 registerPredictRoute(app);
 registerRecordRoute(app, services);
 registerSessionRoute(app);
+registerAnalyticsRoute(app);
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'frontend', 'index.html'));

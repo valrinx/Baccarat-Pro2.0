@@ -8,7 +8,10 @@ export function createEntropyEngine() {
         entropy: 0,
         volatility: 0,
         chaos: 0,
-        distribution: { BANKER: 0, PLAYER: 0 }
+        distribution: { BANKER: 0, PLAYER: 0 },
+        regime: 'WEAK_SIGNAL',
+        regimeScore: 0,
+        regimeConfidence: 0
       };
     }
 
@@ -29,12 +32,51 @@ export function createEntropyEngine() {
     const volatility = Math.min(1, alternations / Math.max(1, length - 1));
     const chaos = Math.min(1, normalizedEntropy * 0.6 + volatility * 0.4);
 
+    let regime = 'MIXED';
+    let regimeScore = 0.5;
+    let regimeConfidence = 55;
+    const streak = (() => {
+      const last = clean.at(-1);
+      let n = 0;
+      for (let i = clean.length - 1; i >= 0; i -= 1) {
+        if (clean[i] !== last) break;
+        n += 1;
+      }
+      return n;
+    })();
+    const altRate = length > 1 ? alternations / (length - 1) : 0;
+
+    if (length < 5) {
+      regime = 'WEAK_SIGNAL';
+      regimeScore = 0.2;
+      regimeConfidence = 25;
+    } else if (chaos > 0.72) {
+      regime = 'VOLATILE';
+      regimeScore = chaos;
+      regimeConfidence = 88;
+    } else if (altRate >= 0.72 && streak <= 2) {
+      regime = 'CHOP';
+      regimeScore = altRate;
+      regimeConfidence = 82;
+    } else if (streak >= 4 || Math.max(pB, pP) >= 0.62) {
+      regime = 'TREND';
+      regimeScore = Math.max(streak / 10, pB, pP);
+      regimeConfidence = 76;
+    } else if (length >= 12 && Math.abs(pB - pP) < 0.08) {
+      regime = 'MIXED';
+      regimeScore = 0.55;
+      regimeConfidence = 60;
+    }
+
     return {
       normalizedEntropy,
       entropy,
       volatility,
       chaos,
-      distribution: { BANKER: pB, PLAYER: pP }
+      distribution: { BANKER: pB, PLAYER: pP },
+      regime,
+      regimeScore,
+      regimeConfidence
     };
   }
 

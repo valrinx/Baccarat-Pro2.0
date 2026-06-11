@@ -16,37 +16,42 @@ const VOTE_LABELS = ['BANKER', 'PLAYER', 'SKIP'];
  */
 
 export function createVoteEngine() {
-  /**
-   * รัน voting
-   * @param {object} params
-   * @param {number[]} params.qValues        — Q-values จาก DQN [BANKER, PLAYER, SKIP]
-   * @param {object}  params.transition      — { P, B, S } probabilities จาก TransitionMatrix
-   * @param {number}  params.entropy         — normalizedEntropy 0–1
-   * @param {number}  params.volatility      — volatility 0–1
-   * @param {number}  params.chaos           — chaos score 0–1
-   * @param {number}  params.bankerRatio     — historical banker ratio 0–1
-   * @param {number}  params.playerRatio     — historical player ratio 0–1
-   * @param {number}  params.historyLength   — total rounds recorded
-   * @returns {VoteResult}
-   */
-  function vote({ qValues = [], transition = {}, entropy = 0, volatility = 0, chaos = 0, bankerRatio = 0.5, playerRatio = 0.5, historyLength = 0 }) {
+  function vote({
+    qValues = [],
+    transition = {},
+    entropy = 0,
+    volatility = 0,
+    chaos = 0,
+    bankerRatio = 0.5,
+    playerRatio = 0.5,
+    historyLength = 0,
+    regime = 'MIXED',
+    regimeConfidence = 50,
+    regimeScore = 0.5,
+    bankrollHealth = { level: 'ok', confMultiplier: 1, skipBoost: 0 }
+  }) {
     const votes = [];
+    const regimeWeights = {
+      TREND: { dqn: 3, markov: 2, entropy: 0.5 },
+      CHOP: { dqn: 1.5, markov: 1, entropy: 2 },
+      VOLATILE: { dqn: 0.5, markov: 0.5, entropy: 3 },
+      MIXED: { dqn: 2, markov: 2, entropy: 1 },
+      WEAK_SIGNAL: { dqn: 1, markov: 1, entropy: 1.5 }
+    };
+    const weights = regimeWeights[regime] ?? regimeWeights.MIXED;
 
-    // ── Voter 1: DQN (weight = 3 — highest trust) ──────────────────────────
     if (qValues.length >= 2) {
       const best = Math.max(...qValues);
-      const second = qValues.filter((v) => v !== best)[0] ?? 0;
+      const sorted = [...qValues].sort((a, b) => b - a);
+      const second = sorted[1] ?? 0;
       const margin = best - second;
       const dqnConfidence = Math.min(100, Math.round(Math.max(0, best) * 100));
       const dqnIndex = qValues.indexOf(best);
       const dqnAction = VOTE_LABELS[dqnIndex] ?? 'SKIP';
-
-      // ลด weight เมื่อ DQN ยังสำรวจอยู่ (margin แคบ = ไม่แน่ใจ)
-      const dqnWeight = margin > 0.15 ? 3 : margin > 0.05 ? 2 : 1;
+      const dqnWeight = margin > 0.15 ? weights.dqn : margin > 0.05 ? weights.dqn * 0.7 : weights.dqn * 0.45;
       votes.push({ action: dqnAction, weight: dqnWeight, confidence: dqnConfidence, label: 'DQN' });
     }
 
-    // ── Voter 2: Transition Matrix (weight = 2) ──────────────────────────────
     if (historyLength >= 5) {
       const pB = transition.B ?? 0;
       const pP = transition.P ?? 0;
@@ -56,23 +61,24 @@ export function createVoteEngine() {
       if (bestProb === pB && pB > pP) tmAction = 'BANKER';
       else if (bestProb === pP && pP > pB) tmAction = 'PLAYER';
       const tmConfidence = Math.round(bestProb * 100);
-      const tmWeight = historyLength >= 15 ? 2 : 1; // เชื่อถือได้มากขึ้นเมื่อมีข้อมูลพอ
+      const tmWeight = historyLength >= 15 ? weights.markov : Math.max(0.5, weights.markov * 0.75);
       votes.push({ action: tmAction, weight: tmWeight, confidence: tmConfidence, label: 'MARKOV' });
     }
 
-    // ── Voter 3: Entropy Bias / Mean-reversion (weight = 1) ─────────────────
-    // เมื่อ chaos ต่ำและมีความเอนเอียงชัด → โหวตตามฝั่งที่ออกน้อยกว่า (reversion)
-    if (historyLength >= 8 && chaos < 0.55) {
+    if (historyLength >= 8 && chaos < 0.7) {
       const diff = Math.abs(bankerRatio - playerRatio);
+      const regimeBias = regime === 'CHOP' ? 1.2 : regime === 'TREND' ? 0.8 : 1;
       if (diff > 0.08) {
-        // revert toward underdog
         const biasAction = bankerRatio > playerRatio ? 'PLAYER' : 'BANKER';
-        const biasConfidence = Math.round(Math.min(90, diff * 200));
-        votes.push({ action: biasAction, weight: 1, confidence: biasConfidence, label: 'ENTROPY' });
+        const biasConfidence = Math.round(Math.min(95, diff * 200 * regimeBias));
+        votes.push({ action: biasAction, weight: weights.entropy, confidence: biasConfidence, label: 'ENTROPY' });
       }
     }
 
-    // ── Tally weighted votes ─────────────────────────────────────────────────
+    if (regime === 'VOLATILE' || chaos > 0.72) {
+      votes.push({ action: 'SKIP', weight: 3 + bankrollHealth.skipBoost / 10, confidence: 90, label: 'GATE' });
+    }
+
     const tally = { BANKER: 0, PLAYER: 0, SKIP: 0 };
     for (const v of votes) {
       const key = VOTE_LABELS.includes(v.action) ? v.action : 'SKIP';
@@ -82,23 +88,29 @@ export function createVoteEngine() {
     const maxScore = Math.max(tally.BANKER, tally.PLAYER, tally.SKIP);
     const winners = VOTE_LABELS.filter((a) => tally[a] === maxScore);
     const isTie = winners.length > 1;
-    const winner = isTie ? 'SKIP' : winners[0]; // ถ้า tie ให้ SKIP
+    const winner = isTie ? 'SKIP' : winners[0];
 
-    // aggregate confidence from winning votes
     const winningVotes = votes.filter((v) => v.action === winner);
     const aggConf = winningVotes.length
       ? Math.round(winningVotes.reduce((s, v) => s + v.confidence * v.weight, 0) / winningVotes.reduce((s, v) => s + v.weight, 0))
       : 0;
 
-    // chaos penalty
-    const finalConfidence = Math.max(0, Math.round(aggConf * (1 - chaos * 0.4)));
+    const regimeMultiplier = regime === 'TREND' ? 1.05 : regime === 'CHOP' ? 1.02 : regime === 'WEAK_SIGNAL' ? 0.9 : 1;
+    const bankMultiplier = bankrollHealth.level === 'danger' ? 0.8 : bankrollHealth.level === 'low' ? 0.9 : bankrollHealth.level === 'good' ? 1.03 : 1;
+    const chaosPenalty = Math.max(0.35, 1 - chaos * 0.38 - volatility * 0.12);
+    const confidenceWithCalibration = Math.round(aggConf * chaosPenalty * regimeMultiplier * bankMultiplier);
+    const calibratedConfidence = Math.max(0, Math.min(100, confidenceWithCalibration));
 
     return {
       winner,
-      confidence: finalConfidence,
+      confidence: calibratedConfidence,
       votes,
       tally,
-      isTie
+      isTie,
+      regime,
+      regimeScore,
+      regimeConfidence,
+      bankrollHealth
     };
   }
 

@@ -193,6 +193,10 @@ export function createAppController() {
     state.ai.riskLevel = aiResult.risk;
     state.ai.recommendation = aiResult.recommendation;
     state.ai.transition = aiResult.transition;
+    state.ai.regime = aiResult.regime;
+    state.ai.regimeConfidence = aiResult.regimeConfidence;
+    state.ai.regimeScore = aiResult.regimeScore;
+    state.ai.bankrollHealth = aiResult.bankrollHealth;
 
     state.prediction = state.ai.action;
     state.confidence = state.ai.confidence;
@@ -204,7 +208,9 @@ export function createAppController() {
       mode: remoteResult?.ok ? 'REMOTE API' : (aiResult.explored ? 'DQN EXPLORATION' : 'DQN POLICY'),
       samples: state.game.history.length,
       accuracy: 0,
-      skipRate: Math.round((state.game.history.filter((x) => x === ACTIONS.SKIP).length / Math.max(1, state.game.history.length)) * 100)
+      skipRate: Math.round((state.game.history.filter((x) => x === ACTIONS.SKIP).length / Math.max(1, state.game.history.length)) * 100),
+      regime: aiResult.regime ?? 'MIXED',
+      regimeConfidence: aiResult.regimeConfidence ?? 0
     };
   }
 

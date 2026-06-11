@@ -31,6 +31,10 @@ export function createInitialAiState() {
     pattern: null,
     entropy: 0,
     transition: null,
-    stateVector: []
+    stateVector: [],
+    regime: 'WEAK_SIGNAL',
+    regimeConfidence: 0,
+    regimeScore: 0,
+    bankrollHealth: { level: 'ok', confMultiplier: 1, skipBoost: 0 }
   };
 }

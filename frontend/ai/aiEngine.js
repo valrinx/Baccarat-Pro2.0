@@ -22,7 +22,12 @@ export function createAiEngine() {
       confidence: confidenceResult.confidence
     });
 
-    // ── AI Voting ────────────────────────────────────────────────────────────
+    const bankrollHealth = aiGate.bankrollHealth ?? {
+      level: 'ok',
+      confMultiplier: 1,
+      skipBoost: 0
+    };
+
     const voteResult = voteEngine.vote({
       qValues: actionResult.qValues,
       transition: aiGate.transition ?? {},
@@ -31,31 +36,42 @@ export function createAiEngine() {
       chaos: (aiGate.chaos ?? 0) / 100,
       bankerRatio: metrics?.bankerRatio ?? 0.5,
       playerRatio: metrics?.playerRatio ?? (1 - (metrics?.bankerRatio ?? 0.5)),
-      historyLength: history.length
+      historyLength: history.length,
+      regime: aiGate.regime,
+      regimeConfidence: aiGate.regimeConfidence,
+      regimeScore: aiGate.regimeScore,
+      bankrollHealth
     });
 
-    // ── Merge: ถ้า chaos สูงมาก ให้ SKIP เสมอ ───────────────────────────────
+    const localConfidence = Math.min(confidenceResult.confidence, voteResult.confidence);
+    const calibratedConfidence = Math.max(0, Math.min(100, Math.round(localConfidence * (bankrollHealth.confMultiplier ?? 1) * (aiGate.regime === 'VOLATILE' ? 0.9 : aiGate.regime === 'TREND' ? 1.03 : 1))));
+
     const rawAction = aiGate.recommendation === 'SKIP' ? 'SKIP' : voteResult.winner;
-    const action = (confidenceResult.chaos > 70 || aiGate.chaos > 65) ? 'SKIP' : rawAction;
+    const action = (confidenceResult.chaos > 70 || aiGate.chaos > 65 || bankrollHealth.level === 'danger') ? 'SKIP' : rawAction;
 
     return {
       action,
-      confidence: Math.min(confidenceResult.confidence, voteResult.confidence),
+      confidence: calibratedConfidence,
       chaos: Math.max(confidenceResult.chaos, aiGate.chaos),
       risk: aiGate.risk,
-      recommendation: aiGate.recommendation,
+      recommendation: action === 'SKIP' ? 'SKIP' : aiGate.recommendation,
       entropy: aiGate.entropy,
       volatility: aiGate.volatility,
       transition: aiGate.transition,
       qValues: actionResult.qValues,
       explored: actionResult.explored,
+      regime: aiGate.regime,
+      regimeConfidence: aiGate.regimeConfidence,
+      regimeScore: aiGate.regimeScore,
+      bankrollHealth,
       // ── vote data ──────────────────────────────────────────────────────────
       vote: {
         winner: voteResult.winner,
         confidence: voteResult.confidence,
         tally: voteResult.tally,
         votes: voteResult.votes,
-        isTie: voteResult.isTie
+        isTie: voteResult.isTie,
+        regime: voteResult.regime
       }
     };
   }

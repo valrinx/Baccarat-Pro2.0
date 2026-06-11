@@ -760,6 +760,12 @@ body{font-family:'Sarabun',sans-serif;color:var(--text);max-width:430px;margin:0
   <!-- AI VOTE PANEL -->
   <div id="votePanel" class="vote-panel"></div>
 
+  <!-- AI REGIME DASHBOARD -->
+  <div id="regimeDashboard" style="padding:6px 14px 6px">
+    <div class="slbl" style="margin-bottom:6px">📊 REGIME DASHBOARD</div>
+    <div id="regimeDashboardBody" style="display:grid;gap:8px"></div>
+  </div>
+
   <!-- 3 DERIVED ROADS PANEL -->
   <div id="derivedRoadsPanel" style="padding:6px 14px 4px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
@@ -3381,7 +3387,6 @@ function renderVotePanel(result){
     markov:'Markov',momentum:'Momentum',freq:'Freq10'
   };
 
-  // ใช้ councilVoters 9 ตัวเสมอ — เรียงตาม: มีเสียงก่อน, แล้ว conf
   const voters=result.councilVoters&&result.councilVoters.length
     ?[...result.councilVoters].sort((a,b)=>{
         const ad=a.bet?1:0,bd=b.bet?1:0;
@@ -3389,31 +3394,24 @@ function renderVotePanel(result){
       })
     :[];
 
-  // นับเสียงจริง (weighted)
   const cntP=voters.reduce((s,v)=>s+(v.bet==='P'?v.weight||0:0),0);
   const cntB=voters.reduce((s,v)=>s+(v.bet==='B'?v.weight||0:0),0);
   const cntTot=cntP+cntB||1;
   const majorityWinner=cntP>cntB?'P':cntB>cntP?'B':(result.bet==='P'?'P':'B');
-  // นับ voter count (ตัวที่โหวต) สำหรับแสดงใน badge
   const cntPraw=voters.filter(v=>v.bet==='P').length;
   const cntBraw=voters.filter(v=>v.bet==='B').length;
   const isSkip=result.skip||false;
   const majorityLabel=isSkip?'SKIP':majorityWinner==='P'?'PLAYER':'BANKER';
   const majorityClass=isSkip?'vote-dim':majorityWinner==='P'?'vote-pl':'vote-bl';
 
-  // anomaly badge
   const anomaly=result.anomaly||null;
   const anomalyBadge=anomaly&&anomaly.anomaly
     ?`<span style="font-size:7px;color:var(--gold);opacity:.8;display:block;margin-top:2px">⚠️ ${anomaly.note}</span>`
     :'';
 
-  const cntBarB=Math.round(cntB/cntTot*100);
-  const cntBarP=Math.round(cntP/cntTot*100);
-
   const voterRows=voters.map(v=>{
     const label=VOTER_LABELS[v.name]||v.name;
     const conf=v.conf||0;
-    // ดึง winrate จาก S.voterStats
     const st=S.voterStats&&S.voterStats[v.name];
     const wr=st&&st.total>=3?Math.round(st.wins/st.total*100):null;
     const wrTxt=wr!==null?`${wr}%`:'—';
@@ -3458,7 +3456,83 @@ function renderVotePanel(result){
   `;
 }
 
+async function loadRegimeDashboard(){
+  const host=document.getElementById('regimeDashboardBody');
+  if(!host)return;
+  try{
+    const base=(location.origin&&location.origin.startsWith('http'))?location.origin:'';
+    const res=await fetch(`${base}/api/analytics/regime`, { cache:'no-store' });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data=await res.json();
+    const a=data.analytics||{};
+    const regimes=a.regimes||{};
+    const total=a.total||0;
+    const bins=a.calibration?.bins||{};
+    const expertEntries=Object.entries(a.expertStats||{}).sort((x,y)=>(y[1].wins||0)-(x[1].wins||0)).slice(0,5);
+    const regimeCard=(name,color)=>{
+      const r=regimes[name]||{};
+      const played=r.total||0;
+      const winRate=played?Math.round(((r.wins||0)/Math.max(1,played-(r.skips||0)))*100):0;
+      const skipRate=played?Math.round(((r.skips||0)/played)*100):0;
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:8px 10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <strong style="font-family:'Cinzel',serif;color:${color};letter-spacing:.12em;font-size:10px">${name}</strong>
+          <span style="font-size:10px;color:var(--dim)">${played} rounds</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:10px">
+          <div>Win <b>${winRate}%</b></div>
+          <div>Skip <b>${skipRate}%</b></div>
+          <div>Total <b>${played}</b></div>
+        </div>
+      </div>`;
+    };
+    const calibrationRows=Object.entries(bins).map(([k,v])=>{
+      const rate=v.total?Math.round((v.wins/v.total)*100):0;
+      return `<div style="display:flex;justify-content:space-between;font-size:10px;padding:4px 0;border-bottom:1px solid rgba(201,168,76,.08)"><span>${k}</span><strong>${rate}%</strong></div>`;
+    }).join('');
+    const experts=expertEntries.map(([name,st])=>{
+      const rate=st.total?Math.round((st.wins/Math.max(1,st.total-st.skips))*100):0;
+      return `<div style="display:flex;justify-content:space-between;font-size:10px;padding:4px 0;border-bottom:1px solid rgba(201,168,76,.08)"><span>${name}</span><strong>${rate}%</strong></div>`;
+    }).join('')||'<div style="font-size:10px;color:var(--dim)">ยังไม่มี expert data</div>';
+    host.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px">
+          <div style="font-size:9px;letter-spacing:.12em;color:var(--dim);margin-bottom:6px">OVERVIEW</div>
+          <div style="display:grid;gap:5px;font-size:11px">
+            <div>Total rounds <b>${total}</b></div>
+            <div>Wins <b>${a.overall?.wins||0}</b></div>
+            <div>Losses <b>${a.overall?.losses||0}</b></div>
+            <div>Skips <b>${a.overall?.skips||0}</b></div>
+          </div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px">
+          <div style="font-size:9px;letter-spacing:.12em;color:var(--dim);margin-bottom:6px">CALIBRATION</div>
+          <div style="display:grid;gap:4px">${calibrationRows || '<div style="font-size:10px;color:var(--dim)">No calibration yet</div>'}</div>
+        </div>
+      </div>
+      <div style="display:grid;gap:8px">
+        ${regimeCard('TREND','var(--bl)')}
+        ${regimeCard('CHOP','var(--pl)')}
+        ${regimeCard('VOLATILE','var(--gold)')}
+        ${regimeCard('MIXED','var(--tie)')}
+        ${regimeCard('WEAK_SIGNAL','var(--dim)')}
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px">
+        <div style="font-size:9px;letter-spacing:.12em;color:var(--dim);margin-bottom:6px">TOP EXPERTS</div>
+        <div style="display:grid;gap:2px">${experts}</div>
+      </div>
+    `;
+  }catch(err){
+    host.innerHTML = `<div style="font-size:11px;color:var(--dim);padding:8px 2px">Dashboard load failed: ${err.message}</div>`;
+  }
+}
+
+async function refreshRegimeDashboard(){
+  await loadRegimeDashboard();
+}
+
 function showSuggest(){
+  loadRegimeDashboard();
   const box=document.getElementById('suggest');
   if(S.hist.length<1){box.classList.remove('show');return;}
   box.classList.add('show');
