@@ -7,6 +7,8 @@ import { createLocalStateStore } from '../storage/localStateStore.js';
 import { createSessionStore } from '../storage/sessionStore.js';
 import { createLogger } from '../utils/logger.js';
 
+const API_BASE = '';
+
 export function createAppController() {
   const logger = createLogger('controller');
   const gameEngine = createGameEngine();
@@ -58,6 +60,21 @@ export function createAppController() {
     };
   }
 
+  async function fetchPrediction() {
+    try {
+      const response = await fetch(`${API_BASE}/api/predict`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ history: state.game.history, roadmap: state.game.roadmap })
+      });
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (error) {
+      logger.warn('predict request failed', { error: error.message });
+      return null;
+    }
+  }
+
   function render() {
     const predictionText = document.getElementById('predictionText');
     const recommendationText = document.getElementById('recommendationText');
@@ -106,7 +123,6 @@ export function createAppController() {
     }
     if (serviceStatus) serviceStatus.textContent = state.status;
 
-    // ── AI Vote Panel ────────────────────────────────────────────────────────
     const votePanel = document.getElementById('votePanel');
     if (votePanel && state.vote?.votes?.length) {
       const { tally, votes, winner, confidence, isTie } = state.vote;
@@ -152,9 +168,22 @@ export function createAppController() {
     }
   }
 
-  function refreshFromGame() {
+  async function refreshFromGame() {
     const encoded = stateEncoder.encode(state.game.history, state.game.roadmap);
-    const aiResult = aiEngine.predict(encoded.vector, encoded.metrics, state.game.history);
+    const localResult = aiEngine.predict(encoded.vector, encoded.metrics, state.game.history);
+    const remoteResult = await fetchPrediction();
+    const aiResult = remoteResult?.prediction
+      ? {
+          action: remoteResult.prediction.action,
+          confidence: remoteResult.prediction.confidence,
+          chaos: remoteResult.prediction.chaos,
+          risk: remoteResult.prediction.risk,
+          recommendation: remoteResult.prediction.recommendation,
+          transition: remoteResult.prediction.transition,
+          vote: remoteResult.prediction.vote,
+          explored: remoteResult.prediction.explored
+        }
+      : localResult;
 
     state.ai.stateVector = encoded.vector;
     state.ai.entropy = Math.round(encoded.metrics.entropyScore * 100);
@@ -172,39 +201,49 @@ export function createAppController() {
     state.recommendation = state.ai.recommendation;
     state.vote = aiResult.vote ?? state.vote;
     state.aiStats = {
-      mode: aiResult.explored ? 'DQN EXPLORATION' : 'DQN POLICY',
+      mode: remoteResult?.ok ? 'REMOTE API' : (aiResult.explored ? 'DQN EXPLORATION' : 'DQN POLICY'),
       samples: state.game.history.length,
       accuracy: 0,
       skipRate: Math.round((state.game.history.filter((x) => x === ACTIONS.SKIP).length / Math.max(1, state.game.history.length)) * 100)
     };
   }
 
-  function seedDemoData() {
+  async function seedDemoData() {
     syncGameMetrics([ACTIONS.BANKER, ACTIONS.BANKER, ACTIONS.PLAYER, ACTIONS.PLAYER, ACTIONS.BANKER]);
-    refreshFromGame();
+    await refreshFromGame();
     state.status = 'READY';
   }
 
-  function saveSessionSnapshot() {
-    sessionStore.save({
+  async function saveSessionSnapshot() {
+    const snapshot = {
       rounds: state.game.history.length,
       p: state.game.stats.player,
       b: state.game.stats.banker,
       t: state.game.stats.tie,
       pnl: 0,
       createdAt: Date.now()
-    });
+    };
+    sessionStore.save(snapshot);
+    try {
+      await fetch(`${API_BASE}/api/session`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(snapshot)
+      });
+    } catch (error) {
+      logger.warn('session sync failed', { error: error.message });
+    }
   }
 
-  function init() {
+  async function init() {
     const restored = restore();
-    if (!restored) seedDemoData();
+    if (!restored) await seedDemoData();
     else {
       syncGameMetrics(state.game.history || []);
-      refreshFromGame();
+      await refreshFromGame();
       state.status = 'RESTORED';
     }
-    saveSessionSnapshot();
+    await saveSessionSnapshot();
     persist();
     render();
     logger.info('controller initialized', { restored });
