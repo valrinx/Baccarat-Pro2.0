@@ -1449,7 +1449,7 @@ function resolveRound(w,p,b,nat){
   renderDerivedRoads();
   updateOdds();
   saveCurrent();
-  syncBackendAnalytics(w);
+  syncBackendAnalytics(w).then(()=>refreshRegimeDashboard());
 }
 
 function dealHand(){
@@ -3457,6 +3457,8 @@ function renderVotePanel(result){
   `;
 }
 
+let regimeDashboardRefreshTimer=null;
+
 async function loadRegimeDashboard(){
   const host=document.getElementById('regimeDashboardBody');
   if(!host)return;
@@ -3530,6 +3532,10 @@ async function loadRegimeDashboard(){
 
 async function refreshRegimeDashboard(){
   await loadRegimeDashboard();
+  if(regimeDashboardRefreshTimer) clearTimeout(regimeDashboardRefreshTimer);
+  regimeDashboardRefreshTimer=setTimeout(()=>{
+    loadRegimeDashboard();
+  }, 1200);
 }
 
 function showSuggest(){
